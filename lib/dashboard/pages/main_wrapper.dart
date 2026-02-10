@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:organization_frontend_app/employee/pages/employee_list_page.dart';
+import 'package:organization_frontend_app/equipment/pages/equipment_list_page.dart';
 import '../../theme/app_theme.dart';
 import 'dashboard_page.dart';
 import '../../site/pages/site_list_page.dart';
-import '../../employee/pages/employee_list_page.dart'; // Import Employee
-import '../../equipment/pages/equipment_list_page.dart'; // Import Equipment
 import '../../settings/pages/settings_page.dart';
 
 class MainWrapper extends StatefulWidget {
