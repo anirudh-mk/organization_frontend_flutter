@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:organization_frontend_app/site/pages/site_list_page.dart';
 import '../../theme/app_theme.dart';
 import 'dashboard_page.dart';
 import '../../settings/pages/settings_page.dart';
@@ -16,17 +17,14 @@ class _MainWrapperState extends State<MainWrapper> {
   // List of pages to display
   final List<Widget> _pages = [
     const DashboardPage(),
-    const Center(child: Text("Projects Page")), // Placeholder for Projects
+    const SiteListPage(), // Placeholder for Projects
     const SettingsPage(),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _pages,
-      ),
+      body: IndexedStack(index: _currentIndex, children: _pages),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           boxShadow: [
