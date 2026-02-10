@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:organization_frontend_app/site/pages/site_list_page.dart';
 import '../../theme/app_theme.dart';
 import 'dashboard_page.dart';
+import '../../site/pages/site_list_page.dart';
+import '../../employee/pages/employee_list_page.dart'; // Import Employee
+import '../../equipment/pages/equipment_list_page.dart'; // Import Equipment
 import '../../settings/pages/settings_page.dart';
 
 class MainWrapper extends StatefulWidget {
@@ -14,16 +16,19 @@ class MainWrapper extends StatefulWidget {
 class _MainWrapperState extends State<MainWrapper> {
   int _currentIndex = 0;
 
-  // List of pages to display
+  // 1. Expanded list of pages
   final List<Widget> _pages = [
     const DashboardPage(),
-    const SiteListPage(), // Placeholder for Projects
+    const SiteListPage(),
+    const EmployeeListPage(), // Added
+    const EquipmentListPage(), // Added
     const SettingsPage(),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // IndexedStack preserves the scroll state of each page
       body: IndexedStack(index: _currentIndex, children: _pages),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
@@ -43,19 +48,27 @@ class _MainWrapperState extends State<MainWrapper> {
           unselectedItemColor: AppColors.textGrey.withValues(alpha: 0.5),
           showSelectedLabels: true,
           showUnselectedLabels: false,
-          type: BottomNavigationBarType.fixed,
+          type: BottomNavigationBarType.fixed, // Essential for more than 3 items
           items: const [
             BottomNavigationBarItem(
-              icon: Icon(Icons.dashboard_rounded),
+              icon: Icon(Icons.grid_view_rounded),
               label: 'Home',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.architecture_rounded),
-              label: 'Projects',
+              label: 'Sites',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.settings_rounded),
-              label: 'Settings',
+              icon: Icon(Icons.groups_rounded),
+              label: 'Staff',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.construction_rounded),
+              label: 'Gear',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.settings_outlined),
+              label: 'Menu',
             ),
           ],
         ),
