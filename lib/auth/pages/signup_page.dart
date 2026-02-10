@@ -55,6 +55,19 @@ class _SignupPageState extends State<SignupPage> {
   }
 
   @override
+  void dispose() {
+    _firstNameController.dispose();
+    _lastNameController.dispose();
+    _emailController.dispose();
+    _mobileController.dispose();
+    _dobController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: bgLight,
@@ -94,7 +107,8 @@ class _SignupPageState extends State<SignupPage> {
           height: 8,
           width: index == _currentStep ? 24 : 8,
           decoration: BoxDecoration(
-            color: isActive ? primaryBlue : primaryBlue.withOpacity(0.2),
+            // UPDATED: .withValues() instead of .withOpacity()
+            color: isActive ? primaryBlue : primaryBlue.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(10),
           ),
         );
@@ -102,7 +116,6 @@ class _SignupPageState extends State<SignupPage> {
     );
   }
 
-  // STEP 1: Role Selection
   Widget _buildRoleStep() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -137,7 +150,8 @@ class _SignupPageState extends State<SignupPage> {
           border: Border.all(color: isSelected ? primaryBlue : Colors.transparent, width: 2),
           boxShadow: [
             BoxShadow(
-              color: primaryBlue.withOpacity(isSelected ? 0.1 : 0.05),
+              // UPDATED: .withValues()
+              color: primaryBlue.withValues(alpha: isSelected ? 0.1 : 0.05),
               blurRadius: 20,
               offset: const Offset(0, 10),
             )
@@ -148,7 +162,8 @@ class _SignupPageState extends State<SignupPage> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: isSelected ? primaryBlue : primaryBlue.withOpacity(0.1),
+                // UPDATED: .withValues()
+                color: isSelected ? primaryBlue : primaryBlue.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Icon(icon, color: isSelected ? Colors.white : primaryBlue),
@@ -165,7 +180,8 @@ class _SignupPageState extends State<SignupPage> {
             ),
             Icon(
               isSelected ? Icons.check_circle_rounded : Icons.arrow_forward_ios_rounded,
-              color: isSelected ? primaryBlue : textGrey.withOpacity(0.3),
+              // UPDATED: .withValues()
+              color: isSelected ? primaryBlue : textGrey.withValues(alpha: 0.3),
               size: 20,
             ),
           ],
@@ -174,7 +190,6 @@ class _SignupPageState extends State<SignupPage> {
     );
   }
 
-  // STEP 2: Basic Details
   Widget _buildDetailsStep() {
     return _stepWrapper(
       title: "Personal Info",
@@ -202,7 +217,6 @@ class _SignupPageState extends State<SignupPage> {
     );
   }
 
-  // STEP 3: Password
   Widget _buildPasswordStep() {
     return _stepWrapper(
       title: "Security",
@@ -235,8 +249,10 @@ class _SignupPageState extends State<SignupPage> {
             fillColor: surfaceWhite,
             prefixIcon: Icon(icon, color: primaryBlue, size: 20),
             hintText: label,
-            hintStyle: TextStyle(color: textGrey.withOpacity(0.5), fontSize: 14),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Colors.blue.withOpacity(0.1))),
+            // UPDATED: .withValues()
+            hintStyle: TextStyle(color: textGrey.withValues(alpha: 0.5), fontSize: 14),
+            // UPDATED: .withValues()
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Colors.blue.withValues(alpha: 0.1))),
             focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: primaryBlue, width: 2)),
           ),
         ),

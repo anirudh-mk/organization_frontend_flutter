@@ -33,7 +33,8 @@ class ForgotPasswordPage extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: primaryBlue.withOpacity(0.1),
+                  // Updated to withValues
+                  color: primaryBlue.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
@@ -44,7 +45,6 @@ class ForgotPasswordPage extends StatelessWidget {
               ),
               const SizedBox(height: 24),
 
-              // Title & Instructions
               const Text(
                 "Forgot Password?",
                 style: TextStyle(
@@ -65,7 +65,6 @@ class ForgotPasswordPage extends StatelessWidget {
               ),
               const SizedBox(height: 48),
 
-              // Email Input Field
               const Text(
                 "Email Address",
                 style: TextStyle(
@@ -80,8 +79,9 @@ class ForgotPasswordPage extends StatelessWidget {
                   filled: true,
                   fillColor: Colors.white,
                   hintText: "Enter your email",
-                  hintStyle: TextStyle(color: Colors.grey.withOpacity(0.5), fontSize: 15),
-                  prefixIcon: Icon(Icons.email_outlined, color: primaryBlue.withOpacity(0.6), size: 22),
+                  // Updated to withValues
+                  hintStyle: TextStyle(color: Colors.grey.withValues(alpha: 0.5), fontSize: 15),
+                  prefixIcon: Icon(Icons.email_outlined, color: primaryBlue.withValues(alpha: 0.6), size: 22),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
                     borderSide: const BorderSide(color: Colors.transparent),
@@ -103,7 +103,8 @@ class ForgotPasswordPage extends StatelessWidget {
                   borderRadius: BorderRadius.circular(18),
                   boxShadow: [
                     BoxShadow(
-                      color: primaryBlue.withOpacity(0.2),
+                      // Updated to withValues
+                      color: primaryBlue.withValues(alpha: 0.2),
                       blurRadius: 20,
                       offset: const Offset(0, 10),
                     ),
@@ -130,7 +131,6 @@ class ForgotPasswordPage extends StatelessWidget {
 
               const SizedBox(height: 40),
 
-              // Footer: Back to Login
               Center(
                 child: TextButton(
                   onPressed: () => Navigator.pop(context),
@@ -158,4 +158,3 @@ class ForgotPasswordPage extends StatelessWidget {
     );
   }
 }
-
