@@ -115,7 +115,52 @@ class QuickMenuPage extends StatelessWidget {
                   color: Colors.amber,
                   onTap: () => onNavigateToTab(4),
                 ),
+                _ShortcutCard(
+                  icon: Icons.assignment_ind_rounded,
+                  title: "Assign Site Manager",
+                  subtitle: "Allocate supervision to projects",
+                  color: Colors.teal,
+                  onTap: () => onNavigateToTab(1), // Navigates to Sites tab
+                ),
 
+                const SizedBox(height: 32),
+
+                /// Finance & HR Section
+                const _SectionTitle(title: "Finance & HR"),
+                const SizedBox(height: 16),
+                GridView.count(
+                  crossAxisCount: 4,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  mainAxisSpacing: 16,
+                  crossAxisSpacing: 12,
+                  children: [
+                    _QuickMenuIcon(
+                      icon: Icons.fact_check_rounded,
+                      label: "Attendance",
+                      color: Colors.green,
+                      onTap: () => onNavigateToTab(3), // Navigates to Staff tab
+                    ),
+                    _QuickMenuIcon(
+                      icon: Icons.account_balance_wallet_rounded,
+                      label: "Payments",
+                      color: Colors.indigo,
+                      onTap: () {
+                         // Placeholder for Payments
+                         debugPrint("Navigate to Payments");
+                      },
+                    ),
+                    _QuickMenuIcon(
+                      icon: Icons.analytics_rounded,
+                      label: "Reports",
+                      color: Colors.redAccent,
+                      onTap: () {
+                         // Placeholder for Reports
+                         debugPrint("Navigate to Reports");
+                      },
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 24),
 
                 /// Settings Section
