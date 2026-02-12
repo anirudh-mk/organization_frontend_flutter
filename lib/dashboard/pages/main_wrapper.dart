@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:organization_frontend_app/dashboard/pages/quick_menu_page.dart';
 import 'package:organization_frontend_app/employee/pages/employee_list_page.dart';
 import 'package:organization_frontend_app/equipment/pages/equipment_list_page.dart';
 import '../../theme/app_theme.dart';
 import 'dashboard_page.dart';
 import '../../site/pages/site_list_page.dart';
-import '../../settings/pages/settings_page.dart';
 
 class MainWrapper extends StatefulWidget {
   const MainWrapper({super.key});
@@ -16,14 +16,21 @@ class MainWrapper extends StatefulWidget {
 class _MainWrapperState extends State<MainWrapper> {
   int _currentIndex = 0;
 
-  // 1. Expanded list of pages
-  final List<Widget> _pages = [
-    const DashboardPage(),
-    const SiteListPage(),
-    const EmployeeListPage(), // Added
-    const EquipmentListPage(), // Added
-    const SettingsPage(),
-  ];
+  late final List<Widget> _pages;
+
+  @override
+  void initState() {
+    super.initState();
+    _pages = [
+      const DashboardPage(),
+      const SiteListPage(),
+      QuickMenuPage(onNavigateToTab: (index) {
+        setState(() => _currentIndex = index);
+      }),
+      const EmployeeListPage(),
+      const EquipmentListPage(),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -58,6 +65,10 @@ class _MainWrapperState extends State<MainWrapper> {
               icon: Icon(Icons.architecture_rounded),
               label: 'Sites',
             ),
+             BottomNavigationBarItem(
+              icon: Icon(Icons.apps_rounded),
+              label: 'Quick Menu',
+            ),
             BottomNavigationBarItem(
               icon: Icon(Icons.groups_rounded),
               label: 'Staff',
@@ -65,10 +76,6 @@ class _MainWrapperState extends State<MainWrapper> {
             BottomNavigationBarItem(
               icon: Icon(Icons.construction_rounded),
               label: 'Gear',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.settings_outlined),
-              label: 'Menu',
             ),
           ],
         ),
