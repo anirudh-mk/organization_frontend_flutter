@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../services/auth_service.dart';
 
+enum LoginMethod { password, otp }
+
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -11,11 +13,41 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   final _otpController = TextEditingController();
   final _authService = AuthService();
   
+  LoginMethod _loginMethod = LoginMethod.password;
   bool _isOtpSent = false;
   bool _isLoading = false;
+
+  Future<void> _handlePasswordLogin() async {
+    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+       ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Email and Password are required"), backgroundColor: AppColors.error),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      final success = await _authService.loginWithPassword(
+        _emailController.text.trim(),
+        _passwordController.text,
+      );
+      if (success && mounted) {
+        Navigator.pushReplacementNamed(context, '/dashboard');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   Future<void> _handleRequestOtp() async {
     if (_emailController.text.isEmpty) return;
@@ -73,6 +105,17 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  void _toggleLoginMethod() {
+    setState(() {
+      if (_loginMethod == LoginMethod.password) {
+        _loginMethod = LoginMethod.otp;
+      } else {
+        _loginMethod = LoginMethod.password;
+        _isOtpSent = false;
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -104,12 +147,14 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  _isOtpSent ? "Check your email for OTP" : "Sign in to access your dashboard",
+                  _loginMethod == LoginMethod.otp && _isOtpSent 
+                      ? "Check your email for OTP" 
+                      : "Sign in to access your dashboard",
                   style: theme.textTheme.bodyLarge?.copyWith(color: AppColors.textSecondary),
                 ),
                 const SizedBox(height: 48),
 
-                if (!_isOtpSent) ...[
+                if (_loginMethod == LoginMethod.password) ...[
                   _buildInputLabel("Email Address"),
                   TextField(
                     controller: _emailController,
@@ -119,7 +164,27 @@ class _LoginPageState extends State<LoginPage> {
                       prefixIcon: Icon(Icons.alternate_email_rounded, size: 20),
                     ),
                   ),
-                ] else ...[
+                  const SizedBox(height: 20),
+                  _buildInputLabel("Password"),
+                  TextField(
+                    controller: _passwordController,
+                    obscureText: true,
+                    decoration: const InputDecoration(
+                      hintText: "Enter your password",
+                      prefixIcon: Icon(Icons.lock_outline_rounded, size: 20),
+                    ),
+                  ),
+                ] else if (_loginMethod == LoginMethod.otp && !_isOtpSent) ...[
+                  _buildInputLabel("Email Address"),
+                  TextField(
+                    controller: _emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: const InputDecoration(
+                      hintText: "name@company.com",
+                      prefixIcon: Icon(Icons.alternate_email_rounded, size: 20),
+                    ),
+                  ),
+                ] else if (_loginMethod == LoginMethod.otp && _isOtpSent) ...[
                   _buildInputLabel("One-Time Password"),
                   TextField(
                     controller: _otpController,
@@ -138,22 +203,25 @@ class _LoginPageState extends State<LoginPage> {
                   child: ElevatedButton(
                     onPressed: _isLoading 
                       ? null 
-                      : (_isOtpSent ? _handleVerifyOtp : _handleRequestOtp),
+                      : (_loginMethod == LoginMethod.password ? _handlePasswordLogin : (_isOtpSent ? _handleVerifyOtp : _handleRequestOtp)),
                     child: _isLoading 
                       ? const CircularProgressIndicator(color: Colors.white)
-                      : Text(_isOtpSent ? "Verify OTP" : "Send OTP"),
+                      : Text(_loginMethod == LoginMethod.password ? "Login" : (_isOtpSent ? "Verify OTP" : "Send OTP")),
                   ),
                 ),
 
-                if (_isOtpSent) ...[
-                  const SizedBox(height: 16),
-                  Center(
-                    child: TextButton(
-                      onPressed: () => setState(() => _isOtpSent = false),
-                      child: const Text("Change Email", style: TextStyle(color: AppColors.accent)),
+                const SizedBox(height: 16),
+                Center(
+                  child: TextButton(
+                    onPressed: _toggleLoginMethod,
+                    child: Text(
+                      _loginMethod == LoginMethod.password 
+                        ? "Login with OTP Instead" 
+                        : "Login with Password Instead", 
+                      style: const TextStyle(color: AppColors.accent)
                     ),
                   ),
-                ],
+                ),
 
                 const SizedBox(height: 32),
                 Center(
@@ -162,7 +230,9 @@ class _LoginPageState extends State<LoginPage> {
                     children: [
                       const Text("New here?", style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w500)),
                       TextButton(
-                        onPressed: () {},
+                        onPressed: () {
+                           Navigator.pushNamed(context, '/signup');
+                        },
                         child: const Text(
                           "Create Enterprise Account",
                           style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w800),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
+import '../services/auth_service.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
@@ -10,8 +11,11 @@ class SignupPage extends StatefulWidget {
 
 class _SignupPageState extends State<SignupPage> {
   final PageController _pageController = PageController();
+  final AuthService _authService = AuthService();
+
   int _currentStep = 0;
   String? _userRole;
+  bool _isLoading = false;
 
   // Using global AppColors for consistency
   Color get primaryColor => AppColors.primary;
@@ -228,8 +232,44 @@ class _SignupPageState extends State<SignupPage> {
         const SizedBox(height: 20),
         _customField("Confirm Password", _confirmPasswordController, Icons.shield_outlined, isPassword: true),
       ],
-      onNext: () {
-        // Final Registration Logic
+      onNext: () async {
+        if (_passwordController.text.isEmpty || _passwordController.text != _confirmPasswordController.text) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Passwords must match and cannot be empty"), backgroundColor: AppColors.error),
+          );
+          return;
+        }
+        if (_emailController.text.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Email is required"), backgroundColor: AppColors.error),
+          );
+          return;
+        }
+
+        setState(() => _isLoading = true);
+        try {
+          final success = await _authService.registerWithPassword(
+            email: _emailController.text.trim(),
+            password: _passwordController.text,
+            firstName: _firstNameController.text.trim(),
+            lastName: _lastNameController.text.trim(),
+            mobile: _mobileController.text.trim(),
+            dob: _dobController.text.trim(),
+          );
+          if (success) {
+            if (mounted) {
+              Navigator.pushReplacementNamed(context, '/dashboard');
+            }
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error),
+            );
+          }
+        } finally {
+          if (mounted) setState(() => _isLoading = false);
+        }
       },
     );
   }
@@ -277,14 +317,16 @@ class _SignupPageState extends State<SignupPage> {
             width: double.infinity,
             height: 60,
             child: ElevatedButton(
-              onPressed: onNext,
+              onPressed: _isLoading ? null : onNext,
               style: ElevatedButton.styleFrom(
                 backgroundColor: primaryColor,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
                 elevation: 0,
               ),
-              child: Text(isFinal ? "Finish Registration" : "Continue", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              child: _isLoading 
+                ? const CircularProgressIndicator(color: Colors.white) 
+                : Text(isFinal ? "Finish Registration" : "Continue", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             ),
           ),
           const SizedBox(height: 40),
