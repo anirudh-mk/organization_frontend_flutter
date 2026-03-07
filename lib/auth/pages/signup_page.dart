@@ -14,7 +14,6 @@ class _SignupPageState extends State<SignupPage> {
   final AuthService _authService = AuthService();
 
   int _currentStep = 0;
-  String? _userRole;
   bool _isLoading = false;
 
   // Using global AppColors for consistency
@@ -33,7 +32,24 @@ class _SignupPageState extends State<SignupPage> {
   final TextEditingController _confirmPasswordController = TextEditingController();
 
   void _nextStep() {
-    if (_currentStep < 2) {
+    if (_currentStep == 0) {
+      if (_firstNameController.text.trim().isEmpty ||
+          _lastNameController.text.trim().isEmpty ||
+          _emailController.text.trim().isEmpty ||
+          _mobileController.text.trim().isEmpty ||
+          _dobController.text.trim().isEmpty) {
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Please fill in all personal info fields to continue"), 
+            backgroundColor: AppColors.error,
+          ),
+        );
+        return;
+      }
+    }
+
+    if (_currentStep < 1) {
       _pageController.nextPage(
         duration: const Duration(milliseconds: 500),
         curve: Curves.fastOutSlowIn,
@@ -93,7 +109,6 @@ class _SignupPageState extends State<SignupPage> {
         physics: const NeverScrollableScrollPhysics(),
         onPageChanged: (page) => setState(() => _currentStep = page),
         children: [
-          _buildRoleStep(),
           _buildDetailsStep(),
           _buildPasswordStep(),
         ],
@@ -104,7 +119,7 @@ class _SignupPageState extends State<SignupPage> {
   Widget _buildStepIndicator() {
     return Row(
       mainAxisSize: MainAxisSize.min,
-      children: List.generate(3, (index) {
+      children: List.generate(2, (index) {
         bool isActive = index <= _currentStep;
         return AnimatedContainer(
           duration: const Duration(milliseconds: 300),
@@ -118,80 +133,6 @@ class _SignupPageState extends State<SignupPage> {
           ),
         );
       }),
-    );
-  }
-
-  Widget _buildRoleStep() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 30),
-          Text("Join Us", style: TextStyle(color: textPrimary, fontSize: 32, fontWeight: FontWeight.w800, letterSpacing: -1)),
-          Text("Select how you want to use the platform", style: TextStyle(color: textSecondary, fontSize: 16)),
-          const SizedBox(height: 40),
-          _roleCard("Job Seeker", "Finding opportunities", Icons.person_search_rounded),
-          const SizedBox(height: 20),
-          _roleCard("Owner", "Hiring and managing", Icons.business_rounded),
-        ],
-      ),
-    );
-  }
-
-  Widget _roleCard(String title, String subtitle, IconData icon) {
-    bool isSelected = _userRole == title;
-    return GestureDetector(
-      onTap: () {
-        setState(() => _userRole = title);
-        Future.delayed(const Duration(milliseconds: 400), _nextStep);
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 250),
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: surfaceColor,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: isSelected ? primaryColor : AppColors.textMuted.withValues(alpha: 0.1), width: 1.5),
-          boxShadow: [
-            BoxShadow(
-              // UPDATED: .withValues()
-              color: Colors.black.withValues(alpha: isSelected ? 0.08 : 0.04),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
-            )
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                // UPDATED: .withValues()
-                color: isSelected ? primaryColor : primaryColor.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Icon(icon, color: isSelected ? Colors.white : primaryColor),
-            ),
-            const SizedBox(width: 20),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: TextStyle(color: textPrimary, fontWeight: FontWeight.bold, fontSize: 18)),
-                  Text(subtitle, style: TextStyle(color: textSecondary, fontSize: 14)),
-                ],
-              ),
-            ),
-            Icon(
-              isSelected ? Icons.check_circle_rounded : Icons.arrow_forward_ios_rounded,
-              // UPDATED: .withValues()
-              color: isSelected ? primaryColor : textSecondary.withValues(alpha: 0.3),
-              size: 20,
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -302,36 +243,46 @@ class _SignupPageState extends State<SignupPage> {
   }
 
   Widget _stepWrapper({required String title, required String subtitle, required List<Widget> fields, required VoidCallback onNext, bool isFinal = false}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 30),
-          Text(title, style: TextStyle(color: textPrimary, fontSize: 32, fontWeight: FontWeight.w800, letterSpacing: -1)),
-          Text(subtitle, style: TextStyle(color: textSecondary, fontSize: 16)),
-          const SizedBox(height: 32),
-          ...fields,
-          const Spacer(),
-          SizedBox(
-            width: double.infinity,
-            height: 60,
-            child: ElevatedButton(
-              onPressed: _isLoading ? null : onNext,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: primaryColor,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                elevation: 0,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: IntrinsicHeight(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 30),
+                  Text(title, style: TextStyle(color: textPrimary, fontSize: 32, fontWeight: FontWeight.w800, letterSpacing: -1)),
+                  Text(subtitle, style: TextStyle(color: textSecondary, fontSize: 16)),
+                  const SizedBox(height: 32),
+                  ...fields,
+                  const Spacer(),
+                  const SizedBox(height: 32),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 60,
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : onNext,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryColor,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                        elevation: 0,
+                      ),
+                      child: _isLoading 
+                        ? const CircularProgressIndicator(color: Colors.white) 
+                        : Text(isFinal ? "Finish Registration" : "Continue", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+                ],
               ),
-              child: _isLoading 
-                ? const CircularProgressIndicator(color: Colors.white) 
-                : Text(isFinal ? "Finish Registration" : "Continue", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             ),
           ),
-          const SizedBox(height: 40),
-        ],
-      ),
+        );
+      },
     );
   }
 }

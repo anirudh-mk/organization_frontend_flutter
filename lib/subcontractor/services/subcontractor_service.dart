@@ -4,7 +4,7 @@ import '../models/subcontractor_model.dart';
 import '../../shared/services/base_service.dart';
 
 class SubcontractorService extends BaseService {
-  static const String baseUrl = 'https://abdominal-danyelle-unindicative.ngrok-free.dev/api/v1/subcontractor/subcontractors/';
+  static const String baseUrl = 'http://10.0.2.2:8000/api/v1/subcontractor/subcontractors/';
 
   Future<List<SubcontractorModel>> getSubcontractors() async {
     try {

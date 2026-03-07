@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'token_manager.dart';
 
 class AuthService {
-  static const String authBaseUrl = 'https://abdominal-danyelle-unindicative.ngrok-free.dev/api/v1/user';
+  static const String authBaseUrl = 'https://abdominal-danyelle-unindicative.ngrok-free.dev/api/v1/accounts/user';
   // Use http://10.0.2.2:8000/api/v1/accounts/user for local Android Emulator testing if needed
 
   Future<bool> requestOtp(String email) async {
@@ -50,21 +50,29 @@ class AuthService {
     required String dob,
   }) async {
     try {
-      // For local testing on android emulator, user may need to change authBaseUrl. Left as ngrok per user setup.
+      final url = Uri.parse('$authBaseUrl/password-signup/');
+      final payload = {
+        'email': email,
+        'password': password,
+        'first_name': firstName,
+        'last_name': lastName,
+        'phone_number': mobile,
+        'dob': _formatDateForDjango(dob),
+      };
+
+      print('----- DEBUG REGISTER API -----');
+      print('URL: $url');
+      print('Payload: $payload');
+
       final response = await http.post(
-        Uri.parse('$authBaseUrl/password-signup/'), // Based on django urls ending with user/password-signup/
+        url,
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'email': email,
-          'password': password,
-          'first_name': firstName,
-          'last_name': lastName,
-          'phone_number': mobile,
-          // 'dob' might need specific date formatting (YYYY-MM-DD), assume frontend sends it correctly or backend parses DD/MM/YYYY. The serializer expects a date format.
-          // In signup_page.dart it sets it to "${picked.day}/${picked.month}/${picked.year}". Let's reformat it to standard YYYY-MM-DD for Django if needed below, or just pass it directly.
-          'dob': _formatDateForDjango(dob),
-        }),
+        body: jsonEncode(payload),
       );
+
+      print('Response Status: ${response.statusCode}');
+      print('Response Body: ${response.body}');
+      print('------------------------------');
 
       if (response.statusCode == 201) {
         final data = jsonDecode(response.body);
@@ -74,10 +82,20 @@ class AuthService {
           return true;
         }
       } else {
-        throw Exception(response.body); // Let UI handle detailed error
+        try {
+          final errorData = jsonDecode(response.body);
+          if (errorData is Map) {
+             final errorMsg = errorData.values.expand((v) => v is List ? v : [v]).join(', ');
+             throw Exception(errorMsg);
+          }
+        } catch (_) {}
+        throw Exception("Registration failed: ${response.statusCode} - ${response.body}");
       }
       return false;
     } catch (e) {
+      if (e.toString().contains("Exception:")) {
+         throw Exception(e.toString().replaceFirst("Exception: ", ""));
+      }
       throw Exception("Error registering: $e");
     }
   }
@@ -108,6 +126,7 @@ class AuthService {
 
   // Helper to convert DD/MM/YYYY to YYYY-MM-DD for Django
   String _formatDateForDjango(String originalDate) {
+    if (originalDate.isEmpty) return originalDate;
     try {
       final parts = originalDate.split('/');
       if (parts.length == 3) {
@@ -117,6 +136,6 @@ class AuthService {
         return '$year-$month-$day';
       }
     } catch (_) {}
-    return originalDate; // fallback if already correct or empty
+    return originalDate; // fallback
   }
 }

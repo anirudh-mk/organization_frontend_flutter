@@ -4,7 +4,7 @@ import '../models/client_model.dart';
 import '../../shared/services/base_service.dart';
 
 class ClientService extends BaseService {
-  static const String baseUrl = 'https://abdominal-danyelle-unindicative.ngrok-free.dev/api/v1/client/clients';
+  static const String baseUrl = 'http://10.0.2.2:8000/api/v1/client/clients';
 
   Future<List<ClientModel>> getClients() async {
     try {

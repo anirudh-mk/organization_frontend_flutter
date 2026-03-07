@@ -4,7 +4,7 @@ import '../models/vehicle_models.dart';
 import '../../shared/services/base_service.dart';
 
 class VehicleService extends BaseService {
-  static const String baseUrl = 'https://abdominal-danyelle-unindicative.ngrok-free.dev/api/v1/vehicle/vehicles/';
+  static const String baseUrl = 'http://10.0.2.2:8000/api/v1/vehicle/vehicles/';
 
   Future<List<VehicleModel>> getVehicles() async {
     try {
