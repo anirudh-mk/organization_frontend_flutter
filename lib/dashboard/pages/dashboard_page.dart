@@ -8,7 +8,6 @@ class DashboardPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-
     return Scaffold(
       body: CustomScrollView(
         slivers: [
@@ -250,13 +249,18 @@ class _BentoCard extends StatelessWidget {
       padding: EdgeInsets.all(mini ? 12 : 20),
       decoration: BoxDecoration(
         color: color ?? theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(28),
-        border: color == null ? Border.all(color: AppColors.textMuted.withValues(alpha: 0.15)) : null,
+        borderRadius: BorderRadius.circular(32), // Increased for "friendlier" feel
+        border: color == null ? Border.all(color: AppColors.textMuted.withValues(alpha: 0.1)) : null,
         boxShadow: color == null ? [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
+            color: const Color(0xFF0B1222).withValues(alpha: 0.04),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
+          ),
+          BoxShadow(
+            color: const Color(0xFF0B1222).withValues(alpha: 0.02),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
           ),
         ] : null,
       ),

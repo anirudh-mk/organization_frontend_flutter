@@ -8,7 +8,6 @@ class LoginPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
 
     return Scaffold(
       body: SafeArea(
@@ -21,19 +20,22 @@ class LoginPage extends StatelessWidget {
               children: [
                 // Logo or Icon Placeholder
                 Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: colorScheme.primary.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(20),
+                    color: AppColors.primary.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(24),
                   ),
-                  child: Icon(Icons.architecture_rounded, size: 40, color: colorScheme.primary),
+                  child: const Icon(Icons.architecture_rounded, size: 48, color: AppColors.accent),
                 ),
                 const SizedBox(height: 32),
 
                 // Header
                 Text(
-                  "Welcome Back",
-                  style: theme.textTheme.headlineLarge,
+                  "Build Tomorrow",
+                  style: theme.textTheme.headlineLarge?.copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Text(
@@ -63,11 +65,11 @@ class LoginPage extends StatelessWidget {
                         minimumSize: Size.zero,
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
-                      child: Text(
-                        "Forgot?",
+                      child: const Text(
+                        "Forgot Password?",
                         style: TextStyle(
-                          color: colorScheme.secondary,
-                          fontWeight: FontWeight.w600,
+                          color: AppColors.accent,
+                          fontWeight: FontWeight.w700,
                           fontSize: 14,
                         ),
                       ),
@@ -139,14 +141,14 @@ class LoginPage extends StatelessWidget {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text("New here?", style: TextStyle(color: AppColors.textSecondary)),
+                      const Text("New here?", style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w500)),
                       TextButton(
                         onPressed: () => Navigator.pushNamed(context, AuthRoutes.signup),
-                        child: Text(
-                          "Create Account",
+                        child: const Text(
+                          "Create Enterprise Account",
                           style: TextStyle(
-                            color: colorScheme.secondary,
-                            fontWeight: FontWeight.w700,
+                            color: AppColors.accent,
+                            fontWeight: FontWeight.w800,
                           ),
                         ),
                       ),

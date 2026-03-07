@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 
 class AppColors {
   // Core Palette
-  static const primary = Color(0xFF0F172A); // Slate 900
-  static const accent = primary;  // Shifting to Black/Slate aesthetic
-  static const background = Color(0xFFF1F5F9); // Slate 100 (Slightly darker for better contrast)
+  // Core Palette: Midnight Navy & Radiant Amber
+  static const primary = Color(0xFF0B1222);   // Deep Midnight Navy
+  static const accent = Color(0xFF235EF5);    // Radiant Amber
+  static const background = Color(0xFFF1F5F9); // Slate 100
   static const surface = Colors.white;
   
   // Text Colors
@@ -106,8 +107,8 @@ class AppTheme {
         color: AppColors.surface,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-          side: BorderSide(color: AppColors.textMuted.withValues(alpha: 0.15)),
+          borderRadius: BorderRadius.circular(28), // Slightly more rounded
+          side: BorderSide(color: AppColors.textMuted.withValues(alpha: 0.1)),
         ),
       ),
     );

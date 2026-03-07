@@ -192,8 +192,15 @@ class _EquipmentListPageState extends State<EquipmentListPage> {
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.08)),
+          borderRadius: BorderRadius.circular(32),
+          border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.1)),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primary.withValues(alpha: 0.04),
+              blurRadius: 24,
+              offset: const Offset(0, 8),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -254,8 +261,15 @@ class _EquipmentListPageState extends State<EquipmentListPage> {
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.08)),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.1)),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primary.withValues(alpha: 0.03),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Row(
           children: [

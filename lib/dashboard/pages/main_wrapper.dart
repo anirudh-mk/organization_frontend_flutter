@@ -34,8 +34,7 @@ class _MainWrapperState extends State<MainWrapper> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       extendBody: true, // Seamless background for floating navbar
@@ -45,29 +44,34 @@ class _MainWrapperState extends State<MainWrapper> {
         padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
         child: Container(
           decoration: BoxDecoration(
-            color: colorScheme.surface,
+            color: colorScheme.surface.withValues(alpha: 0.95), // Slight transparency for glass effect
             borderRadius: BorderRadius.circular(32),
-            border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.08)),
+            border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.1)),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.06),
-                blurRadius: 24,
-                offset: const Offset(0, 8),
+                color: AppColors.primary.withValues(alpha: 0.08),
+                blurRadius: 32,
+                offset: const Offset(0, 12),
+              ),
+              BoxShadow(
+                color: AppColors.primary.withValues(alpha: 0.04),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
               ),
             ],
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(32),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _buildNavItem(Icons.grid_view_rounded, 'Home', 0),
-              _buildNavItem(Icons.architecture_rounded, 'Sites', 1),
-              _buildNavItem(Icons.apps_rounded, 'Menu', 2),
-              _buildNavItem(Icons.groups_rounded, 'Staff', 3),
-              _buildNavItem(Icons.construction_rounded, 'Gear', 4),
-            ],
-          ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildNavItem(Icons.grid_view_rounded, 'Home', 0),
+                _buildNavItem(Icons.architecture_rounded, 'Sites', 1),
+                _buildNavItem(Icons.apps_rounded, 'Menu', 2),
+                _buildNavItem(Icons.groups_rounded, 'Staff', 3),
+                _buildNavItem(Icons.construction_rounded, 'Gear', 4),
+              ],
+            ),
           ),
         ),
       ),
@@ -89,8 +93,8 @@ class _MainWrapperState extends State<MainWrapper> {
         ),
         child: Icon(
           icon,
-          size: 24,
-          color: isSelected ? Theme.of(context).colorScheme.secondary : AppColors.textMuted,
+          size: isSelected ? 26 : 22,
+          color: isSelected ? AppColors.accent : AppColors.textMuted.withValues(alpha: 0.6),
         ),
       ),
     );
