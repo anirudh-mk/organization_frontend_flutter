@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:organization_frontend_app/settings/pages/settings_page.dart';
 import 'package:organization_frontend_app/warehouse/pages/warehouse_list_page.dart';
 import '../../vehicle/pages/vehicle_list_page.dart';
+import '../../subcontractor/pages/subcontractor_list_page.dart';
 import '../../theme/app_theme.dart';
 
 class QuickMenuPage extends StatelessWidget {
@@ -142,6 +143,20 @@ class QuickMenuPage extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => const VehicleListPage()),
+                    );
+                  },
+                ),
+                const SizedBox(height: 12),
+                _BentoShortcut(
+                  icon: Icons.handshake_rounded,
+                  title: "Subcontractors",
+                  subtitle: "Manage external contacts",
+                  color: AppColors.accent.withValues(alpha: 0.05),
+                  iconColor: AppColors.accent,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const SubcontractorListPage()),
                     );
                   },
                 ),
