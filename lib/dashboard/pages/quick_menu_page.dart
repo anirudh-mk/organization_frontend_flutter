@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:organization_frontend_app/settings/pages/settings_page.dart';
 import 'package:organization_frontend_app/warehouse/pages/warehouse_list_page.dart';
+import '../../vehicle/pages/vehicle_list_page.dart';
 import '../../theme/app_theme.dart';
 
 class QuickMenuPage extends StatelessWidget {
@@ -127,6 +128,20 @@ class QuickMenuPage extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => const WarehouseListPage()),
+                    );
+                  },
+                ),
+                const SizedBox(height: 12),
+                _BentoShortcut(
+                  icon: Icons.local_shipping_rounded,
+                  title: "Vehicle Fleet",
+                  subtitle: "Manage company vehicles",
+                  color: AppColors.primary.withValues(alpha: 0.05),
+                  iconColor: AppColors.primary,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const VehicleListPage()),
                     );
                   },
                 ),
