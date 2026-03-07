@@ -68,3 +68,20 @@ class DistrictModel {
     );
   }
 }
+
+class AddressTypeModel {
+  final int id;
+  final String name;
+
+  AddressTypeModel({
+    required this.id,
+    required this.name,
+  });
+
+  factory AddressTypeModel.fromJson(Map<String, dynamic> json) {
+    return AddressTypeModel(
+      id: json['id'] ?? 0,
+      name: json['name'] ?? '',
+    );
+  }
+}

@@ -55,4 +55,18 @@ class LocationService {
       throw Exception("Error fetching districts: $e");
     }
   }
+
+  Future<List<AddressTypeModel>> getAddressTypes() async {
+    try {
+      final response = await http.get(Uri.parse('${baseUrl}address-type/'));
+      if (response.statusCode == 200) {
+        final List<dynamic> results = _extractResults(jsonDecode(response.body));
+        return results.map((item) => AddressTypeModel.fromJson(item)).toList();
+      } else {
+        throw Exception("Failed to load address types");
+      }
+    } catch (e) {
+      throw Exception("Error fetching address types: $e");
+    }
+  }
 }

@@ -3,6 +3,7 @@ import 'package:organization_frontend_app/settings/pages/settings_page.dart';
 import 'package:organization_frontend_app/warehouse/pages/warehouse_list_page.dart';
 import 'package:organization_frontend_app/site/pages/site_create_page.dart';
 import 'package:organization_frontend_app/employee/pages/employee_create_page.dart';
+import 'package:organization_frontend_app/client/pages/client_list_page.dart';
 import '../../vehicle/pages/vehicle_list_page.dart';
 import '../../subcontractor/pages/subcontractor_list_page.dart';
 import '../../material/pages/material_list_page.dart';
@@ -130,6 +131,20 @@ class QuickMenuPage extends StatelessWidget {
                   color: Colors.amber.withValues(alpha: 0.05),
                   iconColor: Colors.amber,
                   onTap: () => onNavigateToTab(4),
+                ),
+                const SizedBox(height: 12),
+                _BentoShortcut(
+                  icon: Icons.people_alt_rounded,
+                  title: "Manage Clients",
+                  subtitle: "View and add clients",
+                  color: Colors.brown.withValues(alpha: 0.05),
+                  iconColor: Colors.brown,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const ClientListPage()),
+                    );
+                  },
                 ),
                 const SizedBox(height: 12),
                 _BentoShortcut(
