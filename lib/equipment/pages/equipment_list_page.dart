@@ -24,16 +24,12 @@ class _EquipmentListPageState extends State<EquipmentListPage> {
           /// ───────────── Modern Header ─────────────
           SliverAppBar(
             pinned: true,
-            expandedHeight: 120,
-            collapsedHeight: 80,
-            flexibleSpace: FlexibleSpaceBar(
-              background: Container(color: colorScheme.surface),
-              titlePadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              centerTitle: false,
-              title: Text(
-                "Fleet Inventory",
-                style: theme.textTheme.headlineMedium?.copyWith(fontSize: 20),
-              ),
+            toolbarHeight: 72,
+            backgroundColor: AppColors.background,
+            surfaceTintColor: AppColors.background,
+            title: Text(
+              "Fleet Inventory",
+              style: theme.textTheme.headlineMedium?.copyWith(fontSize: 20),
             ),
             actions: [
               IconButton(

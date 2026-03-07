@@ -22,16 +22,12 @@ class _EmployeeListPageState extends State<EmployeeListPage> {
           /// ───────────── Modern Header ─────────────
           SliverAppBar(
             pinned: true,
-            expandedHeight: 120,
-            collapsedHeight: 80,
-            flexibleSpace: FlexibleSpaceBar(
-              background: Container(color: colorScheme.surface),
-              titlePadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              centerTitle: false,
-              title: Text(
-                "Workforce",
-                style: theme.textTheme.headlineMedium?.copyWith(fontSize: 20),
-              ),
+            toolbarHeight: 72,
+            backgroundColor: AppColors.background,
+            surfaceTintColor: AppColors.background,
+            title: Text(
+              "Workforce",
+              style: theme.textTheme.headlineMedium?.copyWith(fontSize: 20),
             ),
             actions: [
               IconButton(
