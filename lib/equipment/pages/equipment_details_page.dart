@@ -62,7 +62,7 @@ class EquipmentDetailPage extends StatelessWidget {
                   const SizedBox(height: 16),
                   Row(
                     children: [
-                      _buildStat("Fuel Level", "72%", Icons.gas_meter_rounded, Colors.blue),
+                      _buildStat("Fuel Level", "72%", Icons.gas_meter_rounded, AppColors.primary),
                       const SizedBox(width: 16),
                       _buildStat("Machine Health", "94%", Icons.handyman_rounded, Colors.teal),
                     ],

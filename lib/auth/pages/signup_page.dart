@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/app_theme.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
@@ -12,12 +13,12 @@ class _SignupPageState extends State<SignupPage> {
   int _currentStep = 0;
   String? _userRole;
 
-  // Theme Colors
-  final Color primaryBlue = const Color(0xFF0066FF);
-  final Color bgLight = const Color(0xFFF5F9FF);
-  final Color surfaceWhite = Colors.white;
-  final Color textNavy = const Color(0xFF1A202C);
-  final Color textGrey = const Color(0xFF718096);
+  // Using global AppColors for consistency
+  Color get primaryColor => AppColors.primary;
+  Color get backgroundColor => AppColors.background;
+  Color get surfaceColor => AppColors.surface;
+  Color get textPrimary => AppColors.textPrimary;
+  Color get textSecondary => AppColors.textSecondary;
 
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
@@ -44,7 +45,7 @@ class _SignupPageState extends State<SignupPage> {
       lastDate: DateTime.now(),
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
-          colorScheme: ColorScheme.light(primary: primaryBlue),
+          colorScheme: ColorScheme.light(primary: primaryColor),
         ),
         child: child!,
       ),
@@ -70,12 +71,12 @@ class _SignupPageState extends State<SignupPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: bgLight,
+      backgroundColor: backgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded, color: textNavy, size: 20),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: textPrimary, size: 20),
           onPressed: () => _currentStep > 0
               ? _pageController.previousPage(duration: const Duration(milliseconds: 300), curve: Curves.easeIn)
               : Navigator.pop(context),
@@ -108,7 +109,7 @@ class _SignupPageState extends State<SignupPage> {
           width: index == _currentStep ? 24 : 8,
           decoration: BoxDecoration(
             // UPDATED: .withValues() instead of .withOpacity()
-            color: isActive ? primaryBlue : primaryBlue.withValues(alpha: 0.2),
+            color: isActive ? primaryColor : primaryColor.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(10),
           ),
         );
@@ -123,8 +124,8 @@ class _SignupPageState extends State<SignupPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 30),
-          Text("Join Us", style: TextStyle(color: textNavy, fontSize: 32, fontWeight: FontWeight.bold)),
-          Text("Select how you want to use the platform", style: TextStyle(color: textGrey, fontSize: 16)),
+          Text("Join Us", style: TextStyle(color: textPrimary, fontSize: 32, fontWeight: FontWeight.w800, letterSpacing: -1)),
+          Text("Select how you want to use the platform", style: TextStyle(color: textSecondary, fontSize: 16)),
           const SizedBox(height: 40),
           _roleCard("Job Seeker", "Finding opportunities", Icons.person_search_rounded),
           const SizedBox(height: 20),
@@ -145,15 +146,15 @@ class _SignupPageState extends State<SignupPage> {
         duration: const Duration(milliseconds: 250),
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: surfaceWhite,
+          color: surfaceColor,
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: isSelected ? primaryBlue : Colors.transparent, width: 2),
+          border: Border.all(color: isSelected ? primaryColor : AppColors.textMuted.withValues(alpha: 0.1), width: 1.5),
           boxShadow: [
             BoxShadow(
               // UPDATED: .withValues()
-              color: primaryBlue.withValues(alpha: isSelected ? 0.1 : 0.05),
+              color: Colors.black.withValues(alpha: isSelected ? 0.08 : 0.04),
               blurRadius: 20,
-              offset: const Offset(0, 10),
+              offset: const Offset(0, 8),
             )
           ],
         ),
@@ -163,25 +164,25 @@ class _SignupPageState extends State<SignupPage> {
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 // UPDATED: .withValues()
-                color: isSelected ? primaryBlue : primaryBlue.withValues(alpha: 0.1),
+                color: isSelected ? primaryColor : primaryColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: Icon(icon, color: isSelected ? Colors.white : primaryBlue),
+              child: Icon(icon, color: isSelected ? Colors.white : primaryColor),
             ),
             const SizedBox(width: 20),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: TextStyle(color: textNavy, fontWeight: FontWeight.bold, fontSize: 18)),
-                  Text(subtitle, style: TextStyle(color: textGrey, fontSize: 14)),
+                  Text(title, style: TextStyle(color: textPrimary, fontWeight: FontWeight.bold, fontSize: 18)),
+                  Text(subtitle, style: TextStyle(color: textSecondary, fontSize: 14)),
                 ],
               ),
             ),
             Icon(
               isSelected ? Icons.check_circle_rounded : Icons.arrow_forward_ios_rounded,
               // UPDATED: .withValues()
-              color: isSelected ? primaryBlue : textGrey.withValues(alpha: 0.3),
+              color: isSelected ? primaryColor : textSecondary.withValues(alpha: 0.3),
               size: 20,
             ),
           ],
@@ -237,7 +238,7 @@ class _SignupPageState extends State<SignupPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(color: textNavy, fontSize: 13, fontWeight: FontWeight.w600)),
+        Text(label, style: TextStyle(color: textPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
         const SizedBox(height: 8),
         TextField(
           controller: controller,
@@ -246,14 +247,14 @@ class _SignupPageState extends State<SignupPage> {
           onTap: onTap,
           decoration: InputDecoration(
             filled: true,
-            fillColor: surfaceWhite,
-            prefixIcon: Icon(icon, color: primaryBlue, size: 20),
+            fillColor: surfaceColor,
+            prefixIcon: Icon(icon, color: primaryColor, size: 20),
             hintText: label,
             // UPDATED: .withValues()
-            hintStyle: TextStyle(color: textGrey.withValues(alpha: 0.5), fontSize: 14),
+            hintStyle: TextStyle(color: textSecondary.withValues(alpha: 0.5), fontSize: 14),
             // UPDATED: .withValues()
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Colors.blue.withValues(alpha: 0.1))),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: primaryBlue, width: 2)),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: AppColors.textMuted.withValues(alpha: 0.15))),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: primaryColor, width: 2)),
           ),
         ),
       ],
@@ -267,8 +268,8 @@ class _SignupPageState extends State<SignupPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 30),
-          Text(title, style: TextStyle(color: textNavy, fontSize: 32, fontWeight: FontWeight.bold)),
-          Text(subtitle, style: TextStyle(color: textGrey, fontSize: 16)),
+          Text(title, style: TextStyle(color: textPrimary, fontSize: 32, fontWeight: FontWeight.w800, letterSpacing: -1)),
+          Text(subtitle, style: TextStyle(color: textSecondary, fontSize: 16)),
           const SizedBox(height: 32),
           ...fields,
           const Spacer(),
@@ -278,7 +279,7 @@ class _SignupPageState extends State<SignupPage> {
             child: ElevatedButton(
               onPressed: onNext,
               style: ElevatedButton.styleFrom(
-                backgroundColor: primaryBlue,
+                backgroundColor: primaryColor,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
                 elevation: 0,

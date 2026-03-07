@@ -251,7 +251,14 @@ class _BentoCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: color ?? theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(28),
-        border: color == null ? Border.all(color: AppColors.textMuted.withValues(alpha: 0.08)) : null,
+        border: color == null ? Border.all(color: AppColors.textMuted.withValues(alpha: 0.15)) : null,
+        boxShadow: color == null ? [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ] : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

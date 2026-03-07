@@ -91,10 +91,10 @@ class SiteDetailPage extends StatelessWidget {
                     mainAxisSpacing: 16,
                     childAspectRatio: 1.3,
                     children: [
-                      _buildResourceCard("Manage Staff", "48 Workers", Icons.groups_rounded, Colors.indigo, () {}),
+                      _buildResourceCard("Manage Staff", "48 Workers", Icons.groups_rounded, AppColors.primary, () {}),
                       _buildResourceCard("Fleet / Units", "12 Units", Icons.construction_rounded, Colors.orange, () {}),
                       _buildResourceCard("Budget Logs", "₹4.5 Cr / 8 Cr", Icons.account_balance_wallet_rounded, Colors.teal, () {}),
-                      _buildResourceCard("Site Reports", "14 Updates", Icons.description_rounded, Colors.blue, () {}),
+                      _buildResourceCard("Site Reports", "14 Updates", Icons.description_rounded, AppColors.primary, () {}),
                     ],
                   ),
 
@@ -110,7 +110,7 @@ class SiteDetailPage extends StatelessWidget {
                   /// ───────────── Critical Tasks ─────────────
                   _SectionHeader(title: "Critical Tasks", trailing: "View All"),
                   const SizedBox(height: 16),
-                  _buildTaskTile("Foundation Reinforcement", "In Progress", 0.85, Colors.indigo),
+                  _buildTaskTile("Foundation Reinforcement", "In Progress", 0.85, AppColors.primary),
                   _buildTaskTile("Electrical Conduit Laying", "Pending", 0.0, AppColors.textMuted),
                   _buildTaskTile("Level 4 Slab Pouring", "Scheduled", 0.1, Colors.orange),
 

@@ -128,7 +128,7 @@ class EmployeeDetailPage extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
         _buildCircleAction(Icons.call_rounded, "Call", Colors.teal),
-        _buildCircleAction(Icons.chat_bubble_rounded, "Chat", Colors.indigo),
+        _buildCircleAction(Icons.chat_bubble_rounded, "Chat", AppColors.primary),
         _buildCircleAction(Icons.history_rounded, "Logs", Colors.orange),
       ],
     );
