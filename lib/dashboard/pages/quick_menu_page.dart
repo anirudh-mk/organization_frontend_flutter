@@ -12,182 +12,148 @@ class QuickMenuPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
-      backgroundColor: AppColors.bgLight,
       body: CustomScrollView(
         slivers: [
-          /// ───────────── Sticky Header ─────────────
+          /// ───────────── Modern Header ─────────────
           SliverAppBar(
             pinned: true,
-            elevation: 0,
-            toolbarHeight: kToolbarHeight + 10,
-            backgroundColor: Colors.white,
-            surfaceTintColor: Colors.transparent,
-            automaticallyImplyLeading: false,
-            titleSpacing: 20,
-            title: const Text(
-              "Quick Access",
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textNavy,
+            expandedHeight: 120,
+            collapsedHeight: 80,
+            flexibleSpace: FlexibleSpaceBar(
+              background: Container(color: colorScheme.surface),
+              titlePadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              centerTitle: false,
+              title: Text(
+                "Quick Access",
+                style: theme.textTheme.headlineMedium?.copyWith(fontSize: 20),
               ),
             ),
             actions: [
               IconButton(
-                icon: const Icon(Icons.settings_outlined, color: AppColors.textNavy),
                 onPressed: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => const SettingsPage()),
                   );
                 },
+                icon: const Icon(Icons.settings_rounded),
+                style: IconButton.styleFrom(
+                  backgroundColor: colorScheme.surface,
+                ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 16),
             ],
           ),
 
           /// ───────────── Content ─────────────
           SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+            padding: const EdgeInsets.all(24),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
-                /// Top Grid - Core Navigation
-                const _SectionTitle(title: "Main Navigation"),
+                /// Navigation Grid
+                const _SectionHeader(title: "Main Navigation"),
                 const SizedBox(height: 16),
-                GridView.count(
-                  crossAxisCount: 4,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  mainAxisSpacing: 16,
-                  crossAxisSpacing: 12,
-                  children: [
-                    _QuickMenuIcon(
-                      icon: Icons.grid_view_rounded,
-                      label: "Home",
-                      color: Colors.blue,
-                      onTap: () => onNavigateToTab(0),
-                    ),
-                    _QuickMenuIcon(
-                      icon: Icons.architecture_rounded,
-                      label: "Sites",
-                      color: Colors.orange,
-                      onTap: () => onNavigateToTab(1),
-                    ),
-                    _QuickMenuIcon(
-                      icon: Icons.groups_rounded,
-                      label: "Staff",
-                      color: Colors.purple,
-                      onTap: () => onNavigateToTab(3),
-                    ),
-                    _QuickMenuIcon(
-                      icon: Icons.construction_rounded,
-                      label: "Tools",
-                      color: Colors.amber,
-                      onTap: () => onNavigateToTab(4),
-                    ),
-                  ],
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    return Wrap(
+                      spacing: 16,
+                      runSpacing: 16,
+                      children: [
+                        _QuickMenuIcon(
+                          icon: Icons.grid_view_rounded,
+                          label: "Home",
+                          onTap: () => onNavigateToTab(0),
+                        ),
+                        _QuickMenuIcon(
+                          icon: Icons.architecture_rounded,
+                          label: "Sites",
+                          onTap: () => onNavigateToTab(1),
+                        ),
+                        _QuickMenuIcon(
+                          icon: Icons.groups_rounded,
+                          label: "Staff",
+                          onTap: () => onNavigateToTab(3),
+                        ),
+                        _QuickMenuIcon(
+                          icon: Icons.construction_rounded,
+                          label: "Gear",
+                          onTap: () => onNavigateToTab(4),
+                        ),
+                      ],
+                    );
+                  },
                 ),
 
                 const SizedBox(height: 32),
 
-                /// Secondary Actions - Detailed Cards
-                const _SectionTitle(title: "Management Shortcuts"),
+                /// Management Bento
+                const _SectionHeader(title: "Management"),
                 const SizedBox(height: 16),
-                _ShortcutCard(
+                _BentoShortcut(
                   icon: Icons.add_business_rounded,
-                  title: "Create New Site",
-                  subtitle: "Register a new project location",
-                  color: Colors.orange,
+                  title: "New Project",
+                  subtitle: "Register a construction site",
+                  color: Colors.indigo.withValues(alpha: 0.05),
+                  iconColor: Colors.indigo,
                   onTap: () => onNavigateToTab(1),
                 ),
-                _ShortcutCard(
+                const SizedBox(height: 12),
+                _BentoShortcut(
                   icon: Icons.person_add_alt_1_rounded,
                   title: "Onboard Staff",
-                  subtitle: "Add new employees to the system",
-                  color: Colors.purple,
+                  subtitle: "Add new employees",
+                  color: Colors.teal.withValues(alpha: 0.05),
+                  iconColor: Colors.teal,
                   onTap: () => onNavigateToTab(3),
                 ),
-                _ShortcutCard(
+                const SizedBox(height: 12),
+                _BentoShortcut(
                   icon: Icons.assignment_rounded,
                   title: "Equipment Audit",
-                  subtitle: "Check current machinery status",
-                  color: Colors.amber,
+                  subtitle: "Check machinery status",
+                  color: Colors.amber.withValues(alpha: 0.05),
+                  iconColor: Colors.amber,
                   onTap: () => onNavigateToTab(4),
-                ),
-                _ShortcutCard(
-                  icon: Icons.assignment_ind_rounded,
-                  title: "Assign Site Manager",
-                  subtitle: "Allocate supervision to projects",
-                  color: Colors.teal,
-                  onTap: () => onNavigateToTab(1), // Navigates to Sites tab
                 ),
 
                 const SizedBox(height: 32),
 
-                /// Finance & HR Section
-                const _SectionTitle(title: "Finance & HR"),
+                /// Other Utilities
+                const _SectionHeader(title: "Utilities"),
                 const SizedBox(height: 16),
-                GridView.count(
-                  crossAxisCount: 4,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  mainAxisSpacing: 16,
-                  crossAxisSpacing: 12,
-                  children: [
-                    _QuickMenuIcon(
-                      icon: Icons.fact_check_rounded,
-                      label: "Attendance",
-                      color: Colors.green,
-                      onTap: () => onNavigateToTab(3), // Navigates to Staff tab
-                    ),
-                    _QuickMenuIcon(
-                      icon: Icons.account_balance_wallet_rounded,
-                      label: "Payments",
-                      color: Colors.indigo,
-                      onTap: () {
-                         // Placeholder for Payments
-                         debugPrint("Navigate to Payments");
-                      },
-                    ),
-                    _QuickMenuIcon(
-                      icon: Icons.analytics_rounded,
-                      label: "Reports",
-                      color: Colors.redAccent,
-                      onTap: () {
-                         // Placeholder for Reports
-                         debugPrint("Navigate to Reports");
-                      },
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-
-                /// Settings Section
                 Container(
-                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.08)),
                   ),
-                  child: ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: CircleAvatar(
-                      backgroundColor: Colors.grey.withValues(alpha: 0.1),
-                      child: const Icon(Icons.settings, color: Colors.grey),
-                    ),
-                    title: const Text("System Settings",
-                        style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.textNavy)),
-                    subtitle: const Text("App preferences and configurations"),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const SettingsPage()),
-                      );
-                    },
+                  child: Column(
+                    children: [
+                      _UtilityTile(
+                        icon: Icons.account_balance_wallet_rounded,
+                        title: "Payroll & Payments",
+                        onTap: () {},
+                      ),
+                      Divider(height: 1, color: AppColors.textMuted.withValues(alpha: 0.05), indent: 56),
+                      _UtilityTile(
+                        icon: Icons.analytics_rounded,
+                        title: "Advanced Reports",
+                        onTap: () {},
+                      ),
+                      Divider(height: 1, color: AppColors.textMuted.withValues(alpha: 0.05), indent: 56),
+                      _UtilityTile(
+                        icon: Icons.help_outline_rounded,
+                        title: "Support Center",
+                        onTap: () {},
+                      ),
+                    ],
                   ),
                 ),
+                const SizedBox(height: 100),
               ]),
             ),
           ),
@@ -197,22 +163,15 @@ class QuickMenuPage extends StatelessWidget {
   }
 }
 
-/// ───────────── Components ─────────────
-
-class _SectionTitle extends StatelessWidget {
+class _SectionHeader extends StatelessWidget {
   final String title;
-  const _SectionTitle({required this.title});
+  const _SectionHeader({required this.title});
 
   @override
   Widget build(BuildContext context) {
     return Text(
       title,
-      style: const TextStyle(
-        fontSize: 16,
-        fontWeight: FontWeight.w700,
-        color: AppColors.textNavy,
-        letterSpacing: 0.5,
-      ),
+      style: Theme.of(context).textTheme.titleLarge,
     );
   }
 }
@@ -220,13 +179,11 @@ class _SectionTitle extends StatelessWidget {
 class _QuickMenuIcon extends StatelessWidget {
   final IconData icon;
   final String label;
-  final Color color;
   final VoidCallback onTap;
 
   const _QuickMenuIcon({
     required this.icon,
     required this.label,
-    required this.color,
     required this.onTap,
   });
 
@@ -234,23 +191,17 @@ class _QuickMenuIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(20),
       child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                )
-              ],
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.08)),
             ),
-            child: Icon(icon, color: color),
+            child: Icon(icon, color: AppColors.primary),
           ),
           const SizedBox(height: 8),
           Text(
@@ -258,9 +209,8 @@ class _QuickMenuIcon extends StatelessWidget {
             style: const TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w600,
-              color: AppColors.textNavy,
+              color: AppColors.textSecondary,
             ),
-            textAlign: TextAlign.center,
           ),
         ],
       ),
@@ -268,55 +218,91 @@ class _QuickMenuIcon extends StatelessWidget {
   }
 }
 
-class _ShortcutCard extends StatelessWidget {
+class _BentoShortcut extends StatelessWidget {
   final IconData icon;
   final String title;
   final String subtitle;
   final Color color;
+  final Color iconColor;
   final VoidCallback onTap;
 
-  const _ShortcutCard({
+  const _BentoShortcut({
     required this.icon,
     required this.title,
     required this.subtitle,
     required this.color,
+    required this.iconColor,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.black.withValues(alpha: 0.03)),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.08)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Icon(icon, color: iconColor, size: 24),
+            ),
+            const SizedBox(width: 20),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+                  ),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.textMuted.withValues(alpha: 0.5)),
+          ],
+        ),
       ),
-      child: ListTile(
-        onTap: onTap,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        leading: Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(icon, color: color, size: 24),
-        ),
-        title: Text(
-          title,
-          style: const TextStyle(
-            fontWeight: FontWeight.w700,
-            color: AppColors.textNavy,
-            fontSize: 15,
-          ),
-        ),
-        subtitle: Text(
-          subtitle,
-          style: const TextStyle(fontSize: 12, color: AppColors.textGrey),
-        ),
-        trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.textGrey),
+    );
+  }
+}
+
+class _UtilityTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final VoidCallback onTap;
+
+  const _UtilityTile({
+    required this.icon,
+    required this.title,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      onTap: onTap,
+      leading: Icon(icon, color: AppColors.textSecondary, size: 22),
+      title: Text(
+        title,
+        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: AppColors.textPrimary),
       ),
+      trailing: Icon(Icons.north_east_rounded, size: 14, color: AppColors.textMuted.withValues(alpha: 0.5)),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
     );
   }
 }
