@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../../auth/auth_routes.dart';
 import '../../auth/services/auth_service.dart';
+import 'profile_settings_page.dart';
+import 'notifications_page.dart';
+import 'security_page.dart';
+import 'appearance_page.dart';
+
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
 
@@ -15,10 +20,10 @@ class SettingsPage extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
-          _buildSettingsTile(context, Icons.person_outline_rounded, "Profile Settings", "Edit your professional information"),
-          _buildSettingsTile(context, Icons.notifications_none_rounded, "Notifications", "Alerts and communication preferences"),
-          _buildSettingsTile(context, Icons.lock_outline_rounded, "Security", "Privacy and password management"),
-          _buildSettingsTile(context, Icons.palette_outlined, "Appearance", "App theme and visual settings"),
+          _buildSettingsTile(context, Icons.person_outline_rounded, "Profile Settings", "Edit your professional information", const ProfileSettingsPage()),
+          _buildSettingsTile(context, Icons.notifications_none_rounded, "Notifications", "Alerts and communication preferences", const NotificationsPage()),
+          _buildSettingsTile(context, Icons.lock_outline_rounded, "Security", "Privacy and password management", const SecurityPage()),
+          _buildSettingsTile(context, Icons.palette_outlined, "Appearance", "App theme and visual settings", const AppearancePage()),
           const SizedBox(height: 32),
             Container(
               decoration: BoxDecoration(
@@ -51,7 +56,7 @@ class SettingsPage extends StatelessWidget {
       );
     }
 
-  Widget _buildSettingsTile(BuildContext context, IconData icon, String title, String sub) {
+  Widget _buildSettingsTile(BuildContext context, IconData icon, String title, String sub, Widget page) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -80,7 +85,12 @@ class SettingsPage extends StatelessWidget {
         subtitle: Text(sub, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
         trailing: const Icon(Icons.chevron_right_rounded, size: 20, color: AppColors.textMuted),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        onTap: () {},
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => page),
+          );
+        },
       ),
     );
   }
