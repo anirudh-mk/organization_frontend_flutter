@@ -14,22 +14,22 @@ class DashboardPage extends StatelessWidget {
           /// ───────────── Modern Header ─────────────
           SliverAppBar(
             pinned: true,
-            expandedHeight: 120,
-            collapsedHeight: 80,
-            flexibleSpace: FlexibleSpaceBar(
-              background: Container(color: colorScheme.surface),
-              titlePadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              centerTitle: false,
-              title: Column(
-                mainAxisAlignment: MainAxisAlignment.end,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "Overview",
-                    style: theme.textTheme.headlineMedium?.copyWith(fontSize: 20),
-                  ),
-                ],
-              ),
+            toolbarHeight: 72,
+            backgroundColor: AppColors.background,
+            surfaceTintColor: AppColors.background,
+            title: Row(
+              children: [
+                CircleAvatar(
+                  radius: 18,
+                  backgroundColor: colorScheme.primary.withValues(alpha: 0.1),
+                  child: Icon(Icons.person, color: colorScheme.primary, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  "User Name",
+                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                ),
+              ],
             ),
             actions: [
               IconButton(
