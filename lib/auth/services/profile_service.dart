@@ -42,14 +42,26 @@ class ProfileService {
       if (response.statusCode == 200) {
         return true;
       } else {
-         try {
+        String errorMsg = "Failed to update profile (${response.statusCode})";
+        try {
           final errorData = jsonDecode(response.body);
           if (errorData is Map) {
-             final errorMsg = errorData.values.expand((v) => v is List ? v : [v]).join(', ');
-             throw Exception(errorMsg);
+             if (errorData.containsKey('detail')) {
+               errorMsg = errorData['detail'];
+             } else if (errorData.containsKey('error')) {
+               errorMsg = errorData['error'];
+             } else {
+               errorMsg = errorData.values.expand((v) => v is List ? v : [v]).join(', ');
+             }
           }
-        } catch (_) {}
-        throw Exception("Failed to update profile: ${response.body}");
+        } catch (_) {
+          String fallbackError = response.body;
+          if (fallbackError.length > 100) {
+            fallbackError = fallbackError.substring(0, 100) + '... (Server Error)';
+          }
+           errorMsg = "$errorMsg: $fallbackError";
+        }
+        throw Exception(errorMsg);
       }
     } catch (e) {
        if (e.toString().contains("Exception:")) {
@@ -73,14 +85,26 @@ class ProfileService {
       if (response.statusCode == 200) {
         return true;
       } else {
+        String errorMsg = "Failed to change password (${response.statusCode})";
         try {
           final errorData = jsonDecode(response.body);
           if (errorData is Map) {
-             final errorMsg = errorData.values.expand((v) => v is List ? v : [v]).join(', ');
-             throw Exception(errorMsg);
+             if (errorData.containsKey('detail')) {
+               errorMsg = errorData['detail'];
+             } else if (errorData.containsKey('error')) {
+               errorMsg = errorData['error'];
+             } else {
+               errorMsg = errorData.values.expand((v) => v is List ? v : [v]).join(', ');
+             }
           }
-        } catch (_) {}
-        throw Exception("Failed to change password: ${response.body}");
+        } catch (_) {
+          String fallbackError = response.body;
+          if (fallbackError.length > 100) {
+            fallbackError = fallbackError.substring(0, 100) + '... (Server Error)';
+          }
+           errorMsg = "$errorMsg: $fallbackError";
+        }
+        throw Exception(errorMsg);
       }
     } catch (e) {
       if (e.toString().contains("Exception:")) {

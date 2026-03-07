@@ -82,14 +82,29 @@ class AuthService {
           return true;
         }
       } else {
+        String errorMsg = "Registration failed (${response.statusCode})";
         try {
           final errorData = jsonDecode(response.body);
           if (errorData is Map) {
-             final errorMsg = errorData.values.expand((v) => v is List ? v : [v]).join(', ');
-             throw Exception(errorMsg);
+             // Handle our custom global exception format or DRF validation errors
+             if (errorData.containsKey('detail')) {
+               errorMsg = errorData['detail'];
+             } else if (errorData.containsKey('error')) {
+               errorMsg = errorData['error'];
+             } else {
+               errorMsg = errorData.values.expand((v) => v is List ? v : [v]).join(', ');
+             }
           }
-        } catch (_) {}
-        throw Exception("Registration failed: ${response.statusCode} - ${response.body}");
+        } catch (_) {
+          // Fallback if not JSON
+          String fallbackError = response.body;
+          if (fallbackError.length > 100) {
+            fallbackError = fallbackError.substring(0, 100) + '... (Server Error)';
+          }
+          errorMsg = "$errorMsg: $fallbackError";
+        }
+        
+        throw Exception(errorMsg);
       }
       return false;
     } catch (e) {
@@ -116,10 +131,35 @@ class AuthService {
           return true;
         }
       } else {
-        throw Exception(response.body); // Let UI handle detailed error
+        String errorMsg = "Login failed (${response.statusCode})";
+        try {
+          final errorData = jsonDecode(response.body);
+          if (errorData is Map) {
+             // Handle our custom global exception format or DRF validation errors
+             if (errorData.containsKey('detail')) {
+               errorMsg = errorData['detail'];
+             } else if (errorData.containsKey('error')) {
+               errorMsg = errorData['error'];
+             } else {
+               errorMsg = errorData.values.expand((v) => v is List ? v : [v]).join(', ');
+             }
+          }
+        } catch (_) {
+          // Fallback if not JSON
+          String fallbackError = response.body;
+          if (fallbackError.length > 100) {
+            fallbackError = fallbackError.substring(0, 100) + '... (Server Error)';
+          }
+          errorMsg = "$errorMsg: $fallbackError";
+        }
+        
+        throw Exception(errorMsg);
       }
       return false;
     } catch (e) {
+      if (e.toString().contains("Exception:")) {
+         throw Exception(e.toString().replaceFirst("Exception: ", ""));
+      }
       throw Exception("Error logging in: $e");
     }
   }
