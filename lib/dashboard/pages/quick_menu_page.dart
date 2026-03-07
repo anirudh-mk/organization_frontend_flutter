@@ -3,6 +3,7 @@ import 'package:organization_frontend_app/settings/pages/settings_page.dart';
 import 'package:organization_frontend_app/warehouse/pages/warehouse_list_page.dart';
 import '../../vehicle/pages/vehicle_list_page.dart';
 import '../../subcontractor/pages/subcontractor_list_page.dart';
+import '../../material/pages/material_list_page.dart';
 import '../../theme/app_theme.dart';
 
 class QuickMenuPage extends StatelessWidget {
@@ -157,6 +158,20 @@ class QuickMenuPage extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => const SubcontractorListPage()),
+                    );
+                  },
+                ),
+                const SizedBox(height: 12),
+                _BentoShortcut(
+                  icon: Icons.inventory_2_rounded,
+                  title: "Materials",
+                  subtitle: "Manage inventory items",
+                  color: AppColors.warning.withValues(alpha: 0.05),
+                  iconColor: AppColors.warning,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const MaterialListPage()),
                     );
                   },
                 ),
