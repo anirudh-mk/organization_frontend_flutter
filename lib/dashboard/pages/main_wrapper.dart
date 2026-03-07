@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:organization_frontend_app/dashboard/pages/quick_menu_page.dart';
 import 'package:organization_frontend_app/employee/pages/employee_list_page.dart';
+import 'package:organization_frontend_app/settings/pages/settings_page.dart';
 import 'package:organization_frontend_app/equipment/pages/equipment_list_page.dart';
 import '../../theme/app_theme.dart';
 import 'dashboard_page.dart';
@@ -28,7 +29,7 @@ class _MainWrapperState extends State<MainWrapper> {
         setState(() => _currentIndex = index);
       }),
       const EmployeeListPage(),
-      const EquipmentListPage(),
+      const SettingsPage(),
     ];
   }
 
@@ -69,7 +70,7 @@ class _MainWrapperState extends State<MainWrapper> {
                 _buildNavItem(Icons.architecture_rounded, 'Sites', 1),
                 _buildNavItem(Icons.apps_rounded, 'Menu', 2),
                 _buildNavItem(Icons.groups_rounded, 'Staff', 3),
-                _buildNavItem(Icons.construction_rounded, 'Gear', 4),
+                _buildNavItem(Icons.settings_rounded, 'Settings', 4),
               ],
             ),
           ),

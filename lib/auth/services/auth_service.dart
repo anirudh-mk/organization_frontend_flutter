@@ -124,6 +124,14 @@ class AuthService {
     }
   }
 
+  Future<void> logout() async {
+    try {
+      await TokenManager.clearToken();
+    } catch (e) {
+      throw Exception("Error logging out: $e");
+    }
+  }
+
   // Helper to convert DD/MM/YYYY to YYYY-MM-DD for Django
   String _formatDateForDjango(String originalDate) {
     if (originalDate.isEmpty) return originalDate;

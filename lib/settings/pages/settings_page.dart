@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../../auth/auth_routes.dart';
-
+import '../../auth/services/auth_service.dart';
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
 
@@ -20,23 +20,36 @@ class SettingsPage extends StatelessWidget {
           _buildSettingsTile(context, Icons.lock_outline_rounded, "Security", "Privacy and password management"),
           _buildSettingsTile(context, Icons.palette_outlined, "Appearance", "App theme and visual settings"),
           const SizedBox(height: 32),
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColors.error.withValues(alpha: 0.2)),
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppColors.error.withValues(alpha: 0.2)),
+              ),
+              child: ListTile(
+                leading: const Icon(Icons.logout_rounded, color: AppColors.error),
+                title: const Text("Logout", style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w700)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                onTap: () async {
+                  try {
+                    await AuthService().logout();
+                    if (context.mounted) {
+                      Navigator.pushNamedAndRemoveUntil(context, AuthRoutes.login, (route) => false);
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text("Error logging out: $e")),
+                      );
+                    }
+                  }
+                },
+              ),
             ),
-            child: ListTile(
-              leading: const Icon(Icons.logout_rounded, color: AppColors.error),
-              title: const Text("Logout", style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w700)),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              onTap: () => Navigator.pushNamedAndRemoveUntil(context, AuthRoutes.login, (route) => false),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+          ],
+        ),
+      );
+    }
 
   Widget _buildSettingsTile(BuildContext context, IconData icon, String title, String sub) {
     return Container(
