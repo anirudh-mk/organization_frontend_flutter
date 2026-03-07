@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:organization_frontend_app/settings/pages/settings_page.dart';
+import 'package:organization_frontend_app/warehouse/pages/warehouse_list_page.dart';
 import '../../theme/app_theme.dart';
 
 class QuickMenuPage extends StatelessWidget {
@@ -114,6 +115,20 @@ class QuickMenuPage extends StatelessWidget {
                   color: Colors.amber.withValues(alpha: 0.05),
                   iconColor: Colors.amber,
                   onTap: () => onNavigateToTab(4),
+                ),
+                const SizedBox(height: 12),
+                _BentoShortcut(
+                  icon: Icons.warehouse_rounded,
+                  title: "Warehouse Logistics",
+                  subtitle: "Manage inventory hubs",
+                  color: Colors.indigo.withValues(alpha: 0.05),
+                  iconColor: Colors.indigo,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const WarehouseListPage()),
+                    );
+                  },
                 ),
 
                 const SizedBox(height: 32),
