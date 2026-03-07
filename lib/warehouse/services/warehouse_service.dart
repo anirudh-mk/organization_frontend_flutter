@@ -1,14 +1,18 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/warehouse_model.dart';
+import '../../shared/services/base_service.dart';
 
-class WarehouseService {
+class WarehouseService extends BaseService {
   // Host loopback address for Android emulator to hit the backend
-  static const String baseUrl = 'http://10.0.2.2:8000/api/v1/warehouse/warehouses/';
+  static const String baseUrl = 'https://abdominal-danyelle-unindicative.ngrok-free.dev/api/v1/warehouse/warehouses/';
 
   Future<List<WarehouseModel>> getWarehouses() async {
     try {
-      final response = await http.get(Uri.parse(baseUrl));
+      final response = await http.get(
+        Uri.parse(baseUrl),
+        headers: await getHeaders(),
+      );
       if (response.statusCode == 200) {
         dynamic body = jsonDecode(response.body);
         
@@ -24,7 +28,7 @@ class WarehouseService {
         
         return results.map((dynamic item) => WarehouseModel.fromJson(item)).toList();
       } else {
-        throw Exception("Failed to load warehouses: ${response.statusCode}");
+        throw Exception("Failed to load warehouses");
       }
     } catch (e) {
       throw Exception("Error fetching warehouses: $e");

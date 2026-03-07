@@ -1,13 +1,17 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/client_model.dart';
+import '../../shared/services/base_service.dart';
 
-class ClientService {
-  static const String baseUrl = 'http://10.0.2.2:8000/api/v1/client/clients';
+class ClientService extends BaseService {
+  static const String baseUrl = 'https://abdominal-danyelle-unindicative.ngrok-free.dev/api/v1/client/clients';
 
   Future<List<ClientModel>> getClients() async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/'));
+      final response = await http.get(
+        Uri.parse('$baseUrl/'),
+        headers: await getHeaders(),
+      );
       if (response.statusCode == 200) {
         dynamic body = jsonDecode(response.body);
         
@@ -33,10 +37,7 @@ class ClientService {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/'),
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json"
-        },
+        headers: await getHeaders(),
         body: jsonEncode(data),
       );
       

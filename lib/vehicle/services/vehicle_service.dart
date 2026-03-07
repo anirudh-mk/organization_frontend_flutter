@@ -1,28 +1,25 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/vehicle_models.dart';
+import '../../shared/services/base_service.dart';
 
-class VehicleService {
-  static const String baseUrl = 'http://10.0.2.2:8000/api/v1/vehicle/vehicles/';
+class VehicleService extends BaseService {
+  static const String baseUrl = 'https://abdominal-danyelle-unindicative.ngrok-free.dev/api/v1/vehicle/vehicles/';
 
   Future<List<VehicleModel>> getVehicles() async {
     try {
-      final response = await http.get(Uri.parse(baseUrl));
+      final response = await http.get(
+        Uri.parse(baseUrl),
+        headers: await getHeaders(),
+      );
       if (response.statusCode == 200) {
         dynamic body = jsonDecode(response.body);
         
-        List<dynamic> results;
-        if (body is Map && body.containsKey('results')) {
-          results = body['results'];
-        } else if (body is List) {
-          results = body;
-        } else {
-          results = [];
-        }
+        List<dynamic> results = body is Map ? body['results'] : body;
         
         return results.map((dynamic item) => VehicleModel.fromJson(item)).toList();
       } else {
-        throw Exception("Failed to load vehicles: ${response.statusCode}");
+        throw Exception("Failed to load vehicles");
       }
     } catch (e) {
       throw Exception("Error fetching vehicles: $e");

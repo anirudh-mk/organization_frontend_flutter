@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/location_models.dart';
+import '../../shared/services/base_service.dart';
 
-class LocationService {
-  static const String baseUrl = 'http://10.0.2.2:8000/api/v1/shared/';
+class LocationService extends BaseService {
+  static const String baseUrl = 'https://abdominal-danyelle-unindicative.ngrok-free.dev/api/v1/shared/';
 
   List<dynamic> _extractResults(dynamic body) {
     if (body is Map && body.containsKey('results')) {
@@ -16,7 +17,10 @@ class LocationService {
 
   Future<List<CountryModel>> getCountries() async {
     try {
-      final response = await http.get(Uri.parse('${baseUrl}countries/'));
+      final response = await http.get(
+        Uri.parse('${baseUrl}countries/'),
+        headers: await getHeaders(),
+      );
       if (response.statusCode == 200) {
         final List<dynamic> results = _extractResults(jsonDecode(response.body));
         return results.map((item) => CountryModel.fromJson(item)).toList();
@@ -30,7 +34,10 @@ class LocationService {
 
   Future<List<StateModel>> getStates(int countryId) async {
     try {
-      final response = await http.get(Uri.parse('${baseUrl}states/?country=$countryId'));
+      final response = await http.get(
+        Uri.parse('${baseUrl}states/?country=$countryId'),
+        headers: await getHeaders(),
+      );
       if (response.statusCode == 200) {
         final List<dynamic> results = _extractResults(jsonDecode(response.body));
         return results.map((item) => StateModel.fromJson(item)).toList();

@@ -1,9 +1,77 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
-import '../auth_routes.dart';
+import '../services/auth_service.dart';
 
-class LoginPage extends StatelessWidget {
+class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
+
+  @override
+  State<LoginPage> createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
+  final _emailController = TextEditingController();
+  final _otpController = TextEditingController();
+  final _authService = AuthService();
+  
+  bool _isOtpSent = false;
+  bool _isLoading = false;
+
+  Future<void> _handleRequestOtp() async {
+    if (_emailController.text.isEmpty) return;
+    
+    setState(() => _isLoading = true);
+    try {
+      final success = await _authService.requestOtp(_emailController.text.trim());
+      if (success) {
+        setState(() => _isOtpSent = true);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("OTP sent to your email")),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _handleVerifyOtp() async {
+    if (_otpController.text.isEmpty) return;
+
+    setState(() => _isLoading = true);
+    try {
+      final success = await _authService.verifyOtp(
+        _emailController.text.trim(),
+        _otpController.text.trim(),
+      );
+      if (success) {
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/dashboard');
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Invalid or expired OTP"), backgroundColor: AppColors.error),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -18,7 +86,6 @@ class LoginPage extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Logo or Icon Placeholder
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
@@ -28,8 +95,6 @@ class LoginPage extends StatelessWidget {
                   child: const Icon(Icons.architecture_rounded, size: 48, color: AppColors.accent),
                 ),
                 const SizedBox(height: 32),
-
-                // Header
                 Text(
                   "Build Tomorrow",
                   style: theme.textTheme.headlineLarge?.copyWith(
@@ -39,123 +104,73 @@ class LoginPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  "Sign in to access your dashboard",
+                  _isOtpSent ? "Check your email for OTP" : "Sign in to access your dashboard",
                   style: theme.textTheme.bodyLarge?.copyWith(color: AppColors.textSecondary),
                 ),
                 const SizedBox(height: 48),
 
-                // Email Field
-                _buildInputLabel("Email Address"),
-                _buildTextField(
-                  context,
-                  hint: "name@company.com",
-                  icon: Icons.alternate_email_rounded,
-                ),
-                const SizedBox(height: 24),
-
-                // Password Field
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _buildInputLabel("Password"),
-                    TextButton(
-                      onPressed: () => Navigator.pushNamed(context, AuthRoutes.forgotPassword),
-                      style: TextButton.styleFrom(
-                        padding: EdgeInsets.zero,
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      child: const Text(
-                        "Forgot Password?",
-                        style: TextStyle(
-                          color: AppColors.accent,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 14,
-                        ),
-                      ),
+                if (!_isOtpSent) ...[
+                  _buildInputLabel("Email Address"),
+                  TextField(
+                    controller: _emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: const InputDecoration(
+                      hintText: "name@company.com",
+                      prefixIcon: Icon(Icons.alternate_email_rounded, size: 20),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                _buildTextField(
-                  context,
-                  hint: "••••••••",
-                  icon: Icons.lock_outline_rounded,
-                  isPassword: true,
-                ),
-                const SizedBox(height: 32),
-
-                // Primary Action
-                ElevatedButton(
-                  onPressed: () => Navigator.pushReplacementNamed(context, '/dashboard'),
-                  child: const Text("Sign In"),
-                ),
-
-                const SizedBox(height: 32),
-
-                // Divider
-                Row(
-                  children: [
-                    Expanded(child: Divider(color: AppColors.textMuted.withValues(alpha: 0.15))),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Text(
-                        "continue with",
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: AppColors.textMuted,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    Expanded(child: Divider(color: AppColors.textMuted.withValues(alpha: 0.15))),
-                  ],
-                ),
-
-                const SizedBox(height: 32),
-
-                // Social Auth
-                OutlinedButton(
-                  onPressed: () {},
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size(double.infinity, 56),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    side: BorderSide(color: AppColors.textMuted.withValues(alpha: 0.1)),
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.g_mobiledata_rounded, size: 30),
-                      const SizedBox(width: 8),
-                      Text(
-                        "Google Account",
-                        style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
-                      ),
-                    ],
+                ] else ...[
+                  _buildInputLabel("One-Time Password"),
+                  TextField(
+                    controller: _otpController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      hintText: "Enter 6-digit OTP",
+                      prefixIcon: Icon(Icons.lock_outline_rounded, size: 20),
+                    ),
+                  ),
+                ],
+                
+                const SizedBox(height: 32),
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: _isLoading 
+                      ? null 
+                      : (_isOtpSent ? _handleVerifyOtp : _handleRequestOtp),
+                    child: _isLoading 
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : Text(_isOtpSent ? "Verify OTP" : "Send OTP"),
                   ),
                 ),
 
-                const SizedBox(height: 48),
+                if (_isOtpSent) ...[
+                  const SizedBox(height: 16),
+                  Center(
+                    child: TextButton(
+                      onPressed: () => setState(() => _isOtpSent = false),
+                      child: const Text("Change Email", style: TextStyle(color: AppColors.accent)),
+                    ),
+                  ),
+                ],
 
-                // Footer
+                const SizedBox(height: 32),
                 Center(
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const Text("New here?", style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w500)),
                       TextButton(
-                        onPressed: () => Navigator.pushNamed(context, AuthRoutes.signup),
+                        onPressed: () {},
                         child: const Text(
                           "Create Enterprise Account",
-                          style: TextStyle(
-                            color: AppColors.accent,
-                            fontWeight: FontWeight.w800,
-                          ),
+                          style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w800),
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
               ],
             ),
           ),
@@ -171,20 +186,6 @@ class LoginPage extends StatelessWidget {
           color: AppColors.textSecondary,
           fontSize: 11,
           letterSpacing: 1.2,
-        ),
-      );
-
-  Widget _buildTextField(
-    BuildContext context, {
-    required String hint,
-    required IconData icon,
-    bool isPassword = false,
-  }) =>
-      TextField(
-        obscureText: isPassword,
-        decoration: InputDecoration(
-          hintText: hint,
-          prefixIcon: Icon(icon, size: 20),
         ),
       );
 }
