@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:organization_frontend_app/settings/pages/settings_page.dart';
 import 'package:organization_frontend_app/warehouse/pages/warehouse_list_page.dart';
+import 'package:organization_frontend_app/site/pages/site_create_page.dart';
+import 'package:organization_frontend_app/employee/pages/employee_create_page.dart';
 import '../../vehicle/pages/vehicle_list_page.dart';
 import '../../subcontractor/pages/subcontractor_list_page.dart';
 import '../../material/pages/material_list_page.dart';
@@ -99,7 +101,12 @@ class QuickMenuPage extends StatelessWidget {
                   subtitle: "Register a construction site",
                   color: AppColors.primary.withValues(alpha: 0.05),
                   iconColor: AppColors.primary,
-                  onTap: () => onNavigateToTab(1),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const SiteCreatePage()),
+                    );
+                  },
                 ),
                 const SizedBox(height: 12),
                 _BentoShortcut(
@@ -108,7 +115,12 @@ class QuickMenuPage extends StatelessWidget {
                   subtitle: "Add new employees",
                   color: Colors.teal.withValues(alpha: 0.05),
                   iconColor: Colors.teal,
-                  onTap: () => onNavigateToTab(3),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const EmployeeCreatePage()),
+                    );
+                  },
                 ),
                 const SizedBox(height: 12),
                 _BentoShortcut(

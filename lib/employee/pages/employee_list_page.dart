@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
+import '../models/employee_model.dart';
+import '../services/employee_service.dart';
+import 'employee_create_page.dart';
 
 class EmployeeListPage extends StatefulWidget {
   const EmployeeListPage({super.key});
@@ -9,7 +12,36 @@ class EmployeeListPage extends StatefulWidget {
 }
 
 class _EmployeeListPageState extends State<EmployeeListPage> {
-  bool isGridView = true; // Default to Grid to match your Equipment layout
+  bool isGridView = true; 
+  final EmployeeService _service = EmployeeService();
+  List<EmployeeModel> _employees = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadEmployees();
+  }
+
+  Future<void> _loadEmployees() async {
+    setState(() => _isLoading = true);
+    try {
+      final employees = await _service.getEmployees();
+      if (mounted) {
+        setState(() {
+          _employees = employees;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -19,7 +51,6 @@ class _EmployeeListPageState extends State<EmployeeListPage> {
     return Scaffold(
       body: CustomScrollView(
         slivers: [
-          /// ───────────── Modern Header ─────────────
           SliverAppBar(
             pinned: true,
             toolbarHeight: 72,
@@ -39,99 +70,62 @@ class _EmployeeListPageState extends State<EmployeeListPage> {
                   backgroundColor: colorScheme.surface,
                 ),
               ),
+              IconButton(
+                icon: const Icon(Icons.refresh),
+                onPressed: _loadEmployees,
+                style: IconButton.styleFrom(
+                  backgroundColor: colorScheme.surface,
+                ),
+              ),
               const SizedBox(width: 16),
             ],
           ),
 
-          /// ───────────── Search & Filter ─────────────
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      decoration: InputDecoration(
-                        hintText: "Search name or ID...",
-                        prefixIcon: const Icon(Icons.search_rounded, size: 20),
-                        contentPadding: const EdgeInsets.symmetric(vertical: 0),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Container(
-                    height: 56,
-                    width: 56,
-                    decoration: BoxDecoration(
-                      color: colorScheme.primary,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: const Icon(Icons.tune_rounded, color: Colors.white, size: 20),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          /// ───────────── Stats Summary ─────────────
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Row(
-                children: [
-                  _miniStat("Total", "124"),
-                  const SizedBox(width: 12),
-                  _miniStat("On Duty", "86", isHighlight: true),
-                  const SizedBox(width: 12),
-                  _miniStat("Off", "38"),
-                ],
-              ),
-            ),
-          ),
-
           const SliverToBoxAdapter(child: SizedBox(height: 24)),
 
-          /// ───────────── List/Grid Content ─────────────
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            sliver: isGridView ? _buildEmployeeGrid() : _buildEmployeeList(),
-          ),
+          if (_isLoading)
+            const SliverFillRemaining(child: Center(child: CircularProgressIndicator()))
+          else if (_employees.isEmpty)
+            SliverFillRemaining(
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.people_alt_rounded, size: 64, color: AppColors.textMuted.withValues(alpha: 0.5)),
+                    const SizedBox(height: 16),
+                    Text("No workforce staff found", style: TextStyle(color: AppColors.textMuted, fontSize: 16)),
+                  ],
+                ),
+              ),
+            )
+          else
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              sliver: isGridView ? _buildEmployeeGrid() : _buildEmployeeList(),
+            ),
 
           const SliverToBoxAdapter(child: SizedBox(height: 120)),
         ],
       ),
       floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 90), // Floating above navbar
+        padding: const EdgeInsets.only(bottom: 90), 
         child: FloatingActionButton.extended(
           heroTag: 'employee_list_fab',
-          onPressed: () {},
+          onPressed: () async {
+            final result = await Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const EmployeeCreatePage()),
+            );
+            if (result == true) {
+              _loadEmployees();
+            }
+          },
           backgroundColor: colorScheme.primary,
           foregroundColor: Colors.white,
           elevation: 4,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           icon: const Icon(Icons.add_rounded),
           label: const Text("Onboard Staff", style: TextStyle(fontWeight: FontWeight.w700)),
-        ),
-      ),
-    );
-  }
-
-  Widget _miniStat(String label, String value, {bool isHighlight = false}) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(
-          color: isHighlight ? AppColors.accent.withValues(alpha: 0.05) : Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isHighlight ? AppColors.accent.withValues(alpha: 0.1) : AppColors.textMuted.withValues(alpha: 0.08),
-          ),
-        ),
-        child: Column(
-          children: [
-            Text(value, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: isHighlight ? AppColors.accent : AppColors.textPrimary)),
-            Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
-          ],
         ),
       ),
     );
@@ -146,8 +140,8 @@ class _EmployeeListPageState extends State<EmployeeListPage> {
         childAspectRatio: 0.85,
       ),
       delegate: SliverChildBuilderDelegate(
-        (context, index) => _buildEmployeeCard(index),
-        childCount: 8,
+        (context, index) => _buildEmployeeCard(index, _employees[index]),
+        childCount: _employees.length,
       ),
     );
   }
@@ -157,15 +151,15 @@ class _EmployeeListPageState extends State<EmployeeListPage> {
       delegate: SliverChildBuilderDelegate(
         (context, index) => Padding(
           padding: const EdgeInsets.only(bottom: 12),
-          child: _buildEmployeeListTile(index),
+          child: _buildEmployeeListTile(index, _employees[index]),
         ),
-        childCount: 8,
+        childCount: _employees.length,
       ),
     );
   }
 
-  Widget _buildEmployeeCard(int index) {
-    final bool isOnDuty = index % 3 != 0;
+  Widget _buildEmployeeCard(int index, EmployeeModel employee) {
+    final bool isOnDuty = true; // Hardcoded until user wants attendance logic
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -203,13 +197,13 @@ class _EmployeeListPageState extends State<EmployeeListPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "Staff #${index + 101}",
+                  employee.displayName,
                   style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  "Site Supervisor",
+                  employee.phoneNumber.isNotEmpty ? employee.phoneNumber : "No Phone Data",
                   style: TextStyle(color: AppColors.textSecondary, fontSize: 11, fontWeight: FontWeight.w500),
                 ),
               ],
@@ -220,13 +214,13 @@ class _EmployeeListPageState extends State<EmployeeListPage> {
     );
   }
 
-  Widget _buildEmployeeListTile(int index) {
-    final bool isOnDuty = index % 3 != 0;
+  Widget _buildEmployeeListTile(int index, EmployeeModel employee) {
+    final bool isOnDuty = true; 
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24), // List tiles use slightly smaller radius
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.1)),
         boxShadow: [
           BoxShadow(
@@ -248,8 +242,8 @@ class _EmployeeListPageState extends State<EmployeeListPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("Staff Member #$index", style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-                Text("Site Supervisor • Alpha Site", style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                Text(employee.displayName, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                Text(employee.phoneNumber.isNotEmpty ? employee.phoneNumber : "No Phone Data", style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
               ],
             ),
           ),

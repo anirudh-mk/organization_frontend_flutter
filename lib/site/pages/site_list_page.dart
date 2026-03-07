@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:organization_frontend_app/site/pages/site_create_page.dart';
 import '../../theme/app_theme.dart';
-import 'site_details_page.dart';
+import '../models/site_model.dart';
+import '../services/site_service.dart';
+import 'site_create_page.dart';
 
 class SiteListPage extends StatefulWidget {
   const SiteListPage({super.key});
@@ -11,7 +12,36 @@ class SiteListPage extends StatefulWidget {
 }
 
 class _SiteListPageState extends State<SiteListPage> {
-  bool isGridView = false; // Sites often look better in List view, but toggle is here for consistency
+  bool isGridView = false;
+  final SiteService _service = SiteService();
+  List<SiteModel> _sites = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSites();
+  }
+
+  Future<void> _loadSites() async {
+    setState(() => _isLoading = true);
+    try {
+      final sites = await _service.getSites();
+      if (mounted) {
+        setState(() {
+          _sites = sites;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +51,6 @@ class _SiteListPageState extends State<SiteListPage> {
     return Scaffold(
       body: CustomScrollView(
         slivers: [
-          /// ───────────── Modern Header ─────────────
           SliverAppBar(
             pinned: true,
             toolbarHeight: 72,
@@ -41,76 +70,55 @@ class _SiteListPageState extends State<SiteListPage> {
                   backgroundColor: colorScheme.surface,
                 ),
               ),
-              const SizedBox(width: 16),
+              IconButton(
+                icon: const Icon(Icons.refresh),
+                onPressed: _loadSites,
+                style: IconButton.styleFrom(
+                  backgroundColor: colorScheme.surface,
+                ),
+              ),
+              const SizedBox(width: 8),
             ],
-          ),
-
-          /// ───────────── Search & Filter ─────────────
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      decoration: InputDecoration(
-                        hintText: "Search location or project...",
-                        prefixIcon: const Icon(Icons.search_rounded, size: 20),
-                        contentPadding: const EdgeInsets.symmetric(vertical: 0),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Container(
-                    height: 56,
-                    width: 56,
-                    decoration: BoxDecoration(
-                      color: colorScheme.primary,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: const Icon(Icons.tune_rounded, color: Colors.white, size: 20),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          /// ───────────── Stats Summary ─────────────
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Row(
-                children: [
-                  _miniStat("Active", "12"),
-                  const SizedBox(width: 12),
-                  _miniStat("On Track", "09", isHighlight: true),
-                  const SizedBox(width: 12),
-                  _miniStat("Delayed", "03"),
-                ],
-              ),
-            ),
           ),
 
           const SliverToBoxAdapter(child: SizedBox(height: 24)),
 
-          /// ───────────── List/Grid Content ─────────────
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            sliver: isGridView ? _buildSiteGrid() : _buildSiteList(),
-          ),
+          if (_isLoading)
+            const SliverFillRemaining(child: Center(child: CircularProgressIndicator()))
+          else if (_sites.isEmpty)
+            SliverFillRemaining(
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.architecture_rounded, size: 64, color: AppColors.textMuted.withValues(alpha: 0.5)),
+                    const SizedBox(height: 16),
+                    Text("No project sites found", style: TextStyle(color: AppColors.textMuted, fontSize: 16)),
+                  ],
+                ),
+              ),
+            )
+          else
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              sliver: isGridView ? _buildSiteGrid() : _buildSiteList(),
+            ),
 
           const SliverToBoxAdapter(child: SizedBox(height: 120)),
         ],
       ),
       floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 90), // Floating above navbar
+        padding: const EdgeInsets.only(bottom: 90),
         child: FloatingActionButton.extended(
           heroTag: 'site_list_fab',
-          onPressed: () {
-            Navigator.push(
+          onPressed: () async {
+            final result = await Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const SiteCreatePage()),
             );
+            if (result == true) {
+              _loadSites();
+            }
           },
           backgroundColor: colorScheme.primary,
           foregroundColor: Colors.white,
@@ -118,27 +126,6 @@ class _SiteListPageState extends State<SiteListPage> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           icon: const Icon(Icons.add_location_alt_rounded),
           label: const Text("New Site", style: TextStyle(fontWeight: FontWeight.w700)),
-        ),
-      ),
-    );
-  }
-
-  Widget _miniStat(String label, String value, {bool isHighlight = false}) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(
-          color: isHighlight ? AppColors.accent.withValues(alpha: 0.05) : Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isHighlight ? AppColors.accent.withValues(alpha: 0.1) : AppColors.textMuted.withValues(alpha: 0.08),
-          ),
-        ),
-        child: Column(
-          children: [
-            Text(value, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: isHighlight ? AppColors.accent : AppColors.textPrimary)),
-            Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
-          ],
         ),
       ),
     );
@@ -153,8 +140,8 @@ class _SiteListPageState extends State<SiteListPage> {
         childAspectRatio: 0.75,
       ),
       delegate: SliverChildBuilderDelegate(
-        (context, index) => _buildSiteGridCard(context, index),
-        childCount: 6,
+        (context, index) => _buildSiteGridCard(context, index, _sites[index]),
+        childCount: _sites.length,
       ),
     );
   }
@@ -164,16 +151,17 @@ class _SiteListPageState extends State<SiteListPage> {
       delegate: SliverChildBuilderDelegate(
         (context, index) => Padding(
           padding: const EdgeInsets.only(bottom: 16),
-          child: _buildSiteListCard(context, index),
+          child: _buildSiteListCard(context, index, _sites[index]),
         ),
-        childCount: 5,
+        childCount: _sites.length,
       ),
     );
   }
 
-  Widget _buildSiteGridCard(BuildContext context, int index) {
+  Widget _buildSiteGridCard(BuildContext context, int index, SiteModel site) {
+    bool active = site.status != 'COMPLETED' && site.status != 'ON_HOLD';
     return GestureDetector(
-      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SiteDetailPage())),
+      onTap: () {},
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -196,7 +184,7 @@ class _SiteListPageState extends State<SiteListPage> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Icon(Icons.business_rounded, color: AppColors.textSecondary, size: 20),
-                  _statusDot(index % 2 == 0),
+                  _statusDot(active, site.status),
                 ],
               ),
             ),
@@ -206,22 +194,23 @@ class _SiteListPageState extends State<SiteListPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("Phase $index", style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-                  const Text("Bengaluru", style: TextStyle(color: AppColors.textSecondary, fontSize: 11)),
+                  Text(site.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                  Text(site.code, style: const TextStyle(color: AppColors.textSecondary, fontSize: 11)),
                 ],
               ),
             ),
             const SizedBox(height: 12),
-            _buildProgressFooter(0.60, "₹2.1 Cr"),
+            _buildProgressFooter(0.0, "₹0.00"), // Stubbed fields since not in basic API response
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSiteListCard(BuildContext context, int index) {
+  Widget _buildSiteListCard(BuildContext context, int index, SiteModel site) {
+    bool active = site.status != 'COMPLETED' && site.status != 'ON_HOLD';
     return GestureDetector(
-      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SiteDetailPage())),
+      onTap: () {},
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -255,16 +244,16 @@ class _SiteListPageState extends State<SiteListPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text("Green Valley Phase $index", style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
-                        const Text("Bengaluru, India", style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                        Text(site.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                        Text(site.code, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
                       ],
                     ),
                   ),
-                  _statusDot(index % 3 != 0),
+                  _statusDot(active, site.status),
                 ],
               ),
             ),
-            _buildProgressFooter(0.75, "₹4.5 Cr"),
+            _buildProgressFooter(0.0, "₹0.00"), // Stubbed fields
           ],
         ),
       ),
@@ -302,7 +291,7 @@ class _SiteListPageState extends State<SiteListPage> {
     );
   }
 
-  Widget _statusDot(bool active) {
+  Widget _statusDot(bool active, String statusName) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
@@ -310,7 +299,7 @@ class _SiteListPageState extends State<SiteListPage> {
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
-        active ? "On Track" : "Delayed",
+        statusName,
         style: TextStyle(
           color: active ? AppColors.success : AppColors.warning,
           fontSize: 10,
