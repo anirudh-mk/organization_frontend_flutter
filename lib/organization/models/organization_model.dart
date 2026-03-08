@@ -9,8 +9,8 @@ class OrganizationTypeModel {
 
   factory OrganizationTypeModel.fromJson(Map<String, dynamic> json) {
     return OrganizationTypeModel(
-      id: json['id'].toString(),
-      name: json['name'],
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
     );
   }
 
@@ -33,9 +33,9 @@ class CountryModel {
 
   factory CountryModel.fromJson(Map<String, dynamic> json) {
     return CountryModel(
-      id: json['id'].toString(),
-      name: json['name'],
-      code: json['code'] ?? '',
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      code: json['code']?.toString() ?? '',
     );
   }
 }
@@ -49,9 +49,9 @@ class StateModel {
 
   factory StateModel.fromJson(Map<String, dynamic> json) {
     return StateModel(
-      id: json['id'].toString(),
-      name: json['name'],
-      countryId: json['country'].toString(),
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      countryId: json['country']?.toString() ?? '',
     );
   }
 }
@@ -65,9 +65,9 @@ class DistrictModel {
 
   factory DistrictModel.fromJson(Map<String, dynamic> json) {
     return DistrictModel(
-      id: json['id'].toString(),
-      name: json['name'],
-      stateId: json['state'].toString(),
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      stateId: json['state']?.toString() ?? '',
     );
   }
 }
@@ -81,9 +81,9 @@ class AddressTypeModel {
 
   factory AddressTypeModel.fromJson(Map<String, dynamic> json) {
     return AddressTypeModel(
-      id: json['id'].toString(),
-      name: json['name'],
-      code: json['code'] ?? '',
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      code: json['code']?.toString() ?? '',
     );
   }
 }
@@ -188,13 +188,14 @@ class OrganizationModel {
     }
 
     return OrganizationModel(
-      id: json['id'].toString(),
-      name: json['name'],
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
       type: typeModel,
-      logo: json['logo'],
-      isActive: json['is_active'] ?? true,
+      logo: json['logo']?.toString(),
+      isActive: json['is_active'] as bool? ?? true,
       addresses: (json['addresses'] as List<dynamic>? ?? [])
-          .map((a) => OrgAddressModel.fromJson(a as Map<String, dynamic>))
+          .whereType<Map<String, dynamic>>()
+          .map((a) => OrgAddressModel.fromJson(a))
           .toList(),
     );
   }
