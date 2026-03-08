@@ -4,7 +4,7 @@ import 'token_manager.dart';
 
 class ProfileService {
   // Use the same base url structure as AuthService. Adjust if necessary.
-  static const String baseUrl = 'http://10.0.2.2:8001/api/v1/accounts/user';
+  static const String baseUrl = 'http://127.0.0.1:8001/api/v1/accounts/user';
 
   Future<Map<String, String>> _getHeaders() async {
     final token = await TokenManager.getAccessToken();

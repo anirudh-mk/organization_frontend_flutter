@@ -223,4 +223,51 @@ class OrganizationService extends BaseService {
       throw Exception("Error switching organization: $e");
     }
   }
+
+  Future<OrganizationModel> updateOrganization(
+    String id, {
+    String? name,
+    String? typeId,
+    File? logo,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrl/organization/organizations/$id/');
+      final request = http.MultipartRequest('PATCH', uri);
+      
+      final headers = await getHeaders();
+      request.headers.addAll(headers);
+
+      if (name != null) request.fields['name'] = name;
+      if (typeId != null) request.fields['type'] = typeId;
+
+      if (logo != null) {
+        request.files.add(await http.MultipartFile.fromPath(
+          'logo',
+          logo.path,
+          contentType: MediaType('image', 'jpeg'),
+        ));
+      }
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      
+      if (streamedResponse.statusCode == 200) {
+        final org = OrganizationModel.fromJson(jsonDecode(response.body));
+        // If updating the current one, refresh local state
+        final currentId = await TokenManager.getOrganizationId();
+        if (currentId == org.id) {
+          await TokenManager.saveOrganizationDetails(
+            id: org.id,
+            name: org.name,
+            logo: org.logo,
+          );
+        }
+        return org;
+      } else {
+        throw Exception("Failed to update organization: ${response.body}");
+      }
+    } catch (e) {
+      throw Exception("Error updating organization: $e");
+    }
+  }
 }
