@@ -707,7 +707,36 @@ class _OrgItem extends StatelessWidget {
           backgroundImage: org.logo != null ? NetworkImage(org.logo!) : null,
           child: org.logo == null ? const Icon(Icons.business_rounded, color: AppColors.textSecondary) : null,
         ),
-        title: Text(org.name, style: TextStyle(fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal)),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              org.name,
+              style: TextStyle(
+                fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
+                color: isCurrent ? theme.colorScheme.primary : AppColors.textPrimary,
+              ),
+            ),
+            if (isCurrent) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  "Active",
+                  style: TextStyle(
+                    color: theme.colorScheme.primary,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
         subtitle: Text(org.type?.name ?? "Company", style: const TextStyle(fontSize: 11)),
         trailing: isCurrent ? Icon(Icons.check_circle_rounded, color: theme.colorScheme.primary) : null,
       ),
