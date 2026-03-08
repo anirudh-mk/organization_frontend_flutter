@@ -6,167 +6,196 @@ class DashboardPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     return Scaffold(
-      backgroundColor: AppColors.bgLight,
       body: CustomScrollView(
         slivers: [
-          /// ───────────── Sticky Header ─────────────
+          /// ───────────── Modern Header ─────────────
           SliverAppBar(
             pinned: true,
-            elevation: 0,
-            toolbarHeight: kToolbarHeight + 10,
-            backgroundColor: Colors.white,
-            surfaceTintColor: Colors.transparent,
-            shadowColor: Colors.transparent,
-            automaticallyImplyLeading: false,
-            titleSpacing: 20,
+            toolbarHeight: 72,
+            backgroundColor: AppColors.background,
+            surfaceTintColor: AppColors.background,
             title: Row(
               children: [
                 CircleAvatar(
-                  radius: 20,
-                  backgroundColor: AppColors.primaryBlue.withValues(alpha: 0.1),
-                  child: const Text("A",
-                      style: TextStyle(color: AppColors.primaryBlue, fontWeight: FontWeight.bold)),
+                  radius: 18,
+                  backgroundColor: colorScheme.primary.withValues(alpha: 0.1),
+                  child: Icon(Icons.person, color: colorScheme.primary, size: 20),
                 ),
                 const SizedBox(width: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: const [
-                    Text("Welcome",
-                        style: TextStyle(fontSize: 12, color: AppColors.textGrey)),
-                    Text("Anirudh MK",
-                        style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textNavy)),
-                  ],
+                Text(
+                  "User Name",
+                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                 ),
               ],
             ),
             actions: [
-              IconButton(icon: const Icon(Icons.search, color: AppColors.textNavy), onPressed: () {}),
-              Padding(
-                padding: const EdgeInsets.only(right: 12),
-                child: Stack(
-                  alignment: Alignment.topRight,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.notifications_none_rounded, color: AppColors.textNavy),
-                      onPressed: () {},
-                    ),
-                    Positioned(
-                      right: 12,
-                      top: 12,
-                      child: Container(
-                        width: 8,
-                        height: 8,
-                        decoration: const BoxDecoration(
-                          color: Colors.red,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    ),
-                  ],
+              IconButton(
+                onPressed: () {},
+                icon: const Icon(Icons.search_rounded),
+                style: IconButton.styleFrom(
+                  backgroundColor: colorScheme.surface,
                 ),
               ),
+              const SizedBox(width: 8),
+              Stack(
+                alignment: Alignment.topRight,
+                children: [
+                  IconButton(
+                    onPressed: () {},
+                    icon: const Icon(Icons.notifications_none_rounded),
+                    style: IconButton.styleFrom(
+                      backgroundColor: colorScheme.surface,
+                    ),
+                  ),
+                  Positioned(
+                    right: 12,
+                    top: 12,
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: AppColors.error,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(width: 16),
             ],
           ),
 
           /// ───────────── Dashboard Content ─────────────
           SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+            padding: const EdgeInsets.all(24),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
-                /// Quick Menu (Employees, Attendance, etc.)
-                GridView.count(
-                  crossAxisCount: 4,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  mainAxisSpacing: 12,
-                  crossAxisSpacing: 12,
-                  children: const [
-                    _QuickMenu(icon: Icons.people_outline, label: "Employees"),
-                    _QuickMenu(icon: Icons.fact_check_outlined, label: "Attendance"),
-                    _QuickMenu(icon: Icons.account_balance_wallet_outlined, label: "Payments"),
-                    _QuickMenu(icon: Icons.analytics_outlined, label: "Reports"),
+                /// Bento Grid Row 1: Major Stats
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: _BentoCard(
+                        title: "Active Staff",
+                        value: "124",
+                        subtitle: "+12 since Monday",
+                        color: colorScheme.primary,
+                        textColor: Colors.white,
+                        icon: Icons.people_alt_rounded,
+                        height: 200,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      flex: 1,
+                      child: Column(
+                        children: [
+                          _BentoCard(
+                            title: "Sites",
+                            value: "08",
+                            icon: Icons.business_center_rounded,
+                            height: 92,
+                            mini: true,
+                          ),
+                          const SizedBox(height: 16),
+                          _BentoCard(
+                            title: "Alerts",
+                            value: "03",
+                            icon: Icons.warning_amber_rounded,
+                            height: 92,
+                            mini: true,
+                            color: AppColors.warning.withValues(alpha: 0.1),
+                            iconColor: AppColors.warning,
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
 
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
 
-                /// Horizontal Major Stats
-                const _SectionTitle(title: "Overview"),
-                const SizedBox(height: 12),
-                SizedBox(
-                  height: 110,
-                  child: ListView(
-                    scrollDirection: Axis.horizontal,
-                    children: const [
-                      _StatCard(title: "Employees", value: "42", icon: Icons.people),
-                      _StatCard(title: "Active Sites", value: "08", icon: Icons.business),
-                      _StatCard(title: "Equipment", value: "15", icon: Icons.build_circle),
+                /// Bento Grid Row 2: Secondary Stats
+                Row(
+                  children: [
+                    Expanded(
+                      child: _BentoCard(
+                        title: "Equipment",
+                        value: "42",
+                        subtitle: "3 in maintenance",
+                        icon: Icons.build_rounded,
+                        height: 150,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _BentoCard(
+                        title: "Attendance",
+                        value: "94%",
+                        subtitle: "High efficiency",
+                        icon: Icons.check_circle_outline_rounded,
+                        height: 120,
+                        color: AppColors.success.withValues(alpha: 0.1),
+                        iconColor: AppColors.success,
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 32),
+
+                /// Quick Navigation Section
+                const _SectionHeader(title: "Management"),
+                const SizedBox(height: 16),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _QuickAction(icon: Icons.person_add_rounded, label: "Add Staff"),
+                      _QuickAction(icon: Icons.assignment_rounded, label: "Work Logs"),
+                      _QuickAction(icon: Icons.account_balance_rounded, label: "Payments"),
+                      _QuickAction(icon: Icons.analytics_rounded, label: "Reports"),
                     ],
                   ),
                 ),
 
-                const SizedBox(height: 24),
-
-                /// Grid Stats
-                const _SectionTitle(title: "Operational Status"),
-                const SizedBox(height: 12),
-                GridView.count(
-                  crossAxisCount: 2,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                  childAspectRatio: 1.6,
-                  children: const [
-                    _InfoTile(title: "Active Workers", value: "34"),
-                    _InfoTile(title: "On Leave", value: "08"),
-                    _InfoTile(title: "Attendance", value: "92%"),
-                    _InfoTile(title: "Pending", value: "₹45K"),
-                  ],
-                ),
-
-                const SizedBox(height: 24),
+                const SizedBox(height: 32),
 
                 /// Site Progress Section
-                const _SectionTitle(title: "Site Progress"),
-                const SizedBox(height: 12),
-                const _ProgressTile(title: "City Plaza", subtitle: "Foundation Phase", progress: 0.75),
-                const _ProgressTile(title: "Metro Station", subtitle: "Structural Work", progress: 0.45),
-
-                const SizedBox(height: 24),
-
-                /// Quick Actions Expansion
-                Theme(
-                  data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-                  child: ExpansionTile(
-                    tilePadding: EdgeInsets.zero,
-                    title: const Text("Management Actions",
-                        style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.textNavy)),
-                    children: [
-                      _actionItem(Icons.add_business_outlined, "Launch New Project"),
-                      _actionItem(Icons.assignment_ind_outlined, "Assign Site Manager"),
-                      _actionItem(Icons.person_add_alt_1_outlined, "Onboard Worker"),
-                    ],
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const _SectionHeader(title: "Site Progress"),
+                    TextButton(
+                      onPressed: () {},
+                      child: const Text("View All"),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                const _ProgressTile(
+                  title: "City Plaza Redesign",
+                  subtitle: "Structural Phase • 24 Workers",
+                  progress: 0.72,
+                ),
+                const _ProgressTile(
+                  title: "Metro Extension",
+                  subtitle: "Foundation Phase • 18 Workers",
+                  progress: 0.45,
                 ),
 
-                const SizedBox(height: 24),
+                const SizedBox(height: 32),
 
-                /// Recent Logs
-                const _SectionTitle(title: "Recent Activity"),
-                const SizedBox(height: 12),
-                ListView.builder(
-                  itemCount: 4,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemBuilder: (context, index) {
-                    return _RecentActivityItem(index: index);
-                  },
-                ),
-                const SizedBox(height: 30),
+                /// Activity Feed
+                const _SectionHeader(title: "Recent Activity"),
+                const SizedBox(height: 16),
+                ...List.generate(3, (index) => _ActivityItem(index: index)),
+
+                const SizedBox(height: 40),
               ]),
             ),
           ),
@@ -174,105 +203,169 @@ class DashboardPage extends StatelessWidget {
       ),
     );
   }
-
-  Widget _actionItem(IconData icon, String title) {
-    return ListTile(
-      leading: Icon(icon, color: AppColors.primaryBlue, size: 20),
-      title: Text(title, style: const TextStyle(fontSize: 14)),
-      trailing: const Icon(Icons.chevron_right, size: 16),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-    );
-  }
 }
 
-/// ───────────── Components ─────────────
-
-class _SectionTitle extends StatelessWidget {
+class _SectionHeader extends StatelessWidget {
   final String title;
-  const _SectionTitle({required this.title});
+  const _SectionHeader({required this.title});
 
   @override
   Widget build(BuildContext context) {
-    return Text(title,
-        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textNavy));
-  }
-}
-
-class _QuickMenu extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  const _QuickMenu({required this.icon, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10)],
-          ),
-          child: Icon(icon, color: AppColors.primaryBlue),
-        ),
-        const SizedBox(height: 8),
-        Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: AppColors.textNavy)),
-      ],
+    return Text(
+      title,
+      style: Theme.of(context).textTheme.titleLarge,
     );
   }
 }
 
-class _StatCard extends StatelessWidget {
+class _BentoCard extends StatelessWidget {
   final String title;
   final String value;
+  final String? subtitle;
   final IconData icon;
-  const _StatCard({required this.title, required this.value, required this.icon});
+  final double height;
+  final Color? color;
+  final Color? textColor;
+  final Color? iconColor;
+  final bool mini;
+
+  const _BentoCard({
+    required this.title,
+    required this.value,
+    this.subtitle,
+    required this.icon,
+    required this.height,
+    this.color,
+    this.textColor,
+    this.iconColor,
+    this.mini = false,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
-      width: 140,
-      margin: const EdgeInsets.only(right: 12),
-      padding: const EdgeInsets.all(16),
+      height: height,
+      padding: EdgeInsets.all(mini ? 12 : 20),
       decoration: BoxDecoration(
-        color: AppColors.primaryBlue,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: AppColors.primaryBlue.withValues(alpha: 0.2), blurRadius: 10, offset: const Offset(0, 4))],
+        color: color ?? theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(32), // Increased for "friendlier" feel
+        border: color == null ? Border.all(color: AppColors.textMuted.withValues(alpha: 0.1)) : null,
+        boxShadow: color == null ? [
+          BoxShadow(
+            color: const Color(0xFF0B1222).withValues(alpha: 0.04),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
+          ),
+          BoxShadow(
+            color: const Color(0xFF0B1222).withValues(alpha: 0.02),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ] : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: Colors.white.withValues(alpha: 0.8), size: 24),
-          const Spacer(),
-          Text(value, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w800)),
-          Text(title, style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 12)),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Icon(
+                icon,
+                size: mini ? 18 : 22, // Slightly smaller icons
+                color: iconColor ?? (textColor?.withValues(alpha: 0.8) ?? AppColors.textSecondary),
+              ),
+              if (!mini && subtitle != null)
+                Icon(Icons.north_east_rounded, size: 14, color: textColor?.withValues(alpha: 0.5) ?? AppColors.textMuted),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      value,
+                      style: TextStyle(
+                        fontSize: mini ? 20 : 32,
+                        fontWeight: FontWeight.w800,
+                        color: textColor ?? AppColors.textPrimary,
+                        letterSpacing: -1,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: mini ? 10 : 12,
+                      fontWeight: FontWeight.w600,
+                      color: textColor?.withValues(alpha: 0.7) ?? AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+                if (!mini && subtitle != null) ...[
+                  const SizedBox(height: 2),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      subtitle!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 9,
+                        color: textColor?.withValues(alpha: 0.5) ?? AppColors.textMuted,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
-class _InfoTile extends StatelessWidget {
-  final String title;
-  final String value;
-  const _InfoTile({required this.title, required this.value});
+class _QuickAction extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _QuickAction({required this.icon, required this.label});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.primaryBlue.withValues(alpha: 0.05)),
-      ),
+      margin: const EdgeInsets.only(right: 12),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(color: AppColors.textGrey, fontSize: 12, fontWeight: FontWeight.w500)),
-          const Spacer(),
-          Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textNavy)),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.08)),
+            ),
+            child: Icon(icon, color: AppColors.primary),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+          ),
         ],
       ),
     );
@@ -283,6 +376,7 @@ class _ProgressTile extends StatelessWidget {
   final String title;
   final String subtitle;
   final double progress;
+
   const _ProgressTile({required this.title, required this.subtitle, required this.progress});
 
   @override
@@ -290,26 +384,46 @@ class _ProgressTile extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.05)),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(title, style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.textNavy)),
-              Text("${(progress * 100).toInt()}%", style: const TextStyle(color: AppColors.primaryBlue, fontWeight: FontWeight.bold, fontSize: 12)),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                    Text(subtitle, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.accent.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  "${(progress * 100).toInt()}%",
+                  style: const TextStyle(color: AppColors.accent, fontWeight: FontWeight.bold, fontSize: 12),
+                ),
+              ),
             ],
           ),
-          Text(subtitle, style: const TextStyle(color: AppColors.textGrey, fontSize: 12)),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
             child: LinearProgressIndicator(
               value: progress,
-              backgroundColor: AppColors.bgLight,
-              color: AppColors.primaryBlue,
-              minHeight: 6,
+              backgroundColor: AppColors.background,
+              color: AppColors.accent,
+              minHeight: 8,
             ),
           ),
         ],
@@ -318,23 +432,41 @@ class _ProgressTile extends StatelessWidget {
   }
 }
 
-class _RecentActivityItem extends StatelessWidget {
+class _ActivityItem extends StatelessWidget {
   final int index;
-  const _RecentActivityItem({required this.index});
+  const _ActivityItem({required this.index});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: AppColors.bgLight,
-          child: const Icon(Icons.person_outline, color: AppColors.primaryBlue, size: 20),
-        ),
-        title: Text("Log entry #${1024 + index}", style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-        subtitle: const Text("Site A • Check-in recorded", style: TextStyle(fontSize: 12)),
-        trailing: const Text("9:41 AM", style: TextStyle(fontSize: 11, color: AppColors.textGrey)),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.background,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.history_edu_rounded, size: 18, color: AppColors.textSecondary),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  index == 0 ? "Shift started at Site Alpha" : "Material delivery received",
+                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                ),
+                Text(
+                  "2 hours ago • By Site Manager",
+                  style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

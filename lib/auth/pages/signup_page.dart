@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../theme/app_theme.dart';
+import '../services/auth_service.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
@@ -9,15 +11,17 @@ class SignupPage extends StatefulWidget {
 
 class _SignupPageState extends State<SignupPage> {
   final PageController _pageController = PageController();
-  int _currentStep = 0;
-  String? _userRole;
+  final AuthService _authService = AuthService();
 
-  // Theme Colors
-  final Color primaryBlue = const Color(0xFF0066FF);
-  final Color bgLight = const Color(0xFFF5F9FF);
-  final Color surfaceWhite = Colors.white;
-  final Color textNavy = const Color(0xFF1A202C);
-  final Color textGrey = const Color(0xFF718096);
+  int _currentStep = 0;
+  bool _isLoading = false;
+
+  // Using global AppColors for consistency
+  Color get primaryColor => AppColors.primary;
+  Color get backgroundColor => AppColors.background;
+  Color get surfaceColor => AppColors.surface;
+  Color get textPrimary => AppColors.textPrimary;
+  Color get textSecondary => AppColors.textSecondary;
 
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
@@ -28,7 +32,24 @@ class _SignupPageState extends State<SignupPage> {
   final TextEditingController _confirmPasswordController = TextEditingController();
 
   void _nextStep() {
-    if (_currentStep < 2) {
+    if (_currentStep == 0) {
+      if (_firstNameController.text.trim().isEmpty ||
+          _lastNameController.text.trim().isEmpty ||
+          _emailController.text.trim().isEmpty ||
+          _mobileController.text.trim().isEmpty ||
+          _dobController.text.trim().isEmpty) {
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Please fill in all personal info fields to continue"), 
+            backgroundColor: AppColors.error,
+          ),
+        );
+        return;
+      }
+    }
+
+    if (_currentStep < 1) {
       _pageController.nextPage(
         duration: const Duration(milliseconds: 500),
         curve: Curves.fastOutSlowIn,
@@ -44,7 +65,7 @@ class _SignupPageState extends State<SignupPage> {
       lastDate: DateTime.now(),
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
-          colorScheme: ColorScheme.light(primary: primaryBlue),
+          colorScheme: ColorScheme.light(primary: primaryColor),
         ),
         child: child!,
       ),
@@ -70,12 +91,12 @@ class _SignupPageState extends State<SignupPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: bgLight,
+      backgroundColor: backgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded, color: textNavy, size: 20),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: textPrimary, size: 20),
           onPressed: () => _currentStep > 0
               ? _pageController.previousPage(duration: const Duration(milliseconds: 300), curve: Curves.easeIn)
               : Navigator.pop(context),
@@ -88,7 +109,6 @@ class _SignupPageState extends State<SignupPage> {
         physics: const NeverScrollableScrollPhysics(),
         onPageChanged: (page) => setState(() => _currentStep = page),
         children: [
-          _buildRoleStep(),
           _buildDetailsStep(),
           _buildPasswordStep(),
         ],
@@ -99,7 +119,7 @@ class _SignupPageState extends State<SignupPage> {
   Widget _buildStepIndicator() {
     return Row(
       mainAxisSize: MainAxisSize.min,
-      children: List.generate(3, (index) {
+      children: List.generate(2, (index) {
         bool isActive = index <= _currentStep;
         return AnimatedContainer(
           duration: const Duration(milliseconds: 300),
@@ -108,85 +128,11 @@ class _SignupPageState extends State<SignupPage> {
           width: index == _currentStep ? 24 : 8,
           decoration: BoxDecoration(
             // UPDATED: .withValues() instead of .withOpacity()
-            color: isActive ? primaryBlue : primaryBlue.withValues(alpha: 0.2),
+            color: isActive ? primaryColor : primaryColor.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(10),
           ),
         );
       }),
-    );
-  }
-
-  Widget _buildRoleStep() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 30),
-          Text("Join Us", style: TextStyle(color: textNavy, fontSize: 32, fontWeight: FontWeight.bold)),
-          Text("Select how you want to use the platform", style: TextStyle(color: textGrey, fontSize: 16)),
-          const SizedBox(height: 40),
-          _roleCard("Job Seeker", "Finding opportunities", Icons.person_search_rounded),
-          const SizedBox(height: 20),
-          _roleCard("Owner", "Hiring and managing", Icons.business_rounded),
-        ],
-      ),
-    );
-  }
-
-  Widget _roleCard(String title, String subtitle, IconData icon) {
-    bool isSelected = _userRole == title;
-    return GestureDetector(
-      onTap: () {
-        setState(() => _userRole = title);
-        Future.delayed(const Duration(milliseconds: 400), _nextStep);
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 250),
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: surfaceWhite,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: isSelected ? primaryBlue : Colors.transparent, width: 2),
-          boxShadow: [
-            BoxShadow(
-              // UPDATED: .withValues()
-              color: primaryBlue.withValues(alpha: isSelected ? 0.1 : 0.05),
-              blurRadius: 20,
-              offset: const Offset(0, 10),
-            )
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                // UPDATED: .withValues()
-                color: isSelected ? primaryBlue : primaryBlue.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Icon(icon, color: isSelected ? Colors.white : primaryBlue),
-            ),
-            const SizedBox(width: 20),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: TextStyle(color: textNavy, fontWeight: FontWeight.bold, fontSize: 18)),
-                  Text(subtitle, style: TextStyle(color: textGrey, fontSize: 14)),
-                ],
-              ),
-            ),
-            Icon(
-              isSelected ? Icons.check_circle_rounded : Icons.arrow_forward_ios_rounded,
-              // UPDATED: .withValues()
-              color: isSelected ? primaryBlue : textGrey.withValues(alpha: 0.3),
-              size: 20,
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -227,8 +173,44 @@ class _SignupPageState extends State<SignupPage> {
         const SizedBox(height: 20),
         _customField("Confirm Password", _confirmPasswordController, Icons.shield_outlined, isPassword: true),
       ],
-      onNext: () {
-        // Final Registration Logic
+      onNext: () async {
+        if (_passwordController.text.isEmpty || _passwordController.text != _confirmPasswordController.text) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Passwords must match and cannot be empty"), backgroundColor: AppColors.error),
+          );
+          return;
+        }
+        if (_emailController.text.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Email is required"), backgroundColor: AppColors.error),
+          );
+          return;
+        }
+
+        setState(() => _isLoading = true);
+        try {
+          final success = await _authService.registerWithPassword(
+            email: _emailController.text.trim(),
+            password: _passwordController.text,
+            firstName: _firstNameController.text.trim(),
+            lastName: _lastNameController.text.trim(),
+            mobile: _mobileController.text.trim(),
+            dob: _dobController.text.trim(),
+          );
+          if (success) {
+            if (mounted) {
+              Navigator.pushReplacementNamed(context, '/dashboard');
+            }
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error),
+            );
+          }
+        } finally {
+          if (mounted) setState(() => _isLoading = false);
+        }
       },
     );
   }
@@ -237,7 +219,7 @@ class _SignupPageState extends State<SignupPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(color: textNavy, fontSize: 13, fontWeight: FontWeight.w600)),
+        Text(label, style: TextStyle(color: textPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
         const SizedBox(height: 8),
         TextField(
           controller: controller,
@@ -246,14 +228,14 @@ class _SignupPageState extends State<SignupPage> {
           onTap: onTap,
           decoration: InputDecoration(
             filled: true,
-            fillColor: surfaceWhite,
-            prefixIcon: Icon(icon, color: primaryBlue, size: 20),
+            fillColor: surfaceColor,
+            prefixIcon: Icon(icon, color: primaryColor, size: 20),
             hintText: label,
             // UPDATED: .withValues()
-            hintStyle: TextStyle(color: textGrey.withValues(alpha: 0.5), fontSize: 14),
+            hintStyle: TextStyle(color: textSecondary.withValues(alpha: 0.5), fontSize: 14),
             // UPDATED: .withValues()
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Colors.blue.withValues(alpha: 0.1))),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: primaryBlue, width: 2)),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: AppColors.textMuted.withValues(alpha: 0.15))),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: primaryColor, width: 2)),
           ),
         ),
       ],
@@ -261,34 +243,46 @@ class _SignupPageState extends State<SignupPage> {
   }
 
   Widget _stepWrapper({required String title, required String subtitle, required List<Widget> fields, required VoidCallback onNext, bool isFinal = false}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 30),
-          Text(title, style: TextStyle(color: textNavy, fontSize: 32, fontWeight: FontWeight.bold)),
-          Text(subtitle, style: TextStyle(color: textGrey, fontSize: 16)),
-          const SizedBox(height: 32),
-          ...fields,
-          const Spacer(),
-          SizedBox(
-            width: double.infinity,
-            height: 60,
-            child: ElevatedButton(
-              onPressed: onNext,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: primaryBlue,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                elevation: 0,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: IntrinsicHeight(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 30),
+                  Text(title, style: TextStyle(color: textPrimary, fontSize: 32, fontWeight: FontWeight.w800, letterSpacing: -1)),
+                  Text(subtitle, style: TextStyle(color: textSecondary, fontSize: 16)),
+                  const SizedBox(height: 32),
+                  ...fields,
+                  const Spacer(),
+                  const SizedBox(height: 32),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 60,
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : onNext,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryColor,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                        elevation: 0,
+                      ),
+                      child: _isLoading 
+                        ? const CircularProgressIndicator(color: Colors.white) 
+                        : Text(isFinal ? "Finish Registration" : "Continue", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+                ],
               ),
-              child: Text(isFinal ? "Finish Registration" : "Continue", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             ),
           ),
-          const SizedBox(height: 40),
-        ],
-      ),
+        );
+      },
     );
   }
 }
