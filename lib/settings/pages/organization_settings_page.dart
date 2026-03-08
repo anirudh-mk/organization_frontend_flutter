@@ -3,6 +3,7 @@ import '../../theme/app_theme.dart';
 import '../../organization/services/organization_service.dart';
 import '../../organization/models/organization_model.dart';
 import '../../organization/pages/organization_create_page.dart';
+import '../../organization/pages/organization_edit_page.dart';
 import '../../auth/services/token_manager.dart';
 
 class OrganizationSettingsPage extends StatefulWidget {
@@ -96,7 +97,7 @@ class _OrganizationSettingsPageState extends State<OrganizationSettingsPage> {
                   if (_currentOrg != null) ...[
                     const _SectionHeader(title: "Current Context"),
                     const SizedBox(height: 16),
-                    _CurrentOrgCard(org: _currentOrg!),
+                    _CurrentOrgCard(org: _currentOrg!, onEdited: _loadData),
                     const SizedBox(height: 40),
                   ],
                   const _SectionHeader(title: "Your Organizations"),
@@ -131,7 +132,8 @@ class _SectionHeader extends StatelessWidget {
 
 class _CurrentOrgCard extends StatelessWidget {
   final OrganizationModel org;
-  const _CurrentOrgCard({required this.org});
+  final Future<void> Function() onEdited;
+  const _CurrentOrgCard({required this.org, required this.onEdited});
 
   @override
   Widget build(BuildContext context) {
@@ -182,9 +184,14 @@ class _CurrentOrgCard extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(
-              onPressed: () {
-                // TODO: Implement Edit OR Pass to Edit Page
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Edit feature coming soon")));
+              onPressed: () async {
+                final updated = await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => OrganizationEditPage(organization: org)),
+                );
+                if (updated != null) {
+                  await onEdited();
+                }
               },
               icon: const Icon(Icons.edit_rounded, size: 18),
               label: const Text("Edit Details"),

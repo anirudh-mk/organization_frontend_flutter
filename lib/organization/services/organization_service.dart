@@ -270,4 +270,23 @@ class OrganizationService extends BaseService {
       throw Exception("Error updating organization: $e");
     }
   }
+
+  Future<void> updateOrgAddresses(
+    String orgId,
+    List<Map<String, dynamic>> addresses,
+  ) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/organization/organizations/$orgId/update-addresses/'),
+        headers: await getHeaders(),
+        body: jsonEncode({'addresses': addresses}),
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception("Failed to update addresses (${response.statusCode}): ${response.body}");
+      }
+    } catch (e) {
+      throw Exception("Error updating addresses: $e");
+    }
+  }
 }
