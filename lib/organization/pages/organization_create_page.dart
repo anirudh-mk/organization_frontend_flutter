@@ -15,6 +15,7 @@ class OrganizationCreatePage extends StatefulWidget {
 class _OrganizationCreatePageState extends State<OrganizationCreatePage> {
   final _formKeyDetails = GlobalKey<FormState>();
   final _formKeyAddress = GlobalKey<FormState>();
+  final PageController _pageController = PageController();
   
   // Step 1: Details
   final _nameController = TextEditingController();
@@ -177,6 +178,32 @@ class _OrganizationCreatePageState extends State<OrganizationCreatePage> {
     }
   }
 
+  void _nextStep() {
+    if (_currentStep == 0) {
+      if (_formKeyDetails.currentState!.validate() && _selectedType != null) {
+        _pageController.nextPage(
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.fastOutSlowIn,
+        );
+      } else if (_selectedType == null) {
+        _showError('Please select an organization type');
+      }
+    } else {
+      _createOrganization();
+    }
+  }
+
+  void _previousStep() {
+    if (_currentStep > 0) {
+      _pageController.previousPage(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeIn,
+      );
+    } else {
+      Navigator.pop(context);
+    }
+  }
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -184,264 +211,288 @@ class _OrganizationCreatePageState extends State<OrganizationCreatePage> {
     _addressLine2Controller.dispose();
     _cityController.dispose();
     _postalCodeController.dispose();
+    _pageController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Create Organization'),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.textPrimary, size: 20),
+          onPressed: _previousStep,
+        ),
+        title: _buildStepIndicator(),
+        centerTitle: true,
       ),
       body: SafeArea(
         child: _isLoading && _types.isEmpty
           ? const Center(child: CircularProgressIndicator())
-          : Stepper(
-              type: StepperType.horizontal,
-              currentStep: _currentStep,
-              onStepContinue: () {
-                if (_currentStep == 0) {
-                  if (_formKeyDetails.currentState!.validate() && _selectedType != null) {
-                    setState(() => _currentStep += 1);
-                  } else if (_selectedType == null) {
-                    _showError('Please select an organization type');
-                  }
-                } else {
-                  _createOrganization();
-                }
-              },
-              onStepCancel: () {
-                if (_currentStep > 0) {
-                  setState(() => _currentStep -= 1);
-                } else {
-                  Navigator.pop(context);
-                }
-              },
-              controlsBuilder: (context, details) {
-                final isLastStep = _currentStep == 1;
-                return Padding(
-                  padding: const EdgeInsets.only(top: 32.0),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: _isLoading ? null : details.onStepContinue,
-                          child: _isLoading && isLastStep
-                              ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                              : Text(isLastStep ? 'Create Organization' : 'Continue to Address'),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      if (_currentStep > 0)
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: _isLoading ? null : details.onStepCancel,
-                            child: const Text('Back'),
-                          ),
-                        ),
-                    ],
-                  ),
-                );
-              },
-              steps: [
-                Step(
-                  title: const Text('Details'),
-                  isActive: _currentStep >= 0,
-                  state: _currentStep > 0 ? StepState.complete : StepState.indexed,
-                  content: Form(
-                    key: _formKeyDetails,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text("Organization Basics", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.primary)),
-                        const Text("Provide the core information about your company.", style: TextStyle(color: AppColors.textSecondary)),
-                        const SizedBox(height: 24),
-                        Center(
-                          child: Stack(
-                            children: [
-                              GestureDetector(
-                                onTap: _pickLogo,
-                                child: CircleAvatar(
-                                  radius: 50,
-                                  backgroundColor: AppColors.surface,
-                                  backgroundImage: _logo != null ? FileImage(_logo!) : null,
-                                  child: _logo == null ? const Icon(Icons.add_a_photo_outlined, size: 32, color: AppColors.textMuted) : null,
-                                ),
-                              ),
-                              if (_logo != null)
-                                Positioned(
-                                  right: 0,
-                                  bottom: 0,
-                                  child: GestureDetector(
-                                    onTap: () => setState(() => _logo = null),
-                                    child: Container(
-                                      padding: const EdgeInsets.all(4),
-                                      decoration: const BoxDecoration(color: AppColors.error, shape: BoxShape.circle),
-                                      child: const Icon(Icons.close, size: 16, color: Colors.white),
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 32),
-                        _buildFieldLabel("ORGANIZATION NAME"),
-                        TextFormField(
-                          controller: _nameController,
-                          decoration: const InputDecoration(hintText: "e.g., Acme Construction", prefixIcon: Icon(Icons.business, size: 20)),
-                          validator: (v) => v!.isEmpty ? "Name is required" : null,
-                        ),
-                        const SizedBox(height: 20),
-                        _buildFieldLabel("ORGANIZATION TYPE"),
-                        _buildDropdown<OrganizationTypeModel>(
-                          value: _selectedType,
-                          hint: "Select Type",
-                          items: _types.map((t) => DropdownMenuItem(value: t, child: Text(t.name))).toList(),
-                          onChanged: (v) => setState(() => _selectedType = v),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                Step(
-                  title: const Text('Address'),
-                  isActive: _currentStep >= 1,
-                  state: _currentStep > 1 ? StepState.complete : StepState.indexed,
-                  content: Form(
-                    key: _formKeyAddress,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text("Registered Address", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.primary)),
-                        const Text("This information is required for tax and legal identification.", style: TextStyle(color: AppColors.textSecondary)),
-                        const SizedBox(height: 24),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  _buildFieldLabel("COUNTRY"),
-                                  _buildDropdown<CountryModel>(
-                                    value: _selectedCountry,
-                                    hint: "Select Country",
-                                    items: _countries.map((c) => DropdownMenuItem(value: c, child: Text(c.name))).toList(),
-                                    onChanged: _onCountryChanged,
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  _buildFieldLabel("STATE"),
-                                  _buildDropdown<StateModel>(
-                                    value: _selectedState,
-                                    hint: "Select State",
-                                    items: _states.map((s) => DropdownMenuItem(value: s, child: Text(s.name))).toList(),
-                                    onChanged: _onStateChanged,
-                                    enabled: _selectedCountry != null,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 20),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  _buildFieldLabel("DISTRICT"),
-                                  _buildDropdown<DistrictModel>(
-                                    value: _selectedDistrict,
-                                    hint: "Select District",
-                                    items: _districts.map((d) => DropdownMenuItem(value: d, child: Text(d.name))).toList(),
-                                    onChanged: (v) => setState(() => _selectedDistrict = v),
-                                    enabled: _selectedState != null,
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  _buildFieldLabel("ADDRESS TYPE"),
-                                  _buildDropdown<AddressTypeModel>(
-                                    value: _selectedAddressType,
-                                    hint: "e.g., Head Office",
-                                    items: _addressTypes.map((a) => DropdownMenuItem(value: a, child: Text(a.name))).toList(),
-                                    onChanged: (v) => setState(() => _selectedAddressType = v),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 20),
-                        _buildFieldLabel("STREET ADDRESS (LINE 1)"),
-                        TextFormField(
-                          controller: _addressLine1Controller,
-                          decoration: const InputDecoration(hintText: "Building No, Street Name"),
-                          validator: (v) => v!.isEmpty ? "Address Line 1 is required" : null,
-                        ),
-                        const SizedBox(height: 20),
-                        _buildFieldLabel("ADDRESS LINE 2 (OPTIONAL)"),
-                        TextFormField(
-                          controller: _addressLine2Controller,
-                          decoration: const InputDecoration(hintText: "Suite, Floor, Landmark"),
-                        ),
-                        const SizedBox(height: 20),
-                        Row(
-                          children: [
-                            Expanded(
-                              flex: 2,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  _buildFieldLabel("CITY"),
-                                  TextFormField(
-                                    controller: _cityController,
-                                    decoration: const InputDecoration(hintText: "City"),
-                                    validator: (v) => v!.isEmpty ? "City is required" : null,
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  _buildFieldLabel("POSTAL CODE"),
-                                  TextFormField(
-                                    controller: _postalCodeController,
-                                    decoration: const InputDecoration(hintText: "Zip"),
-                                    validator: (v) => v!.isEmpty ? "Required" : null,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+          : PageView(
+              controller: _pageController,
+              physics: const NeverScrollableScrollPhysics(),
+              onPageChanged: (page) => setState(() => _currentStep = page),
+              children: [
+                _buildDetailsStep(),
+                _buildAddressStep(),
               ],
             ),
       ),
+    );
+  }
+
+  Widget _buildStepIndicator() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(2, (index) {
+        bool isActive = index <= _currentStep;
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          height: 8,
+          width: index == _currentStep ? 24 : 8,
+          decoration: BoxDecoration(
+            color: isActive ? AppColors.accent : AppColors.accent.withValues(alpha: 0.2),
+            borderRadius: BorderRadius.circular(10),
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _buildDetailsStep() {
+    return _stepWrapper(
+      title: "Organization Basics",
+      subtitle: "Provide the core information about your company.",
+      fields: [
+        Center(
+          child: Stack(
+            children: [
+              GestureDetector(
+                onTap: _pickLogo,
+                child: CircleAvatar(
+                  radius: 50,
+                  backgroundColor: AppColors.surface,
+                  backgroundImage: _logo != null ? FileImage(_logo!) : null,
+                  child: _logo == null ? const Icon(Icons.add_a_photo_outlined, size: 32, color: AppColors.textMuted) : null,
+                ),
+              ),
+              if (_logo != null)
+                Positioned(
+                  right: 0,
+                  bottom: 0,
+                  child: GestureDetector(
+                    onTap: () => setState(() => _logo = null),
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(color: AppColors.error, shape: BoxShape.circle),
+                      child: const Icon(Icons.close, size: 16, color: Colors.white),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 32),
+        _buildFieldLabel("ORGANIZATION NAME"),
+        TextFormField(
+          controller: _nameController,
+          decoration: const InputDecoration(
+            hintText: "e.g., Acme Construction",
+            prefixIcon: Icon(Icons.business, size: 20),
+          ),
+          validator: (v) => v!.isEmpty ? "Name is required" : null,
+        ),
+        const SizedBox(height: 20),
+        _buildFieldLabel("ORGANIZATION TYPE"),
+        _buildDropdown<OrganizationTypeModel>(
+          value: _selectedType,
+          hint: "Select Type",
+          items: _types.map((t) => DropdownMenuItem(value: t, child: Text(t.name))).toList(),
+          onChanged: (v) => setState(() => _selectedType = v),
+        ),
+      ],
+      onNext: _nextStep,
+      nextLabel: "Continue to Address",
+    );
+  }
+
+  Widget _buildAddressStep() {
+    return _stepWrapper(
+      title: "Registered Address",
+      subtitle: "This information is required for tax and legal identification.",
+      fields: [
+        Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildFieldLabel("COUNTRY"),
+                  _buildDropdown<CountryModel>(
+                    value: _selectedCountry,
+                    hint: "Select Country",
+                    items: _countries.map((c) => DropdownMenuItem(value: c, child: Text(c.name))).toList(),
+                    onChanged: _onCountryChanged,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildFieldLabel("STATE"),
+                  _buildDropdown<StateModel>(
+                    value: _selectedState,
+                    hint: "Select State",
+                    items: _states.map((s) => DropdownMenuItem(value: s, child: Text(s.name))).toList(),
+                    onChanged: _onStateChanged,
+                    enabled: _selectedCountry != null,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildFieldLabel("DISTRICT"),
+                  _buildDropdown<DistrictModel>(
+                    value: _selectedDistrict,
+                    hint: "Select District",
+                    items: _districts.map((d) => DropdownMenuItem(value: d, child: Text(d.name))).toList(),
+                    onChanged: (v) => setState(() => _selectedDistrict = v),
+                    enabled: _selectedState != null,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildFieldLabel("ADDRESS TYPE"),
+                  _buildDropdown<AddressTypeModel>(
+                    value: _selectedAddressType,
+                    hint: "e.g., Head Office",
+                    items: _addressTypes.map((a) => DropdownMenuItem(value: a, child: Text(a.name))).toList(),
+                    onChanged: (v) => setState(() => _selectedAddressType = v),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        _buildFieldLabel("STREET ADDRESS (LINE 1)"),
+        TextFormField(
+          controller: _addressLine1Controller,
+          decoration: const InputDecoration(hintText: "Building No, Street Name"),
+          validator: (v) => v!.isEmpty ? "Address Line 1 is required" : null,
+        ),
+        const SizedBox(height: 20),
+        _buildFieldLabel("ADDRESS LINE 2 (OPTIONAL)"),
+        TextFormField(
+          controller: _addressLine2Controller,
+          decoration: const InputDecoration(hintText: "Suite, Floor, Landmark"),
+        ),
+        const SizedBox(height: 20),
+        Row(
+          children: [
+            Expanded(
+              flex: 2,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildFieldLabel("CITY"),
+                  TextFormField(
+                    controller: _cityController,
+                    decoration: const InputDecoration(hintText: "City"),
+                    validator: (v) => v!.isEmpty ? "City is required" : null,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildFieldLabel("POSTAL CODE"),
+                  TextFormField(
+                    controller: _postalCodeController,
+                    decoration: const InputDecoration(hintText: "Zip"),
+                    validator: (v) => v!.isEmpty ? "Required" : null,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ],
+      onNext: _nextStep,
+      nextLabel: "Create Organization",
+      formKey: _formKeyAddress,
+    );
+  }
+
+  Widget _stepWrapper({
+    required String title,
+    required String subtitle,
+    required List<Widget> fields,
+    required VoidCallback onNext,
+    required String nextLabel,
+    GlobalKey<FormState>? formKey,
+  }) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: IntrinsicHeight(
+              child: Form(
+                key: formKey ?? _formKeyDetails,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 20),
+                    Text(title, style: const TextStyle(color: AppColors.textPrimary, fontSize: 32, fontWeight: FontWeight.w800, letterSpacing: -1)),
+                    Text(subtitle, style: const TextStyle(color: AppColors.textSecondary, fontSize: 16)),
+                    const SizedBox(height: 32),
+                    ...fields,
+                    const Spacer(),
+                    const SizedBox(height: 32),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 56,
+                      child: ElevatedButton(
+                        onPressed: _isLoading ? null : onNext,
+                        child: _isLoading && _currentStep == 1
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : Text(nextLabel),
+                      ),
+                    ),
+                    const SizedBox(height: 40),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
