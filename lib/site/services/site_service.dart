@@ -23,10 +23,10 @@ class SiteService extends BaseService {
     }
   }
 
-  Future<SiteModel> createSite(Map<String, dynamic> data) async {
+  Future<SiteModel> onboardSite(Map<String, dynamic> data) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/'),
+        Uri.parse('http://127.0.0.1:8000/api/v1/site/onboard/'),
         headers: await getHeaders(),
         body: jsonEncode(data),
       );
@@ -34,10 +34,43 @@ class SiteService extends BaseService {
       if (response.statusCode == 201) {
         return SiteModel.fromJson(jsonDecode(response.body));
       } else {
-        throw Exception("Failed to create site: ${response.body}");
+        throw Exception("Failed to onboard site: ${response.body}");
       }
     } catch (e) {
-      throw Exception("Error creating site: $e");
+      throw Exception("Error onboarding site: $e");
+    }
+  }
+
+  Future<SiteModel> updateSite(String id, Map<String, dynamic> data) async {
+    try {
+      final response = await http.patch(
+        Uri.parse('$baseUrl/$id/'),
+        headers: await getHeaders(),
+        body: jsonEncode(data),
+      );
+      
+      if (response.statusCode == 200) {
+        return SiteModel.fromJson(jsonDecode(response.body));
+      } else {
+        throw Exception("Failed to update site: ${response.body}");
+      }
+    } catch (e) {
+      throw Exception("Error updating site: $e");
+    }
+  }
+
+  Future<void> deleteSite(String id) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/$id/'),
+        headers: await getHeaders(),
+      );
+      
+      if (response.statusCode != 204) {
+        throw Exception("Failed to delete site: ${response.body}");
+      }
+    } catch (e) {
+      throw Exception("Error deleting site: $e");
     }
   }
 }

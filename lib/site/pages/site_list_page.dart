@@ -161,7 +161,15 @@ class _SiteListPageState extends State<SiteListPage> {
   Widget _buildSiteGridCard(BuildContext context, int index, SiteModel site) {
     bool active = site.status != 'COMPLETED' && site.status != 'ON_HOLD';
     return GestureDetector(
-      onTap: () {},
+      onTap: () async {
+        final result = await Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => SiteCreatePage(site: site)),
+        );
+        if (result == true) {
+          _loadSites();
+        }
+      },
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -210,7 +218,15 @@ class _SiteListPageState extends State<SiteListPage> {
   Widget _buildSiteListCard(BuildContext context, int index, SiteModel site) {
     bool active = site.status != 'COMPLETED' && site.status != 'ON_HOLD';
     return GestureDetector(
-      onTap: () {},
+      onTap: () async {
+        final result = await Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => SiteCreatePage(site: site)),
+        );
+        if (result == true) {
+          _loadSites();
+        }
+      },
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
