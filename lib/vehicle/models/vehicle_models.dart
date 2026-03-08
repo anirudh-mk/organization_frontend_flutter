@@ -1,5 +1,5 @@
 class VehicleModel {
-  final int id;
+  final String id;
   final String make;
   final String model;
   final int? year;
@@ -7,8 +7,8 @@ class VehicleModel {
   final String? vin;
   final String vehicleType;
   final bool isActive;
-  final int organization;
-  final int? assignedTo;
+  final String organization;
+  final String? assignedTo;
   final VehicleContactModel? contactInfo;
   final VehiclePaymentOptionModel? paymentOption;
 
@@ -29,7 +29,7 @@ class VehicleModel {
 
   factory VehicleModel.fromJson(Map<String, dynamic> json) {
     return VehicleModel(
-      id: json['id'] ?? 0,
+      id: json['id']?.toString() ?? '',
       make: json['make'] ?? '',
       model: json['model'] ?? '',
       year: json['year'],
@@ -37,8 +37,8 @@ class VehicleModel {
       vin: json['vin'],
       vehicleType: json['vehicle_type'] ?? '',
       isActive: json['is_active'] ?? true,
-      organization: json['organization'] ?? 1,
-      assignedTo: json['assigned_to'],
+      organization: json['organization']?.toString() ?? '',
+      assignedTo: json['assigned_to']?.toString(),
       contactInfo: json['contact_info'] != null 
           ? VehicleContactModel.fromJson(json['contact_info']) 
           : null,
@@ -67,12 +67,12 @@ class VehicleModel {
 }
 
 class VehicleContactModel {
-  final int id;
+  final String id;
   final String name;
   final String phoneNumber;
   final String? email;
   final String address;
-  final int contactType;
+  final String contactType;
 
   VehicleContactModel({
     required this.id,
@@ -85,12 +85,12 @@ class VehicleContactModel {
 
   factory VehicleContactModel.fromJson(Map<String, dynamic> json) {
     return VehicleContactModel(
-      id: json['id'] ?? 0,
+      id: json['id']?.toString() ?? '',
       name: json['name'] ?? '',
       phoneNumber: json['phone_number'] ?? '',
       email: json['email'],
       address: json['address'] ?? '',
-      contactType: json['contact_type'] ?? 0,
+      contactType: json['contact_type']?.toString() ?? '',
     );
   }
 
@@ -107,11 +107,11 @@ class VehicleContactModel {
 }
 
 class VehiclePaymentOptionModel {
-  final int id;
+  final String id;
   final double rate;
   final String currency;
   final String terms;
-  final int paymentType;
+  final String paymentType;
 
   VehiclePaymentOptionModel({
     required this.id,
@@ -123,11 +123,11 @@ class VehiclePaymentOptionModel {
 
   factory VehiclePaymentOptionModel.fromJson(Map<String, dynamic> json) {
     return VehiclePaymentOptionModel(
-      id: json['id'] ?? 0,
+      id: json['id']?.toString() ?? '',
       rate: double.tryParse(json['rate']?.toString() ?? '0') ?? 0.0,
       currency: json['currency'] ?? 'INR',
       terms: json['terms'] ?? '',
-      paymentType: json['payment_type'] ?? 0,
+      paymentType: json['payment_type']?.toString() ?? '',
     );
   }
 

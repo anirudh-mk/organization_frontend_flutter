@@ -3,6 +3,7 @@ import '../../theme/app_theme.dart';
 import '../models/vehicle_models.dart';
 import '../services/vehicle_service.dart';
 import 'vehicle_create_page.dart';
+import '../../auth/services/token_manager.dart';
 
 class VehicleListPage extends StatefulWidget {
   const VehicleListPage({super.key});
@@ -37,7 +38,8 @@ class _VehicleListPageState extends State<VehicleListPage> {
   Future<void> _loadVehicles() async {
     setState(() => _isLoading = true);
     try {
-      final vehicles = await _service.getVehicles();
+      final orgId = await TokenManager.getOrganizationId();
+      final vehicles = await _service.getVehicles(organizationId: orgId);
       if (mounted) {
         setState(() {
           _allVehicles = vehicles;

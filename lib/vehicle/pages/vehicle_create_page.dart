@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../models/vehicle_models.dart';
 import '../services/vehicle_service.dart';
+import '../../auth/services/token_manager.dart';
 
 class VehicleCreatePage extends StatefulWidget {
   final VehicleModel? vehicle;
@@ -26,13 +27,13 @@ class _VehicleCreatePageState extends State<VehicleCreatePage> {
   final _contactPhoneController = TextEditingController();
   final _contactEmailController = TextEditingController();
   final _contactAddressController = TextEditingController();
-  int? _selectedContactType;
+  String? _selectedContactType;
 
   // Payment option controllers
   final _paymentRateController = TextEditingController();
   final _currencyController = TextEditingController(text: 'INR');
   final _paymentTermsController = TextEditingController();
-  int? _selectedPaymentType;
+  String? _selectedPaymentType;
 
   bool _isActive = true;
   bool _isLoading = false;
@@ -72,17 +73,18 @@ class _VehicleCreatePageState extends State<VehicleCreatePage> {
   }
 
   Future<void> _fetchTypes() async {
-    final formData = await _service.getVehicleFormData();
+    final orgId = await TokenManager.getOrganizationId();
+    final formData = await _service.getVehicleFormData(organizationId: orgId);
     if (mounted) {
       setState(() {
         _contactTypes = List<Map<String, dynamic>>.from(formData['contact_types'] ?? []);
         _paymentTypes = List<Map<String, dynamic>>.from(formData['payment_types'] ?? []);
         
         if (_selectedContactType == null && _contactTypes.isNotEmpty) {
-          _selectedContactType = _contactTypes.first['id'];
+          _selectedContactType = _contactTypes.first['id']?.toString();
         }
         if (_selectedPaymentType == null && _paymentTypes.isNotEmpty) {
-          _selectedPaymentType = _paymentTypes.first['id'];
+          _selectedPaymentType = _paymentTypes.first['id']?.toString();
         }
       });
     }
@@ -93,8 +95,9 @@ class _VehicleCreatePageState extends State<VehicleCreatePage> {
     
     setState(() => _isLoading = true);
     try {
+      final orgIdRef = await TokenManager.getOrganizationId();
       final data = {
-        "organization": widget.vehicle?.organization ?? 1, // Defaulting to 1 for now
+        "organization": widget.vehicle?.organization ?? orgIdRef,
         "make": _makeController.text.trim(),
         "model": _modelController.text.trim(),
         "license_plate": _licensePlateController.text.trim().toUpperCase(),
@@ -255,11 +258,11 @@ class _VehicleCreatePageState extends State<VehicleCreatePage> {
                     ),
                     const SizedBox(width: 16),
                     Expanded(
-                      child: DropdownButtonFormField<int>(
+                      child: DropdownButtonFormField<String>(
                         value: _selectedContactType,
                         decoration: _buildInputDecoration("Type", ""),
-                        items: _contactTypes.map((t) => DropdownMenuItem<int>(
-                          value: t['id'],
+                        items: _contactTypes.map((t) => DropdownMenuItem<String>(
+                          value: t['id']?.toString(),
                           child: Text(t['name']),
                         )).toList(),
                         onChanged: (val) => setState(() => _selectedContactType = val),
@@ -296,11 +299,11 @@ class _VehicleCreatePageState extends State<VehicleCreatePage> {
                     ),
                     const SizedBox(width: 16),
                     Expanded(
-                      child: DropdownButtonFormField<int>(
+                      child: DropdownButtonFormField<String>(
                         value: _selectedPaymentType,
                         decoration: _buildInputDecoration("Frequency", ""),
-                        items: _paymentTypes.map((t) => DropdownMenuItem<int>(
-                          value: t['id'],
+                        items: _paymentTypes.map((t) => DropdownMenuItem<String>(
+                          value: t['id']?.toString(),
                           child: Text(t['name']),
                         )).toList(),
                         onChanged: (val) => setState(() => _selectedPaymentType = val),

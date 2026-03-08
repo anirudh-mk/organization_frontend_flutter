@@ -6,20 +6,22 @@ import '../../shared/services/base_service.dart';
 class VehicleService extends BaseService {
   static const String baseUrl = 'http://127.0.0.1:8000/api/v1/vehicle/vehicles/';
 
-  Future<List<VehicleModel>> getVehicles() async {
+  Future<List<VehicleModel>> getVehicles({String? organizationId}) async {
     try {
+      String url = baseUrl;
+      if (organizationId != null) {
+        url += '?organization=$organizationId';
+      }
       final response = await http.get(
-        Uri.parse(baseUrl),
+        Uri.parse(url),
         headers: await getHeaders(),
       );
       if (response.statusCode == 200) {
-        dynamic body = jsonDecode(response.body);
+        final List<dynamic> data = jsonDecode(response.body);
         
-        List<dynamic> results = body is Map ? body['results'] : body;
-        
-        return results.map((dynamic item) => VehicleModel.fromJson(item)).toList();
+        return data.map((json) => VehicleModel.fromJson(json)).toList();
       } else {
-        throw Exception("Failed to load vehicles");
+        throw Exception("Failed to load vehicles: ${response.statusCode}");
       }
     } catch (e) {
       throw Exception("Error fetching vehicles: $e");
@@ -44,7 +46,7 @@ class VehicleService extends BaseService {
     }
   }
 
-  Future<VehicleModel> updateVehicle(int id, Map<String, dynamic> data) async {
+  Future<void> updateVehicle(String id, Map<String, dynamic> data) async {
     try {
       final response = await http.patch(
         Uri.parse('$baseUrl$id/'),
@@ -52,9 +54,7 @@ class VehicleService extends BaseService {
         body: jsonEncode(data),
       );
       
-      if (response.statusCode == 200) {
-        return VehicleModel.fromJson(jsonDecode(response.body));
-      } else {
+      if (response.statusCode != 200) {
         throw Exception("Failed to update vehicle: ${response.body}");
       }
     } catch (e) {
@@ -62,7 +62,7 @@ class VehicleService extends BaseService {
     }
   }
 
-  Future<void> deleteVehicle(int id) async {
+  Future<void> deleteVehicle(String id) async {
     try {
       final response = await http.delete(
         Uri.parse('$baseUrl$id/'),
@@ -77,10 +77,14 @@ class VehicleService extends BaseService {
     }
   }
 
-  Future<Map<String, dynamic>> getVehicleFormData() async {
+  Future<Map<String, dynamic>> getVehicleFormData({String? organizationId}) async {
     try {
+      String url = '${baseUrl}form_data/';
+      if (organizationId != null) {
+        url += '?organization=$organizationId';
+      }
       final response = await http.get(
-        Uri.parse('${baseUrl}form_data/'),
+        Uri.parse(url),
         headers: await getHeaders(),
       );
       if (response.statusCode == 200) {
