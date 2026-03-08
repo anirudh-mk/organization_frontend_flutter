@@ -247,40 +247,56 @@ class _WarehouseListPageState extends State<WarehouseListPage> {
 
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-              child: Row(
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _searchController,
-                      decoration: InputDecoration(
-                        hintText: "Search warehouse...",
-                        prefixIcon: const Icon(Icons.search_rounded, size: 20),
-                        contentPadding: const EdgeInsets.symmetric(vertical: 0),
-                      ),
+                  TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: "Search by name or code...",
+                      prefixIcon: const Icon(Icons.search_rounded, size: 22),
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: AppColors.textMuted.withValues(alpha: 0.1))),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: AppColors.textMuted.withValues(alpha: 0.1))),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  PopupMenuButton<String>(
-                    onSelected: (value) {
-                      setState(() {
-                        _filterStatus = value;
-                        _applyFilters();
-                      });
-                    },
-                    itemBuilder: (context) => [
-                      const PopupMenuItem(value: 'All', child: Text('All Warehouses')),
-                      const PopupMenuItem(value: 'Active', child: Text('Active Only')),
-                      const PopupMenuItem(value: 'Primary', child: Text('Primary Only')),
-                    ],
-                    child: Container(
-                      height: 56,
-                      width: 56,
-                      decoration: BoxDecoration(
-                        color: _filterStatus == 'All' ? colorScheme.primary : AppColors.success,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: const Icon(Icons.tune_rounded, color: Colors.white, size: 20),
+                  const SizedBox(height: 20),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: ['All', 'Active', 'Inactive', 'Primary'].map((status) {
+                        final isSelected = _filterStatus == status;
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 12),
+                          child: ChoiceChip(
+                            label: Text(status),
+                            selected: isSelected,
+                            onSelected: (selected) {
+                              if (selected) {
+                                setState(() {
+                                  _filterStatus = status;
+                                  _applyFilters();
+                                });
+                              }
+                            },
+                            labelStyle: TextStyle(
+                              color: isSelected ? Colors.white : AppColors.textSecondary,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                              fontSize: 13,
+                            ),
+                            selectedColor: AppColors.accent,
+                            backgroundColor: Colors.white,
+                            checkmarkColor: Colors.white,
+                            side: BorderSide(color: isSelected ? AppColors.accent : AppColors.textMuted.withValues(alpha: 0.2)),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            elevation: isSelected ? 2 : 0,
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          ),
+                        );
+                      }).toList(),
                     ),
                   ),
                 ],
