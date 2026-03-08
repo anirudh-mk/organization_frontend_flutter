@@ -9,10 +9,8 @@ class VehicleModel {
   final bool isActive;
   final int organization;
   final int? assignedTo;
-  
-  // Optional nested related models, could be added later if needed directly
-  // final Map<String, dynamic>? contactInfo;
-  // final Map<String, dynamic>? paymentOption;
+  final VehicleContactModel? contactInfo;
+  final VehiclePaymentOptionModel? paymentOption;
 
   VehicleModel({
     required this.id,
@@ -25,6 +23,8 @@ class VehicleModel {
     required this.isActive,
     required this.organization,
     this.assignedTo,
+    this.contactInfo,
+    this.paymentOption,
   });
 
   factory VehicleModel.fromJson(Map<String, dynamic> json) {
@@ -39,6 +39,12 @@ class VehicleModel {
       isActive: json['is_active'] ?? true,
       organization: json['organization'] ?? 1,
       assignedTo: json['assigned_to'],
+      contactInfo: json['contact_info'] != null 
+          ? VehicleContactModel.fromJson(json['contact_info']) 
+          : null,
+      paymentOption: json['payment_option'] != null 
+          ? VehiclePaymentOptionModel.fromJson(json['payment_option']) 
+          : null,
     );
   }
 
@@ -54,6 +60,84 @@ class VehicleModel {
       'is_active': isActive,
       'organization': organization,
       'assigned_to': assignedTo,
+      'contact_info': contactInfo?.toJson(),
+      'payment_option': paymentOption?.toJson(),
+    };
+  }
+}
+
+class VehicleContactModel {
+  final int id;
+  final String name;
+  final String phoneNumber;
+  final String? email;
+  final String address;
+  final int contactType;
+
+  VehicleContactModel({
+    required this.id,
+    required this.name,
+    required this.phoneNumber,
+    this.email,
+    required this.address,
+    required this.contactType,
+  });
+
+  factory VehicleContactModel.fromJson(Map<String, dynamic> json) {
+    return VehicleContactModel(
+      id: json['id'] ?? 0,
+      name: json['name'] ?? '',
+      phoneNumber: json['phone_number'] ?? '',
+      email: json['email'],
+      address: json['address'] ?? '',
+      contactType: json['contact_type'] ?? 0,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'phone_number': phoneNumber,
+      'email': email,
+      'address': address,
+      'contact_type': contactType,
+    };
+  }
+}
+
+class VehiclePaymentOptionModel {
+  final int id;
+  final double rate;
+  final String currency;
+  final String terms;
+  final int paymentType;
+
+  VehiclePaymentOptionModel({
+    required this.id,
+    required this.rate,
+    required this.currency,
+    required this.terms,
+    required this.paymentType,
+  });
+
+  factory VehiclePaymentOptionModel.fromJson(Map<String, dynamic> json) {
+    return VehiclePaymentOptionModel(
+      id: json['id'] ?? 0,
+      rate: double.tryParse(json['rate']?.toString() ?? '0') ?? 0.0,
+      currency: json['currency'] ?? 'INR',
+      terms: json['terms'] ?? '',
+      paymentType: json['payment_type'] ?? 0,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'rate': rate,
+      'currency': currency,
+      'terms': terms,
+      'payment_type': paymentType,
     };
   }
 }

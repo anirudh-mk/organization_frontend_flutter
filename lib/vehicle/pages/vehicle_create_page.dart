@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
+import '../models/vehicle_models.dart';
 import '../services/vehicle_service.dart';
 
 class VehicleCreatePage extends StatefulWidget {
-  const VehicleCreatePage({super.key});
+  final VehicleModel? vehicle;
+  const VehicleCreatePage({super.key, this.vehicle});
 
   @override
   State<VehicleCreatePage> createState() => _VehicleCreatePageState();
@@ -19,17 +21,80 @@ class _VehicleCreatePageState extends State<VehicleCreatePage> {
   final _yearController = TextEditingController();
   final _vehicleTypeController = TextEditingController();
 
+  // Contact info controllers
+  final _contactNameController = TextEditingController();
+  final _contactPhoneController = TextEditingController();
+  final _contactEmailController = TextEditingController();
+  final _contactAddressController = TextEditingController();
+  int? _selectedContactType;
+
+  // Payment option controllers
+  final _paymentRateController = TextEditingController();
+  final _currencyController = TextEditingController(text: 'INR');
+  final _paymentTermsController = TextEditingController();
+  int? _selectedPaymentType;
+
   bool _isActive = true;
   bool _isLoading = false;
+  List<Map<String, dynamic>> _contactTypes = [];
+  List<Map<String, dynamic>> _paymentTypes = [];
 
   final VehicleService _service = VehicleService();
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchTypes();
+    if (widget.vehicle != null) {
+      _makeController.text = widget.vehicle!.make;
+      _modelController.text = widget.vehicle!.model;
+      _licensePlateController.text = widget.vehicle!.licensePlate;
+      _vinController.text = widget.vehicle!.vin ?? '';
+      _yearController.text = widget.vehicle!.year?.toString() ?? '';
+      _vehicleTypeController.text = widget.vehicle!.vehicleType;
+      _isActive = widget.vehicle!.isActive;
+
+      if (widget.vehicle!.contactInfo != null) {
+        _contactNameController.text = widget.vehicle!.contactInfo!.name;
+        _contactPhoneController.text = widget.vehicle!.contactInfo!.phoneNumber;
+        _contactEmailController.text = widget.vehicle!.contactInfo!.email ?? '';
+        _contactAddressController.text = widget.vehicle!.contactInfo!.address;
+        _selectedContactType = widget.vehicle!.contactInfo!.contactType;
+      }
+
+      if (widget.vehicle!.paymentOption != null) {
+        _paymentRateController.text = widget.vehicle!.paymentOption!.rate.toString();
+        _currencyController.text = widget.vehicle!.paymentOption!.currency;
+        _paymentTermsController.text = widget.vehicle!.paymentOption!.terms;
+        _selectedPaymentType = widget.vehicle!.paymentOption!.paymentType;
+      }
+    }
+  }
+
+  Future<void> _fetchTypes() async {
+    final formData = await _service.getVehicleFormData();
+    if (mounted) {
+      setState(() {
+        _contactTypes = List<Map<String, dynamic>>.from(formData['contact_types'] ?? []);
+        _paymentTypes = List<Map<String, dynamic>>.from(formData['payment_types'] ?? []);
+        
+        if (_selectedContactType == null && _contactTypes.isNotEmpty) {
+          _selectedContactType = _contactTypes.first['id'];
+        }
+        if (_selectedPaymentType == null && _paymentTypes.isNotEmpty) {
+          _selectedPaymentType = _paymentTypes.first['id'];
+        }
+      });
+    }
+  }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     
     setState(() => _isLoading = true);
     try {
-      await _service.createVehicle({
+      final data = {
+        "organization": widget.vehicle?.organization ?? 1, // Defaulting to 1 for now
         "make": _makeController.text.trim(),
         "model": _modelController.text.trim(),
         "license_plate": _licensePlateController.text.trim().toUpperCase(),
@@ -37,11 +102,33 @@ class _VehicleCreatePageState extends State<VehicleCreatePage> {
         "year": int.tryParse(_yearController.text),
         "vehicle_type": _vehicleTypeController.text.trim(),
         "is_active": _isActive,
-      });
+        "contact_info": {
+          "name": _contactNameController.text.trim(),
+          "phone_number": _contactPhoneController.text.trim(),
+          "email": _contactEmailController.text.isEmpty ? null : _contactEmailController.text.trim(),
+          "address": _contactAddressController.text.trim(),
+          "contact_type": _selectedContactType,
+        },
+        "payment_option": {
+          "rate": _paymentRateController.text.trim(),
+          "currency": _currencyController.text.trim(),
+          "terms": _paymentTermsController.text.trim(),
+          "payment_type": _selectedPaymentType,
+        }
+      };
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Vehicle registered successfully!")));
-        Navigator.pop(context, true); 
+      if (widget.vehicle != null) {
+        await _service.updateVehicle(widget.vehicle!.id, data);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Vehicle updated successfully!")));
+          Navigator.pop(context, true);
+        }
+      } else {
+        await _service.createVehicle(data);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Vehicle registered successfully!")));
+          Navigator.pop(context, true); 
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -60,15 +147,23 @@ class _VehicleCreatePageState extends State<VehicleCreatePage> {
     _vinController.dispose();
     _yearController.dispose();
     _vehicleTypeController.dispose();
+    _contactNameController.dispose();
+    _contactPhoneController.dispose();
+    _contactEmailController.dispose();
+    _contactAddressController.dispose();
+    _paymentRateController.dispose();
+    _currencyController.dispose();
+    _paymentTermsController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    bool isEditing = widget.vehicle != null;
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text("Register Vehicle", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        title: Text(isEditing ? "Edit Vehicle" : "Register Vehicle", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
         backgroundColor: AppColors.background,
         scrolledUnderElevation: 0,
         centerTitle: true,
@@ -140,6 +235,87 @@ class _VehicleCreatePageState extends State<VehicleCreatePage> {
                 ),
 
                 const SizedBox(height: 32),
+                const Text("Contact Information", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _contactNameController,
+                  decoration: _buildInputDecoration("Contact Name", "e.g. Primary Owner"),
+                  validator: (v) => v == null || v.isEmpty ? "Required" : null,
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _contactPhoneController,
+                        keyboardType: TextInputType.phone,
+                        decoration: _buildInputDecoration("Phone", "e.g. +91..."),
+                        validator: (v) => v == null || v.isEmpty ? "Required" : null,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: DropdownButtonFormField<int>(
+                        value: _selectedContactType,
+                        decoration: _buildInputDecoration("Type", ""),
+                        items: _contactTypes.map((t) => DropdownMenuItem<int>(
+                          value: t['id'],
+                          child: Text(t['name']),
+                        )).toList(),
+                        onChanged: (val) => setState(() => _selectedContactType = val),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _contactEmailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: _buildInputDecoration("Email (Optional)", "e.g. owner@example.com"),
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _contactAddressController,
+                  maxLines: 2,
+                  decoration: _buildInputDecoration("Address", "Full address"),
+                  validator: (v) => v == null || v.isEmpty ? "Required" : null,
+                ),
+
+                const SizedBox(height: 32),
+                const Text("Payment & Rates", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _paymentRateController,
+                        keyboardType: TextInputType.number,
+                        decoration: _buildInputDecoration("Rate", "e.g. 1500"),
+                        validator: (v) => v == null || v.isEmpty ? "Required" : null,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: DropdownButtonFormField<int>(
+                        value: _selectedPaymentType,
+                        decoration: _buildInputDecoration("Frequency", ""),
+                        items: _paymentTypes.map((t) => DropdownMenuItem<int>(
+                          value: t['id'],
+                          child: Text(t['name']),
+                        )).toList(),
+                        onChanged: (val) => setState(() => _selectedPaymentType = val),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _paymentTermsController,
+                  maxLines: 2,
+                  decoration: _buildInputDecoration("Terms", "e.g. Daily rental, Net 30"),
+                ),
+
+                const SizedBox(height: 32),
                 Container(
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -167,7 +343,7 @@ class _VehicleCreatePageState extends State<VehicleCreatePage> {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       elevation: 4,
                     ),
-                    child: const Text("Register Vehicle", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    child: Text(isEditing ? "Update Vehicle" : "Register Vehicle", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   ),
                 ),
               ],
