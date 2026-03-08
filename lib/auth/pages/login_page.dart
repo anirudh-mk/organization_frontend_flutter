@@ -39,9 +39,9 @@ class _LoginPageState extends State<LoginPage> {
       if (success) {
         final orgService = OrganizationService();
         try {
-          final orgs = await orgService.getOrganizations();
+          final org = await orgService.getCurrentOrganization();
           if (mounted) {
-            if (orgs.isEmpty) {
+            if (org == null) {
               Navigator.pushReplacementNamed(context, '/organization_create');
             } else {
               Navigator.pushReplacementNamed(context, '/dashboard');
@@ -99,9 +99,9 @@ class _LoginPageState extends State<LoginPage> {
       if (success) {
         final orgService = OrganizationService();
         try {
-          final orgs = await orgService.getOrganizations();
+          final org = await orgService.getCurrentOrganization();
           if (mounted) {
-            if (orgs.isEmpty) {
+            if (org == null) {
               Navigator.pushReplacementNamed(context, '/organization_create');
             } else {
               Navigator.pushReplacementNamed(context, '/dashboard');

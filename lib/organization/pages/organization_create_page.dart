@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../theme/app_theme.dart';
 import '../services/organization_service.dart';
 import '../models/organization_model.dart';
@@ -16,8 +18,6 @@ class _OrganizationCreatePageState extends State<OrganizationCreatePage> {
   
   // Step 1: Details
   final _nameController = TextEditingController();
-  final _phoneController = TextEditingController();
-  final _emailController = TextEditingController();
   
   // Step 2: Address
   final _addressLine1Controller = TextEditingController();
@@ -26,6 +26,8 @@ class _OrganizationCreatePageState extends State<OrganizationCreatePage> {
   final _postalCodeController = TextEditingController();
   
   int _currentStep = 0;
+  File? _logo;
+  final _picker = ImagePicker();
   
   final OrganizationService _organizationService = OrganizationService();
   
@@ -62,6 +64,13 @@ class _OrganizationCreatePageState extends State<OrganizationCreatePage> {
     }
   }
 
+  Future<void> _pickLogo() async {
+    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+    if (image != null) {
+      setState(() => _logo = File(image.path));
+    }
+  }
+
   Future<void> _createOrganization() async {
     if (!_formKeyDetails.currentState!.validate()) {
       setState(() => _currentStep = 0);
@@ -78,17 +87,6 @@ class _OrganizationCreatePageState extends State<OrganizationCreatePage> {
 
     setState(() => _isLoading = true);
     
-    // Prepare contacts
-    List<Map<String, dynamic>> contacts = [];
-    if (_phoneController.text.trim().isNotEmpty || _emailController.text.trim().isNotEmpty) {
-      contacts.add({
-        'name': 'Primary Contact',
-        'phone': _phoneController.text.trim(),
-        'email': _emailController.text.trim(),
-        'is_primary': true,
-      });
-    }
-
     // Prepare addresses (if filled, although skippable)
     List<Map<String, dynamic>> addresses = [];
     if (_addressLine1Controller.text.trim().isNotEmpty || _cityController.text.trim().isNotEmpty) {
@@ -105,8 +103,8 @@ class _OrganizationCreatePageState extends State<OrganizationCreatePage> {
       await _organizationService.createOrganization(
         _nameController.text.trim(),
         _selectedType!.id,
-        contacts: contacts,
         addresses: addresses,
+        logo: _logo,
       );
       if (mounted) {
         Navigator.pushReplacementNamed(context, '/dashboard');
@@ -125,8 +123,6 @@ class _OrganizationCreatePageState extends State<OrganizationCreatePage> {
   @override
   void dispose() {
     _nameController.dispose();
-    _phoneController.dispose();
-    _emailController.dispose();
     _addressLine1Controller.dispose();
     _addressLine2Controller.dispose();
     _cityController.dispose();
@@ -216,6 +212,50 @@ class _OrganizationCreatePageState extends State<OrganizationCreatePage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              "Setup your workspace",
+                              style: theme.textTheme.headlineMedium?.copyWith(
+                                color: AppColors.textPrimary,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                        Center(
+                          child: Stack(
+                            children: [
+                              GestureDetector(
+                                onTap: _pickLogo,
+                                child: CircleAvatar(
+                                  radius: 50,
+                                  backgroundColor: AppColors.surface,
+                                  backgroundImage: _logo != null ? FileImage(_logo!) : null,
+                                  child: _logo == null
+                                      ? const Icon(Icons.add_a_photo_outlined, size: 32, color: AppColors.textMuted)
+                                      : null,
+                                ),
+                              ),
+                              if (_logo != null)
+                                Positioned(
+                                  right: 0,
+                                  bottom: 0,
+                                  child: GestureDetector(
+                                    onTap: () => setState(() => _logo = null),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: const BoxDecoration(color: AppColors.error, shape: BoxShape.circle),
+                                      child: const Icon(Icons.close, size: 16, color: Colors.white),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 32),
                         const Text(
                           "ORGANIZATION NAME",
                           style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.textSecondary, fontSize: 11, letterSpacing: 1.2),
@@ -248,28 +288,6 @@ class _OrganizationCreatePageState extends State<OrganizationCreatePage> {
                               onChanged: (value) => setState(() => _selectedType = value),
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 24),
-                        const Text(
-                          "PRIMARY PHONE (Optional)",
-                          style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.textSecondary, fontSize: 11, letterSpacing: 1.2),
-                        ),
-                        const SizedBox(height: 8),
-                        TextFormField(
-                          controller: _phoneController,
-                          keyboardType: TextInputType.phone,
-                          decoration: const InputDecoration(hintText: "e.g., +1 234 567 890", prefixIcon: Icon(Icons.phone_rounded, size: 20)),
-                        ),
-                        const SizedBox(height: 24),
-                        const Text(
-                          "PRIMARY EMAIL (Optional)",
-                          style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.textSecondary, fontSize: 11, letterSpacing: 1.2),
-                        ),
-                        const SizedBox(height: 8),
-                        TextFormField(
-                          controller: _emailController,
-                          keyboardType: TextInputType.emailAddress,
-                          decoration: const InputDecoration(hintText: "e.g., contact@acme.corp", prefixIcon: Icon(Icons.email_rounded, size: 20)),
                         ),
                       ],
                     ),
