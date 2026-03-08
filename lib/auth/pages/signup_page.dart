@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../services/auth_service.dart';
+import '../../organization/services/organization_service.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
@@ -97,9 +98,14 @@ class _SignupPageState extends State<SignupPage> {
         elevation: 0,
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios_new_rounded, color: textPrimary, size: 20),
-          onPressed: () => _currentStep > 0
-              ? _pageController.previousPage(duration: const Duration(milliseconds: 300), curve: Curves.easeIn)
-              : Navigator.pop(context),
+          onPressed: () {
+            FocusScope.of(context).unfocus();
+            if (_currentStep > 0) {
+              _pageController.previousPage(duration: const Duration(milliseconds: 300), curve: Curves.easeIn);
+            } else {
+              Navigator.pop(context);
+            }
+          },
         ),
         title: _buildStepIndicator(),
         centerTitle: true,
@@ -198,8 +204,18 @@ class _SignupPageState extends State<SignupPage> {
             dob: _dobController.text.trim(),
           );
           if (success) {
-            if (mounted) {
-              Navigator.pushReplacementNamed(context, '/dashboard');
+            final orgService = OrganizationService();
+            try {
+              final org = await orgService.getCurrentOrganization();
+              if (mounted) {
+                if (org == null) {
+                  Navigator.pushReplacementNamed(context, '/organization_create');
+                } else {
+                  Navigator.pushReplacementNamed(context, '/dashboard');
+                }
+              }
+            } catch (_) {
+              if (mounted) Navigator.pushReplacementNamed(context, '/dashboard');
             }
           }
         } catch (e) {

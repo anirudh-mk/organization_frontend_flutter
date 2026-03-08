@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:organization_frontend_app/dashboard/pages/main_wrapper.dart';
 import 'auth/auth_routes.dart';
 import 'theme/app_theme.dart';
+import 'organization/pages/organization_create_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -19,6 +20,7 @@ class MyApp extends StatelessWidget {
       initialRoute: AuthRoutes.login,
       routes: {
         ...AuthRoutes.routes,
+        '/organization_create': (_) => const OrganizationCreatePage(),
         '/dashboard': (_) => const MainWrapper(),
         // Change this        '/settings': (_) => const SettingsPage(),
       },

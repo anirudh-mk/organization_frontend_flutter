@@ -5,7 +5,7 @@ import '../../shared/services/base_service.dart';
 
 class WarehouseService extends BaseService {
   // Host loopback address for Android emulator to hit the backend
-  static const String baseUrl = 'http://10.0.2.2:8000/api/v1/warehouse/warehouses/';
+  static const String baseUrl = 'http://127.0.0.1:8000/api/v1/warehouse/warehouses/';
 
   Future<List<WarehouseModel>> getWarehouses() async {
     try {

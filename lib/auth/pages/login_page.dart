@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../services/auth_service.dart';
+import '../../organization/services/organization_service.dart';
 
 enum LoginMethod { password, otp }
 
@@ -35,8 +36,20 @@ class _LoginPageState extends State<LoginPage> {
         _emailController.text.trim(),
         _passwordController.text,
       );
-      if (success && mounted) {
-        Navigator.pushReplacementNamed(context, '/dashboard');
+      if (success) {
+        final orgService = OrganizationService();
+        try {
+          final org = await orgService.getCurrentOrganization();
+          if (mounted) {
+            if (org == null) {
+              Navigator.pushReplacementNamed(context, '/organization_create');
+            } else {
+              Navigator.pushReplacementNamed(context, '/dashboard');
+            }
+          }
+        } catch (_) {
+          if (mounted) Navigator.pushReplacementNamed(context, '/dashboard');
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -84,8 +97,18 @@ class _LoginPageState extends State<LoginPage> {
         _otpController.text.trim(),
       );
       if (success) {
-        if (mounted) {
-          Navigator.pushReplacementNamed(context, '/dashboard');
+        final orgService = OrganizationService();
+        try {
+          final org = await orgService.getCurrentOrganization();
+          if (mounted) {
+            if (org == null) {
+              Navigator.pushReplacementNamed(context, '/organization_create');
+            } else {
+              Navigator.pushReplacementNamed(context, '/dashboard');
+            }
+          }
+        } catch (_) {
+          if (mounted) Navigator.pushReplacementNamed(context, '/dashboard');
         }
       } else {
         if (mounted) {

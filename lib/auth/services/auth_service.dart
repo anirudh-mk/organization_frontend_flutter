@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'token_manager.dart';
 
 class AuthService {
-  static const String authBaseUrl = 'http://127.0.0.1:8000/api/v1/accounts/user';
+  static const String authBaseUrl = 'http://127.0.0.1:8001/api/v1/accounts/user';
   // Use http://10.0.2.2:8000/api/v1/accounts/user for local Android Emulator testing if needed
 
   Future<bool> requestOtp(String email) async {
