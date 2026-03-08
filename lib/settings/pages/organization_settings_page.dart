@@ -77,6 +77,8 @@ class _OrganizationSettingsPageState extends State<OrganizationSettingsPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Organization"),
+        backgroundColor: AppColors.background,
+        elevation: 0,
         actions: [
           IconButton(
             onPressed: () => Navigator.push(
