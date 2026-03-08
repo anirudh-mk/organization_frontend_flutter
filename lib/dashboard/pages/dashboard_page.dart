@@ -4,6 +4,8 @@ import '../../auth/services/token_manager.dart';
 import '../../organization/services/organization_service.dart';
 import '../../organization/models/organization_model.dart';
 import '../../organization/pages/organization_create_page.dart';
+import '../../notifications/pages/notifications_inbox_page.dart';
+import '../widgets/dashboard_search_delegate.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -113,7 +115,10 @@ class _DashboardPageState extends State<DashboardPage> {
             ),
             actions: [
               IconButton(
-                onPressed: () {},
+                onPressed: () => showSearch(
+                  context: context,
+                  delegate: DashboardSearchDelegate(),
+                ),
                 icon: const Icon(Icons.search_rounded),
                 style: IconButton.styleFrom(
                   backgroundColor: colorScheme.surface,
@@ -124,7 +129,10 @@ class _DashboardPageState extends State<DashboardPage> {
                 alignment: Alignment.topRight,
                 children: [
                   IconButton(
-                    onPressed: () {},
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const NotificationsInboxPage()),
+                    ),
                     icon: const Icon(Icons.notifications_none_rounded),
                     style: IconButton.styleFrom(
                       backgroundColor: colorScheme.surface,
