@@ -4,8 +4,11 @@ import '../../shared/models/location_models.dart';
 import '../../shared/services/location_service.dart';
 import '../services/warehouse_service.dart';
 
+import '../models/warehouse_model.dart';
+
 class WarehouseCreatePage extends StatefulWidget {
-  const WarehouseCreatePage({super.key});
+  final WarehouseModel? warehouse;
+  const WarehouseCreatePage({super.key, this.warehouse});
 
   @override
   State<WarehouseCreatePage> createState() => _WarehouseCreatePageState();
@@ -13,14 +16,12 @@ class WarehouseCreatePage extends StatefulWidget {
 
 class _WarehouseCreatePageState extends State<WarehouseCreatePage> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _codeController = TextEditingController();
-  
-  // Address controllers
-  final _addressLine1Controller = TextEditingController();
-  final _addressLine2Controller = TextEditingController();
-  final _cityController = TextEditingController();
-  final _postalCodeController = TextEditingController();
+  late final TextEditingController _nameController;
+  late final TextEditingController _codeController;
+  late final TextEditingController _addressLine1Controller;
+  late final TextEditingController _addressLine2Controller;
+  late final TextEditingController _cityController;
+  late final TextEditingController _postalCodeController;
 
   bool _isPrimary = false;
   bool _isActive = true;
@@ -42,24 +43,73 @@ class _WarehouseCreatePageState extends State<WarehouseCreatePage> {
   @override
   void initState() {
     super.initState();
-    _loadCountries();
+    _isPrimary = widget.warehouse?.isPrimary ?? false;
+    _isActive = widget.warehouse?.isActive ?? true;
+
+    var addr = widget.warehouse?.addressList.firstOrNull?.addressDetails;
+    _nameController = TextEditingController(text: widget.warehouse?.name);
+    _codeController = TextEditingController(text: widget.warehouse?.code);
+    _addressLine1Controller = TextEditingController(text: addr?.line1);
+    _addressLine2Controller = TextEditingController(text: addr?.line2);
+    _cityController = TextEditingController(text: addr?.city);
+    _postalCodeController = TextEditingController(text: addr?.postalCode);
+
+    _initLocations(addr);
   }
 
-  Future<void> _loadCountries() async {
+  Future<void> _initLocations(AddressModel? addr) async {
     try {
       final countries = await _locationService.getCountries();
-      if (mounted) {
+      if (!mounted) return;
+      
+      CountryModel? matchedCountry;
+      if (addr?.countryId != null) {
+        matchedCountry = countries.where((c) => c.id == addr!.countryId).firstOrNull;
+      }
+
+      setState(() {
+        _countries = countries;
+        _selectedCountry = matchedCountry;
+        _isLoadingLocations = matchedCountry != null; // Keep loading if we need to fetch states
+      });
+
+      if (matchedCountry != null && addr?.stateId != null) {
+        final states = await _locationService.getStates(matchedCountry.id);
+        if (!mounted) return;
+        
+        StateModel? matchedState = states.where((s) => s.id == addr!.stateId).firstOrNull;
+        
         setState(() {
-          _countries = countries;
-          _isLoadingLocations = false;
+          _states = states;
+          _selectedState = matchedState;
         });
+
+        if (matchedState != null && addr?.districtId != null) {
+          final districts = await _locationService.getDistricts(matchedState.id);
+          if (!mounted) return;
+          
+          DistrictModel? matchedDistrict = districts.where((d) => d.id == addr!.districtId).firstOrNull;
+          
+          setState(() {
+            _districts = districts;
+            _selectedDistrict = matchedDistrict;
+            _isLoadingLocations = false;
+          });
+        } else {
+          setState(() => _isLoadingLocations = false);
+        }
+      } else {
+        setState(() => _isLoadingLocations = false);
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isLoadingLocations = false);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to load countries: $e')));
       }
     }
+  }
+
+  Future<void> _loadCountries() async {
+    // Already doing in initState/_initLocations
   }
 
   Future<void> _onCountryChanged(CountryModel? country) async {
@@ -77,9 +127,7 @@ class _WarehouseCreatePageState extends State<WarehouseCreatePage> {
         if (mounted) {
           setState(() => _states = states);
         }
-      } catch (e) {
-        // Handle error implicitly
-      }
+      } catch (e) {}
     }
   }
 
@@ -96,22 +144,20 @@ class _WarehouseCreatePageState extends State<WarehouseCreatePage> {
         if (mounted) {
           setState(() => _districts = districts);
         }
-      } catch (e) {
-        // Handle error implicitly
-      }
+      } catch (e) {}
     }
   }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_selectedDistrict == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please select a District.")));
-      return;
+    if (_selectedDistrict == null && widget.warehouse == null) {
+       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please select a District.")));
+       return;
     }
     
     setState(() => _isLoading = true);
     try {
-      await _service.createWarehouse({
+      final data = {
         "name": _nameController.text,
         "code": _codeController.text,
         "is_primary": _isPrimary,
@@ -121,13 +167,22 @@ class _WarehouseCreatePageState extends State<WarehouseCreatePage> {
           "address_line_2": _addressLine2Controller.text,
           "city": _cityController.text,
           "postal_code": _postalCodeController.text,
-          "district": _selectedDistrict!.id,
         }
-      });
+      };
+
+      if (_selectedDistrict != null) {
+        (data["address"] as Map)["district"] = _selectedDistrict!.id;
+      }
+
+      if (widget.warehouse != null) {
+        await _service.updateWarehouse(widget.warehouse!.id, data);
+      } else {
+        await _service.createWarehouse(data);
+      }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Warehouse & Address created successfully!")));
-        Navigator.pop(context, true); // Return true to indicate the list should refresh
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(widget.warehouse != null ? "Warehouse updated successfully!" : "Warehouse created successfully!")));
+        Navigator.pop(context, true);
       }
     } catch (e) {
       if (mounted) {
@@ -155,7 +210,7 @@ class _WarehouseCreatePageState extends State<WarehouseCreatePage> {
     
     return Scaffold(
       appBar: AppBar(
-        title: const Text("New Warehouse", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        title: Text(widget.warehouse != null ? "Edit Warehouse" : "New Warehouse", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
         backgroundColor: Colors.white,
         scrolledUnderElevation: 0,
         centerTitle: true,
@@ -345,7 +400,7 @@ class _WarehouseCreatePageState extends State<WarehouseCreatePage> {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       elevation: 4,
                     ),
-                    child: const Text("Create Warehouse & Address", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    child: Text(widget.warehouse != null ? "Update Warehouse" : "Create Warehouse & Address", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   ),
                 ),
               ],

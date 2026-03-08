@@ -69,4 +69,39 @@ class WarehouseService extends BaseService {
       throw Exception("Error creating warehouse: $e");
     }
   }
+
+  Future<WarehouseModel> updateWarehouse(String id, Map<String, dynamic> data) async {
+    try {
+      final headers = await getHeaders();
+      headers['Content-Type'] = 'application/json';
+
+      final response = await http.put(
+        Uri.parse('$baseUrl$id/'),
+        headers: headers,
+        body: jsonEncode(data),
+      );
+
+      if (response.statusCode == 200) {
+        return WarehouseModel.fromJson(jsonDecode(response.body));
+      } else {
+        throw Exception("Failed to update warehouse: ${response.body}");
+      }
+    } catch (e) {
+      throw Exception("Error updating warehouse: $e");
+    }
+  }
+
+  Future<void> deleteWarehouse(String id) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl$id/'),
+        headers: await getHeaders(),
+      );
+      if (response.statusCode != 204) {
+        throw Exception("Failed to delete warehouse: ${response.body}");
+      }
+    } catch (e) {
+      throw Exception("Error deleting warehouse: $e");
+    }
+  }
 }
