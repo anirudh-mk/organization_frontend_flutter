@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../services/auth_service.dart';
+import '../../organization/services/organization_service.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
@@ -198,8 +199,18 @@ class _SignupPageState extends State<SignupPage> {
             dob: _dobController.text.trim(),
           );
           if (success) {
-            if (mounted) {
-              Navigator.pushReplacementNamed(context, '/dashboard');
+            final orgService = OrganizationService();
+            try {
+              final orgs = await orgService.getOrganizations();
+              if (mounted) {
+                if (orgs.isEmpty) {
+                  Navigator.pushReplacementNamed(context, '/organization_create');
+                } else {
+                  Navigator.pushReplacementNamed(context, '/dashboard');
+                }
+              }
+            } catch (_) {
+              if (mounted) Navigator.pushReplacementNamed(context, '/dashboard');
             }
           }
         } catch (e) {
