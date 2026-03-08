@@ -104,10 +104,23 @@ class OrganizationModel {
   });
 
   factory OrganizationModel.fromJson(Map<String, dynamic> json) {
+    OrganizationTypeModel? typeModel;
+    if (json['type'] != null) {
+      if (json['type'] is Map<String, dynamic>) {
+        typeModel = OrganizationTypeModel.fromJson(json['type']);
+      } else {
+        // Handle case where it's a String ID
+        typeModel = OrganizationTypeModel(
+          id: json['type'].toString(),
+          name: '', // Placeholder name
+        );
+      }
+    }
+
     return OrganizationModel(
       id: json['id'].toString(),
       name: json['name'],
-      type: json['type'] != null ? OrganizationTypeModel.fromJson(json['type']) : null,
+      type: typeModel,
       logo: json['logo'],
       isActive: json['is_active'] ?? true,
     );
