@@ -205,4 +205,22 @@ class OrganizationService extends BaseService {
       throw Exception("Error creating organization: $e");
     }
   }
+
+  Future<void> switchOrganization(String orgId) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/organization/organizations/$orgId/switch/'),
+        headers: await getHeaders(),
+      );
+
+      if (response.statusCode == 200) {
+        // After switching on backend, refresh current org details locally
+        await getCurrentOrganization();
+      } else {
+        throw Exception("Failed to switch organization (${response.statusCode}): ${response.body}");
+      }
+    } catch (e) {
+      throw Exception("Error switching organization: $e");
+    }
+  }
 }

@@ -1,8 +1,67 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
+import '../../auth/services/token_manager.dart';
+import '../../organization/services/organization_service.dart';
+import '../../organization/models/organization_model.dart';
+import '../../organization/pages/organization_create_page.dart';
 
-class DashboardPage extends StatelessWidget {
+class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
+
+  @override
+  State<DashboardPage> createState() => _DashboardPageState();
+}
+
+class _DashboardPageState extends State<DashboardPage> {
+  String _orgName = "Loading...";
+  String? _orgLogo;
+  final OrganizationService _orgService = OrganizationService();
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadOrgData();
+  }
+
+  Future<void> _loadOrgData() async {
+    setState(() => _isLoading = true);
+    final name = await TokenManager.getOrganizationName();
+    final logo = await TokenManager.getOrganizationLogo();
+    
+    if (mounted) {
+      setState(() {
+        _orgName = name ?? "No Organization";
+        _orgLogo = logo;
+        _isLoading = false;
+      });
+    }
+
+    // Refresh from server to be sure
+    try {
+      final currentOrg = await _orgService.getCurrentOrganization();
+      if (currentOrg != null && mounted) {
+        setState(() {
+          _orgName = currentOrg.name;
+          _orgLogo = currentOrg.logo;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error refreshing org: $e");
+    }
+  }
+
+  void _showOrganizationMenu() async {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _OrganizationBottomSheet(
+        currentOrgName: _orgName,
+        onOrgSwitched: () => _loadOrgData(),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -17,19 +76,40 @@ class DashboardPage extends StatelessWidget {
             toolbarHeight: 72,
             backgroundColor: AppColors.background,
             surfaceTintColor: AppColors.background,
-            title: Row(
-              children: [
-                CircleAvatar(
-                  radius: 18,
-                  backgroundColor: colorScheme.primary.withValues(alpha: 0.1),
-                  child: Icon(Icons.person, color: colorScheme.primary, size: 20),
+            title: InkWell(
+              onTap: _showOrganizationMenu,
+              borderRadius: BorderRadius.circular(12),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircleAvatar(
+                      radius: 20,
+                      backgroundColor: colorScheme.primary.withValues(alpha: 0.1),
+                      backgroundImage: _orgLogo != null ? NetworkImage(_orgLogo!) : null,
+                      child: _orgLogo == null ? Icon(Icons.business_rounded, color: colorScheme.primary, size: 20) : null,
+                    ),
+                    const SizedBox(width: 12),
+                    Flexible(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              _orgName,
+                              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          const Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: AppColors.textSecondary),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 12),
-                Text(
-                  "User Name",
-                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                ),
-              ],
+              ),
             ),
             actions: [
               IconButton(
@@ -467,6 +547,169 @@ class _ActivityItem extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _OrganizationBottomSheet extends StatefulWidget {
+  final String currentOrgName;
+  final VoidCallback onOrgSwitched;
+
+  const _OrganizationBottomSheet({
+    required this.currentOrgName,
+    required this.onOrgSwitched,
+  });
+
+  @override
+  State<_OrganizationBottomSheet> createState() => _OrganizationBottomSheetState();
+}
+
+class _OrganizationBottomSheetState extends State<_OrganizationBottomSheet> {
+  final OrganizationService _service = OrganizationService();
+  List<OrganizationModel> _organizations = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchOrganizations();
+  }
+
+  Future<void> _fetchOrganizations() async {
+    try {
+      final orgs = await _service.getOrganizations();
+      if (mounted) {
+        setState(() {
+          _organizations = orgs;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error fetching organizations: $e"), backgroundColor: AppColors.error),
+        );
+      }
+    }
+  }
+
+  Future<void> _switchOrg(OrganizationModel org) async {
+    if (org.name == widget.currentOrgName) {
+      Navigator.pop(context);
+      return;
+    }
+
+    try {
+      await _service.switchOrganization(org.id);
+      if (mounted) {
+        widget.onOrgSwitched();
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Switched to ${org.name}"), backgroundColor: AppColors.success),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error switching organization: $e"), backgroundColor: AppColors.error),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 24),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.textMuted.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(2)))),
+          const SizedBox(height: 24),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text("Organizations", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                TextButton.icon(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const OrganizationCreatePage()));
+                  },
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text("Create"),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          if (_isLoading)
+            const Center(child: Padding(padding: EdgeInsets.all(32.0), child: CircularProgressIndicator()))
+          else if (_organizations.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(32.0),
+              child: Center(child: Text("No organizations found.", style: TextStyle(color: AppColors.textMuted))),
+            )
+          else
+            Flexible(
+              child: ListView.builder(
+                shrinkWrap: true,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: _organizations.length,
+                itemBuilder: (context, index) {
+                  final org = _organizations[index];
+                  final isCurrent = org.name == widget.currentOrgName;
+                  return _OrgItem(
+                    org: org,
+                    isCurrent: isCurrent,
+                    onTap: () => _switchOrg(org),
+                  );
+                },
+              ),
+            ),
+          const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
+}
+
+class _OrgItem extends StatelessWidget {
+  final OrganizationModel org;
+  final bool isCurrent;
+  final VoidCallback onTap;
+
+  const _OrgItem({required this.org, required this.isCurrent, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: isCurrent ? theme.colorScheme.primary.withValues(alpha: 0.05) : Colors.transparent,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: isCurrent ? theme.colorScheme.primary.withValues(alpha: 0.2) : Colors.transparent),
+      ),
+      child: ListTile(
+        onTap: onTap,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        leading: CircleAvatar(
+          backgroundColor: AppColors.background,
+          backgroundImage: org.logo != null ? NetworkImage(org.logo!) : null,
+          child: org.logo == null ? const Icon(Icons.business_rounded, color: AppColors.textSecondary) : null,
+        ),
+        title: Text(org.name, style: TextStyle(fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal)),
+        subtitle: Text(org.type?.name ?? "Company", style: const TextStyle(fontSize: 11)),
+        trailing: isCurrent ? Icon(Icons.check_circle_rounded, color: theme.colorScheme.primary) : null,
       ),
     );
   }
