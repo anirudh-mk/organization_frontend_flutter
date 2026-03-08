@@ -8,12 +8,12 @@ import '../../shared/services/base_service.dart';
 
 class OrganizationService extends BaseService {
   // Using same base host as auth for now
-  static const String baseUrl = 'http://127.0.0.1:8000/api/v1/organization';
+  static const String baseUrl = 'http://127.0.0.1:8000/api/v1';
 
   Future<OrganizationModel?> getCurrentOrganization() async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/organizations/current/'),
+        Uri.parse('$baseUrl/organization/organizations/current/'),
         headers: await getHeaders(),
       );
       
@@ -35,7 +35,7 @@ class OrganizationService extends BaseService {
   Future<List<OrganizationModel>> getOrganizations() async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/organizations/'),
+        Uri.parse('$baseUrl/organization/organizations/'),
         headers: await getHeaders(),
       );
       
@@ -61,7 +61,7 @@ class OrganizationService extends BaseService {
   Future<List<OrganizationTypeModel>> getOrganizationTypes() async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/types/'),
+        Uri.parse('$baseUrl/organization/types/'),
         headers: await getHeaders(),
       );
       
@@ -84,6 +84,74 @@ class OrganizationService extends BaseService {
     }
   }
 
+  Future<List<CountryModel>> getCountries() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/shared/countries/'),
+        headers: await getHeaders(),
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        return data.map((json) => CountryModel.fromJson(json)).toList();
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<List<StateModel>> getStates(String countryId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/shared/states/?country=$countryId'),
+        headers: await getHeaders(),
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        return data.map((json) => StateModel.fromJson(json)).toList();
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<List<DistrictModel>> getDistricts(String stateId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/shared/districts/?state=$stateId'),
+        headers: await getHeaders(),
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        return data.map((json) => DistrictModel.fromJson(json)).toList();
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<List<AddressTypeModel>> getAddressTypes() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/shared/address-type/'),
+        headers: await getHeaders(),
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        return data.map((json) => AddressTypeModel.fromJson(json)).toList();
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+
   Future<OrganizationModel> createOrganization(
     String name,
     String typeId, {
@@ -91,7 +159,7 @@ class OrganizationService extends BaseService {
     File? logo,
   }) async {
     try {
-      final uri = Uri.parse('$baseUrl/organizations/');
+      final uri = Uri.parse('$baseUrl/organization/organizations/');
       final request = http.MultipartRequest('POST', uri);
       
       // Add headers
@@ -102,9 +170,6 @@ class OrganizationService extends BaseService {
       request.fields['name'] = name;
       request.fields['type'] = typeId;
 
-      // Add nested data as JSON strings if they existed as fields in backend
-      // actually DRF usually expects JSON for nested, but if we are doing Multipart,
-      // it gets tricky. Let's see how our backend handles it.
       if (addresses != null && addresses.isNotEmpty) {
         request.fields['addresses_json'] = jsonEncode(addresses);
       }
@@ -114,7 +179,7 @@ class OrganizationService extends BaseService {
         request.files.add(await http.MultipartFile.fromPath(
           'logo',
           logo.path,
-          contentType: MediaType('image', 'jpeg'), // Adjust based on file type if needed
+          contentType: MediaType('image', 'jpeg'),
         ));
       }
 
