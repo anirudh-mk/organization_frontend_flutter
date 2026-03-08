@@ -1,181 +1,283 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
-import 'employee_details_page.dart'; // Ensure this import is correct
+import '../models/employee_model.dart';
+import '../services/employee_service.dart';
+import 'employee_create_page.dart';
 
-class EmployeeListPage extends StatelessWidget {
+class EmployeeListPage extends StatefulWidget {
   const EmployeeListPage({super.key});
 
   @override
+  State<EmployeeListPage> createState() => _EmployeeListPageState();
+}
+
+class _EmployeeListPageState extends State<EmployeeListPage> {
+  bool isGridView = true; 
+  final EmployeeService _service = EmployeeService();
+  List<EmployeeModel> _employees = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadEmployees();
+  }
+
+  Future<void> _loadEmployees() async {
+    setState(() => _isLoading = true);
+    try {
+      final employees = await _service.getEmployees();
+      if (mounted) {
+        setState(() {
+          _employees = employees;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error),
+        );
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
-      backgroundColor: AppColors.bgLight,
       body: CustomScrollView(
         slivers: [
-          // Sticky Header
           SliverAppBar(
             pinned: true,
-            expandedHeight: 120,
-            backgroundColor: AppColors.surfaceWhite,
-            elevation: 0,
-            flexibleSpace: FlexibleSpaceBar(
-              titlePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              title: const Text(
-                "Workforce",
-                style: TextStyle(
-                  color: AppColors.textNavy,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20,
-                ),
-              ),
+            toolbarHeight: 72,
+            backgroundColor: AppColors.background,
+            surfaceTintColor: AppColors.background,
+            title: Text(
+              "Workforce",
+              style: theme.textTheme.headlineMedium?.copyWith(fontSize: 20),
             ),
             actions: [
               IconButton(
-                icon: const Icon(Icons.filter_list_rounded, color: AppColors.textNavy),
-                onPressed: () {},
+                icon: Icon(
+                  isGridView ? Icons.format_list_bulleted_rounded : Icons.grid_view_rounded,
+                ),
+                onPressed: () => setState(() => isGridView = !isGridView),
+                style: IconButton.styleFrom(
+                  backgroundColor: colorScheme.surface,
+                ),
               ),
+              IconButton(
+                icon: const Icon(Icons.refresh),
+                onPressed: _loadEmployees,
+                style: IconButton.styleFrom(
+                  backgroundColor: colorScheme.surface,
+                ),
+              ),
+              const SizedBox(width: 16),
             ],
           ),
 
-          // Search Bar
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
-              child: TextField(
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: Colors.white,
-                  hintText: "Search staff by name or role...",
-                  hintStyle: TextStyle(color: AppColors.textGrey.withValues(alpha: 0.5)),
-                  prefixIcon: const Icon(Icons.search, color: AppColors.primaryBlue),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide.none,
-                  ),
+          const SliverToBoxAdapter(child: SizedBox(height: 24)),
+
+          if (_isLoading)
+            const SliverFillRemaining(child: Center(child: CircularProgressIndicator()))
+          else if (_employees.isEmpty)
+            SliverFillRemaining(
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.people_alt_rounded, size: 64, color: AppColors.textMuted.withValues(alpha: 0.5)),
+                    const SizedBox(height: 16),
+                    Text("No workforce staff found", style: TextStyle(color: AppColors.textMuted, fontSize: 16)),
+                  ],
                 ),
               ),
+            )
+          else
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              sliver: isGridView ? _buildEmployeeGrid() : _buildEmployeeList(),
             ),
-          ),
 
-          // Employee List
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate(
-                    (context, index) => _buildEmployeeCard(context, index),
-                childCount: 8, // Temporary count
-              ),
-            ),
-          ),
-
-          const SliverToBoxAdapter(child: SizedBox(height: 100)),
+          const SliverToBoxAdapter(child: SizedBox(height: 120)),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          // You can add navigation to Create Employee page here
-        },
-        backgroundColor: AppColors.primaryBlue,
-        icon: const Icon(Icons.person_add_alt_1_rounded, color: Colors.white),
-        label: const Text("Add Staff", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 90), 
+        child: FloatingActionButton.extended(
+          heroTag: 'employee_list_fab',
+          onPressed: () async {
+            final result = await Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const EmployeeCreatePage()),
+            );
+            if (result == true) {
+              _loadEmployees();
+            }
+          },
+          backgroundColor: colorScheme.primary,
+          foregroundColor: Colors.white,
+          elevation: 4,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          icon: const Icon(Icons.add_rounded),
+          label: const Text("Onboard Staff", style: TextStyle(fontWeight: FontWeight.w700)),
+        ),
       ),
     );
   }
 
-  Widget _buildEmployeeCard(BuildContext context, int index) {
-    // Mock data logic
-    final bool isOnSite = index % 2 == 0;
-    final String role = index % 3 == 0 ? "Project Manager" : "Civil Engineer";
+  Widget _buildEmployeeGrid() {
+    return SliverGrid(
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+        childAspectRatio: 0.85,
+      ),
+      delegate: SliverChildBuilderDelegate(
+        (context, index) => _buildEmployeeCard(index, _employees[index]),
+        childCount: _employees.length,
+      ),
+    );
+  }
 
-    return GestureDetector(
-      onTap: () {
-        // Navigate to Employee Details Page
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const EmployeeDetailPage()),
-        );
-      },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 16),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 15,
-              offset: const Offset(0, 8),
-            )
-          ],
+  Widget _buildEmployeeList() {
+    return SliverList(
+      delegate: SliverChildBuilderDelegate(
+        (context, index) => Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: _buildEmployeeListTile(index, _employees[index]),
         ),
-        child: Row(
-          children: [
-            // Avatar with Presence Indicator
-            Stack(
-              alignment: Alignment.bottomRight,
+        childCount: _employees.length,
+      ),
+    );
+  }
+
+  Widget _buildEmployeeCard(int index, EmployeeModel employee) {
+    final bool isOnDuty = true; // Hardcoded until user wants attendance logic
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.1)),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.04),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 CircleAvatar(
-                  radius: 30,
-                  backgroundColor: AppColors.primaryBlue.withValues(alpha: 0.1),
-                  child: const Icon(Icons.person, color: AppColors.primaryBlue, size: 30),
+                  radius: 18,
+                  backgroundColor: AppColors.background,
+                  child: const Icon(Icons.person_outline_rounded, size: 18, color: AppColors.textSecondary),
                 ),
-                Container(
-                  width: 14,
-                  height: 14,
-                  decoration: BoxDecoration(
-                    color: isOnSite ? Colors.green : Colors.grey,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2),
-                  ),
+                _statusDot(isOnDuty),
+              ],
+            ),
+          ),
+          const Spacer(),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  employee.displayName,
+                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  employee.phoneNumber.isNotEmpty ? employee.phoneNumber : "No Phone Data",
+                  style: TextStyle(color: AppColors.textSecondary, fontSize: 11, fontWeight: FontWeight.w500),
                 ),
               ],
             ),
-            const SizedBox(width: 16),
+          ),
+        ],
+      ),
+    );
+  }
 
-            // Employee Info
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "Suresh Kumar #${index + 1}",
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: AppColors.textNavy,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    role,
-                    style: const TextStyle(color: AppColors.textGrey, fontSize: 13),
-                  ),
-                  const SizedBox(height: 8),
-
-                  // Role Tag
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryBlue.withValues(alpha: 0.05),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: const Text(
-                      "Full-time",
-                      style: TextStyle(
-                        color: AppColors.primaryBlue,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+  Widget _buildEmployeeListTile(int index, EmployeeModel employee) {
+    final bool isOnDuty = true; 
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.1)),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.03),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 20,
+            backgroundColor: AppColors.background,
+            child: const Icon(Icons.person_rounded, color: AppColors.textSecondary),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(employee.displayName, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                Text(employee.phoneNumber.isNotEmpty ? employee.phoneNumber : "No Phone Data", style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+              ],
             ),
+          ),
+          _statusDot(isOnDuty),
+        ],
+      ),
+    );
+  }
 
-            // Action Icon
-            const Icon(Icons.arrow_forward_ios_rounded, color: AppColors.textGrey, size: 16),
-          ],
-        ),
+  Widget _statusDot(bool active) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: (active ? AppColors.success : AppColors.warning).withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(color: active ? AppColors.success : AppColors.warning, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            active ? "On Duty" : "Off",
+            style: TextStyle(
+              color: active ? AppColors.success : AppColors.warning,
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
       ),
     );
   }
