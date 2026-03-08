@@ -32,7 +32,7 @@ class LocationService extends BaseService {
     }
   }
 
-  Future<List<StateModel>> getStates(int countryId) async {
+  Future<List<StateModel>> getStates(String countryId) async {
     try {
       final response = await http.get(
         Uri.parse('${baseUrl}states/?country=$countryId'),
@@ -49,9 +49,12 @@ class LocationService extends BaseService {
     }
   }
 
-  Future<List<DistrictModel>> getDistricts(int stateId) async {
+  Future<List<DistrictModel>> getDistricts(String stateId) async {
     try {
-      final response = await http.get(Uri.parse('${baseUrl}districts/?state=$stateId'));
+      final response = await http.get(
+        Uri.parse('${baseUrl}districts/?state=$stateId'),
+        headers: await getHeaders(),
+      );
       if (response.statusCode == 200) {
         final List<dynamic> results = _extractResults(jsonDecode(response.body));
         return results.map((item) => DistrictModel.fromJson(item)).toList();
@@ -65,7 +68,10 @@ class LocationService extends BaseService {
 
   Future<List<AddressTypeModel>> getAddressTypes() async {
     try {
-      final response = await http.get(Uri.parse('${baseUrl}address-type/'));
+      final response = await http.get(
+        Uri.parse('${baseUrl}address-type/'),
+        headers: await getHeaders(),
+      );
       if (response.statusCode == 200) {
         final List<dynamic> results = _extractResults(jsonDecode(response.body));
         return results.map((item) => AddressTypeModel.fromJson(item)).toList();

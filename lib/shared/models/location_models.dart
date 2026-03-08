@@ -1,5 +1,5 @@
 class CountryModel {
-  final int id;
+  final String id;
   final String name;
   final String code;
 
@@ -11,7 +11,7 @@ class CountryModel {
 
   factory CountryModel.fromJson(Map<String, dynamic> json) {
     return CountryModel(
-      id: json['id'] ?? 0,
+      id: json['id'].toString(),
       name: json['name'] ?? '',
       code: json['code'] ?? '',
     );
@@ -19,10 +19,10 @@ class CountryModel {
 }
 
 class StateModel {
-  final int id;
+  final String id;
   final String name;
   final String code;
-  final int countryId;
+  final String countryId;
 
   StateModel({
     required this.id,
@@ -33,22 +33,22 @@ class StateModel {
 
   factory StateModel.fromJson(Map<String, dynamic> json) {
     return StateModel(
-      id: json['id'] ?? 0,
+      id: json['id'].toString(),
       name: json['name'] ?? '',
       code: json['code'] ?? '',
       // Sometimes it might come back as a nested object, so handle both ID or nested object
       countryId: (json['country'] is Map) 
-          ? (json['country']['id'] ?? 0) 
-          : (json['country'] ?? 0),
+          ? json['country']['id'].toString()
+          : json['country'].toString(),
     );
   }
 }
 
 class DistrictModel {
-  final int id;
+  final String id;
   final String name;
   final String code;
-  final int stateId;
+  final String stateId;
 
   DistrictModel({
     required this.id,
@@ -59,18 +59,18 @@ class DistrictModel {
 
   factory DistrictModel.fromJson(Map<String, dynamic> json) {
     return DistrictModel(
-      id: json['id'] ?? 0,
+      id: json['id'].toString(),
       name: json['name'] ?? '',
       code: json['code'] ?? '',
       stateId: (json['state'] is Map) 
-          ? (json['state']['id'] ?? 0) 
-          : (json['state'] ?? 0),
+          ? json['state']['id'].toString()
+          : json['state'].toString(),
     );
   }
 }
 
 class AddressTypeModel {
-  final int id;
+  final String id;
   final String name;
 
   AddressTypeModel({
@@ -80,7 +80,7 @@ class AddressTypeModel {
 
   factory AddressTypeModel.fromJson(Map<String, dynamic> json) {
     return AddressTypeModel(
-      id: json['id'] ?? 0,
+      id: json['id'].toString(),
       name: json['name'] ?? '',
     );
   }

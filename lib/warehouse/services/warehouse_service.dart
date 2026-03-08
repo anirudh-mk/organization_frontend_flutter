@@ -2,15 +2,21 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/warehouse_model.dart';
 import '../../shared/services/base_service.dart';
+import '../../auth/services/token_manager.dart';
 
 class WarehouseService extends BaseService {
   // Host loopback address for Android emulator to hit the backend
   static const String baseUrl = 'http://127.0.0.1:8000/api/v1/warehouse/warehouses/';
 
-  Future<List<WarehouseModel>> getWarehouses() async {
+  Future<List<WarehouseModel>> getWarehouses({String? organizationId}) async {
     try {
+      Uri url = Uri.parse(baseUrl);
+      if (organizationId != null) {
+        url = url.replace(queryParameters: {'organization': organizationId});
+      }
+
       final response = await http.get(
-        Uri.parse(baseUrl),
+        url,
         headers: await getHeaders(),
       );
       if (response.statusCode == 200) {
@@ -37,17 +43,20 @@ class WarehouseService extends BaseService {
 
   Future<WarehouseModel> createWarehouse(Map<String, dynamic> data) async {
     try {
-      // Organization is required by the DRF API, defaulting to 1 for this implementation
+      final headers = await getHeaders();
+      headers['Content-Type'] = 'application/json';
+
+      // Organization is required by the DRF API
       if (!data.containsKey('organization')) {
-        data['organization'] = 1; 
+        final orgId = await TokenManager.getOrganizationId();
+        if (orgId != null) {
+          data['organization'] = orgId;
+        }
       }
       
       final response = await http.post(
         Uri.parse(baseUrl),
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json"
-        },
+        headers: headers,
         body: jsonEncode(data),
       );
       

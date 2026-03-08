@@ -4,6 +4,8 @@ import '../models/warehouse_model.dart';
 import '../services/warehouse_service.dart';
 import 'warehouse_create_page.dart';
 
+import '../../auth/services/token_manager.dart';
+
 class WarehouseListPage extends StatefulWidget {
   const WarehouseListPage({super.key});
 
@@ -24,8 +26,13 @@ class _WarehouseListPageState extends State<WarehouseListPage> {
 
   void _loadWarehouses() {
     setState(() {
-      _warehousesFuture = _service.getWarehouses();
+      _warehousesFuture = _fetchWarehouses();
     });
+  }
+
+  Future<List<WarehouseModel>> _fetchWarehouses() async {
+    final orgId = await TokenManager.getOrganizationId();
+    return _service.getWarehouses(organizationId: orgId);
   }
 
   @override

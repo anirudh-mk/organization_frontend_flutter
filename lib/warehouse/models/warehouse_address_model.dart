@@ -1,9 +1,9 @@
 class WarehouseAddressModel {
-  final int id;
-  final int warehouseId;
+  final String id;
+  final String warehouseId;
   final String addressLine1;
   final String addressLine2;
-  final int districtId;
+  final String districtId;
   final String city;
   final String postalCode;
   final bool isPrimary;
@@ -21,11 +21,11 @@ class WarehouseAddressModel {
 
   factory WarehouseAddressModel.fromJson(Map<String, dynamic> json) {
     return WarehouseAddressModel(
-      id: json['id'] ?? 0,
-      warehouseId: json['warehouse'] ?? 0,
+      id: json['id'].toString(),
+      warehouseId: json['warehouse'].toString(),
       addressLine1: json['address_line_1'] ?? '',
       addressLine2: json['address_line_2'] ?? '',
-      districtId: json['district'] ?? 0,
+      districtId: json['district'].toString(),
       city: json['city'] ?? '',
       postalCode: json['postal_code'] ?? '',
       isPrimary: json['is_primary'] ?? false,

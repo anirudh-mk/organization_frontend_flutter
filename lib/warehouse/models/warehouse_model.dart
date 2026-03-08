@@ -1,5 +1,5 @@
 class WarehouseModel {
-  final int id;
+  final String id;
   final String name;
   final String code;
   final bool isPrimary;
@@ -15,7 +15,7 @@ class WarehouseModel {
 
   factory WarehouseModel.fromJson(Map<String, dynamic> json) {
     return WarehouseModel(
-      id: json['id'] ?? 0,
+      id: json['id'].toString(),
       name: json['name'] ?? '',
       code: json['code'] ?? '',
       isPrimary: json['is_primary'] ?? false,
