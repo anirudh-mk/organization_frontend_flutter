@@ -4,7 +4,7 @@ import '../models/employee_model.dart';
 import '../../shared/services/base_service.dart';
 
 class EmployeeService extends BaseService {
-  static const String baseUrl = 'http://10.0.2.2:8000/api/v1/employee';
+  static const String baseUrl = 'http://127.0.0.1:8000/api/v1/employee';
 
   Future<List<EmployeeModel>> getEmployees() async {
     try {
