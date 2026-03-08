@@ -1,40 +1,56 @@
 import '../../shared/models/location_models.dart';
 
-class ClientContactModel {
-  final String id;
-  final String name;
-  final String designation;
-  final String phone;
-  final String email;
-  final bool isPrimary;
 
-  ClientContactModel({
+class ClientEmailModel {
+  final String id;
+  final String emailId;
+  final String email;
+  final String? contactTypeId;
+  final String? contactTypeName;
+
+  ClientEmailModel({
     required this.id,
-    required this.name,
-    this.designation = '',
-    this.phone = '',
-    this.email = '',
-    this.isPrimary = false,
+    required this.emailId,
+    required this.email,
+    this.contactTypeId,
+    this.contactTypeName,
   });
 
-  factory ClientContactModel.fromJson(Map<String, dynamic> json) {
-    return ClientContactModel(
+  factory ClientEmailModel.fromJson(Map<String, dynamic> json) {
+    return ClientEmailModel(
       id: json['id']?.toString() ?? '',
-      name: json['name']?.toString() ?? '',
-      designation: json['designation']?.toString() ?? '',
-      phone: json['phone']?.toString() ?? '',
-      email: json['email']?.toString() ?? '',
-      isPrimary: json['is_primary'] as bool? ?? false,
+      emailId: json['email']?.toString() ?? '',
+      email: json['email_str']?.toString() ?? '',
+      contactTypeId: json['contact_type']?.toString(),
+      contactTypeName: json['contact_type_name']?.toString(),
     );
   }
+}
 
-  Map<String, dynamic> toJson() => {
-    'name': name,
-    'designation': designation,
-    'phone': phone,
-    'email': email,
-    'is_primary': isPrimary,
-  };
+class ClientMobileModel {
+  final String id;
+  final String mobileId;
+  final String number;
+  final String? contactTypeId;
+  final String? contactTypeName;
+
+  ClientMobileModel({
+    required this.id,
+    required this.mobileId,
+    required this.number,
+    this.contactTypeId,
+    this.contactTypeName,
+  });
+
+  factory ClientMobileModel.fromJson(Map<String, dynamic> json) {
+    return ClientMobileModel(
+      id: json['id']?.toString() ?? '',
+      mobileId: json['mobile']?.toString() ?? '',
+      number: json['number']?.toString() ?? '',
+      contactTypeId: json['contact_type']?.toString(),
+      contactTypeName: json['contact_type_name']?.toString(),
+    );
+  }
 }
 
 class ClientAddressModel {
@@ -63,31 +79,22 @@ class ClientModel {
   final String id;
   final String name;
   final String code;
-  final String email;
-  final String phone;
   final bool isActive;
-  final List<ClientContactModel> contacts;
   final List<ClientAddressModel> addresses;
+  final List<ClientEmailModel> emails;
+  final List<ClientMobileModel> mobiles;
 
   ClientModel({
     required this.id,
     required this.name,
     required this.code,
-    this.email = '',
-    this.phone = '',
     this.isActive = true,
-    this.contacts = const [],
     this.addresses = const [],
+    this.emails = const [],
+    this.mobiles = const [],
   });
 
   factory ClientModel.fromJson(Map<String, dynamic> json) {
-    List<ClientContactModel> contacts = [];
-    if (json['contacts'] != null && json['contacts'] is List) {
-      contacts = (json['contacts'] as List)
-          .whereType<Map<String, dynamic>>()
-          .map((c) => ClientContactModel.fromJson(c))
-          .toList();
-    }
 
     List<ClientAddressModel> addresses = [];
     if (json['addresses'] != null && json['addresses'] is List) {
@@ -97,26 +104,39 @@ class ClientModel {
           .toList();
     }
 
+    List<ClientEmailModel> emails = [];
+    if (json['emails'] != null && json['emails'] is List) {
+      emails = (json['emails'] as List)
+          .whereType<Map<String, dynamic>>()
+          .map((e) => ClientEmailModel.fromJson(e))
+          .toList();
+    }
+
+    List<ClientMobileModel> mobiles = [];
+    if (json['mobiles'] != null && json['mobiles'] is List) {
+      mobiles = (json['mobiles'] as List)
+          .whereType<Map<String, dynamic>>()
+          .map((m) => ClientMobileModel.fromJson(m))
+          .toList();
+    }
+
     return ClientModel(
       id: json['id']?.toString() ?? '',
       name: json['name']?.toString() ?? '',
       code: json['code']?.toString() ?? '',
-      email: json['email']?.toString() ?? '',
-      phone: json['phone']?.toString() ?? '',
       isActive: json['is_active'] as bool? ?? true,
-      contacts: contacts,
       addresses: addresses,
+      emails: emails,
+      mobiles: mobiles,
     );
   }
 
   Map<String, dynamic> toJson() => {
     'name': name,
     'code': code,
-    'email': email,
-    'phone': phone,
     'is_active': isActive,
   };
 
-  ClientContactModel? get primaryContact =>
-      contacts.where((c) => c.isPrimary).firstOrNull ?? contacts.firstOrNull;
+  String get primaryEmail => emails.isNotEmpty ? emails.first.email : '';
+  String get primaryPhone => mobiles.isNotEmpty ? mobiles.first.number : '';
 }

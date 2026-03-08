@@ -82,4 +82,21 @@ class LocationService extends BaseService {
       throw Exception("Error fetching address types: $e");
     }
   }
+
+  Future<List<ContactTypeModel>> getContactTypes() async {
+    try {
+      final response = await http.get(
+        Uri.parse('${baseUrl}contact-type/'),
+        headers: await getHeaders(),
+      );
+      if (response.statusCode == 200) {
+        final List<dynamic> results = _extractResults(jsonDecode(response.body));
+        return results.map((item) => ContactTypeModel.fromJson(item)).toList();
+      } else {
+        throw Exception("Failed to load contact types");
+      }
+    } catch (e) {
+      throw Exception("Error fetching contact types: $e");
+    }
+  }
 }

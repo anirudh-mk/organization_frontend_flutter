@@ -99,6 +99,73 @@ class AddressTypeModel {
       name: json['name'] ?? '',
     );
   }
+
+  @override
+  bool operator ==(Object other) => identical(this, other) || other is AddressTypeModel && id == other.id;
+  @override
+  int get hashCode => id.hashCode;
+}
+
+class ContactTypeModel {
+  final String id;
+  final String name;
+
+  ContactTypeModel({
+    required this.id,
+    required this.name,
+  });
+
+  factory ContactTypeModel.fromJson(Map<String, dynamic> json) {
+    return ContactTypeModel(
+      id: json['id'].toString(),
+      name: json['name'] ?? '',
+    );
+  }
+
+  @override
+  bool operator ==(Object other) => identical(this, other) || other is ContactTypeModel && id == other.id;
+  @override
+  int get hashCode => id.hashCode;
+}
+
+class EmailModel {
+  final String id;
+  final String email;
+  final String? contactTypeId;
+
+  EmailModel({
+    required this.id,
+    required this.email,
+    this.contactTypeId,
+  });
+
+  factory EmailModel.fromJson(Map<String, dynamic> json) {
+    return EmailModel(
+      id: json['id'].toString(),
+      email: json['email'] ?? '',
+      contactTypeId: json['contact_type']?.toString(),
+    );
+  }
+}
+
+class MobileModel {
+  final String id;
+  final String number;
+  final String? contactTypeId;
+
+  MobileModel({
+    required this.id,
+    required this.number,
+    this.contactTypeId,
+  });
+
+  factory MobileModel.fromJson(Map<String, dynamic> json) {
+    return MobileModel(
+      id: json['id'].toString(),
+      number: json['number'] ?? '',
+      contactTypeId: json['contact_type']?.toString(),
+    );
+  }
 }
 
 class AddressModel {

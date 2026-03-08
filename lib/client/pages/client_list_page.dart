@@ -56,7 +56,7 @@ class _ClientListPageState extends State<ClientListPage> {
         final q = _searchController.text.toLowerCase();
         final matchesSearch = c.name.toLowerCase().contains(q) ||
             c.code.toLowerCase().contains(q) ||
-            c.email.toLowerCase().contains(q);
+            c.primaryEmail.toLowerCase().contains(q);
         final matchesStatus = _filterStatus == 'All' ||
             (_filterStatus == 'Active' && c.isActive) ||
             (_filterStatus == 'Inactive' && !c.isActive);
@@ -100,7 +100,6 @@ class _ClientListPageState extends State<ClientListPage> {
   }
 
   void _showClientDetails(ClientModel client) {
-    final primary = client.primaryContact;
     final addr = client.addresses.firstOrNull?.addressDetails;
     showModalBottomSheet(
       context: context,
@@ -149,8 +148,12 @@ class _ClientListPageState extends State<ClientListPage> {
               ),
               const SizedBox(height: 24),
               _detailRow(Icons.info_outline, "Status", client.isActive ? "Active" : "Inactive"),
-              if (client.phone.isNotEmpty) _detailRow(Icons.phone_rounded, "Phone", client.phone),
-              if (client.email.isNotEmpty) _detailRow(Icons.alternate_email_rounded, "Email", client.email),
+              
+              for (var m in client.mobiles)
+                _detailRow(Icons.phone_rounded, m.contactTypeName ?? "Mobile", m.number),
+                
+              for (var e in client.emails)
+                _detailRow(Icons.alternate_email_rounded, e.contactTypeName ?? "Email", e.email),
               
               if (addr != null) ...[
                 const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider()),
@@ -161,15 +164,6 @@ class _ClientListPageState extends State<ClientListPage> {
                 _detailRow(Icons.pin_outlined, "Postal Code", addr.postalCode),
               ],
 
-              if (primary != null) ...[
-                const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider()),
-                const Text("Primary Contact", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                const SizedBox(height: 16),
-                _detailRow(Icons.person_rounded, "Name", primary.name),
-                if (primary.designation.isNotEmpty) _detailRow(Icons.work_outline, "Designation", primary.designation),
-                if (primary.phone.isNotEmpty) _detailRow(Icons.phone_rounded, "Phone", primary.phone),
-                if (primary.email.isNotEmpty) _detailRow(Icons.alternate_email_rounded, "Email", primary.email),
-              ],
               const SizedBox(height: 32),
               Row(
                 children: [
@@ -386,7 +380,6 @@ class _ClientListPageState extends State<ClientListPage> {
       delegate: SliverChildBuilderDelegate(
         (ctx, i) {
           final c = _displayClients[i];
-          final primary = c.primaryContact;
           return GestureDetector(
             onTap: () => _showClientDetails(c),
             child: Container(
@@ -415,14 +408,24 @@ class _ClientListPageState extends State<ClientListPage> {
                         Text(c.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                         const SizedBox(height: 2),
                         Text(c.code, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
-                        if (primary != null) ...[
-                          const SizedBox(height: 4),
-                          Row(children: [
-                            const Icon(Icons.person_outline_rounded, size: 12, color: AppColors.textMuted),
-                            const SizedBox(width: 4),
-                            Text(primary.name, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                          ]),
-                        ],
+                        if (c.primaryPhone.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Row(children: [
+                              const Icon(Icons.phone_rounded, size: 14, color: AppColors.textSecondary),
+                              const SizedBox(width: 8),
+                              Text(c.primaryPhone, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                            ]),
+                          ),
+                        if (c.primaryEmail.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Row(children: [
+                              const Icon(Icons.alternate_email_rounded, size: 14, color: AppColors.textSecondary),
+                              const SizedBox(width: 8),
+                              Text(c.primaryEmail, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                            ]),
+                          ),
                       ],
                     ),
                   ),
@@ -478,11 +481,11 @@ class _ClientListPageState extends State<ClientListPage> {
                   const SizedBox(height: 4),
                   Text(c.code, style: const TextStyle(color: AppColors.textMuted, fontSize: 11)),
                   const SizedBox(height: 8),
-                  if (c.phone.isNotEmpty)
+                  if (c.primaryPhone.isNotEmpty)
                     Row(children: [
                       const Icon(Icons.phone_rounded, size: 11, color: AppColors.textMuted),
                       const SizedBox(width: 4),
-                      Expanded(child: Text(c.phone, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary), overflow: TextOverflow.ellipsis)),
+                      Expanded(child: Text(c.primaryPhone, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary), overflow: TextOverflow.ellipsis)),
                     ]),
                 ],
               ),
