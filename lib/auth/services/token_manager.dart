@@ -4,6 +4,8 @@ class TokenManager {
   static const _storage = FlutterSecureStorage();
   static const _keyAccessToken = 'access_token';
   static const _keyOrgId = 'organization_id';
+  static const _keyOrgName = 'organization_name';
+  static const _keyOrgLogo = 'organization_logo';
 
   static Future<void> saveAccessToken(String token) async {
     await _storage.write(key: _keyAccessToken, value: token);
@@ -11,6 +13,20 @@ class TokenManager {
 
   static Future<String?> getAccessToken() async {
     return await _storage.read(key: _keyAccessToken);
+  }
+
+  static Future<void> saveOrganizationDetails({
+    required String id,
+    required String name,
+    String? logo,
+  }) async {
+    await _storage.write(key: _keyOrgId, value: id);
+    await _storage.write(key: _keyOrgName, value: name);
+    if (logo != null) {
+      await _storage.write(key: _keyOrgLogo, value: logo);
+    } else {
+      await _storage.delete(key: _keyOrgLogo);
+    }
   }
 
   static Future<void> saveOrganizationId(String orgId) async {
@@ -21,9 +37,19 @@ class TokenManager {
     return await _storage.read(key: _keyOrgId);
   }
 
+  static Future<String?> getOrganizationName() async {
+    return await _storage.read(key: _keyOrgName);
+  }
+
+  static Future<String?> getOrganizationLogo() async {
+    return await _storage.read(key: _keyOrgLogo);
+  }
+
   static Future<void> clearAll() async {
     await _storage.delete(key: _keyAccessToken);
     await _storage.delete(key: _keyOrgId);
+    await _storage.delete(key: _keyOrgName);
+    await _storage.delete(key: _keyOrgLogo);
   }
 
   static Future<void> clearToken() async {

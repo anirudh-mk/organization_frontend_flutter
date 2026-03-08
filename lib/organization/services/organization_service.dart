@@ -20,7 +20,11 @@ class OrganizationService extends BaseService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final org = OrganizationModel.fromJson(data);
-        await TokenManager.saveOrganizationId(org.id);
+        await TokenManager.saveOrganizationDetails(
+          id: org.id,
+          name: org.name,
+          logo: org.logo,
+        );
         return org;
       } else if (response.statusCode == 404) {
         return null;
@@ -188,7 +192,11 @@ class OrganizationService extends BaseService {
       
       if (streamedResponse.statusCode == 201 || streamedResponse.statusCode == 200) {
         final org = OrganizationModel.fromJson(jsonDecode(response.body));
-        await TokenManager.saveOrganizationId(org.id);
+        await TokenManager.saveOrganizationDetails(
+          id: org.id,
+          name: org.name,
+          logo: org.logo,
+        );
         return org;
       } else {
         throw Exception("Failed to create organization: ${response.body}");
