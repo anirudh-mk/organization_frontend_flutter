@@ -147,16 +147,43 @@ class _WarehouseListPageState extends State<WarehouseListPage> {
             _detailItem(Icons.info_outline, "Status", warehouse.isActive ? "Active" : "Inactive"),
             _detailItem(Icons.star_outline, "Role", warehouse.isPrimary ? "Primary Warehouse" : "Standard Warehouse"),
             
-            if (addr != null) ...[
+            if (warehouse.addressList.isNotEmpty) ...[
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 16),
                 child: Divider(height: 1),
               ),
               const Text("Location Details", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              const SizedBox(height: 16),
-              _detailItem(Icons.location_on_outlined, "Address", "${addr.line1}${addr.line2.isNotEmpty ? ', ' + addr.line2 : ''}"),
-              _detailItem(Icons.location_city_outlined, "City", addr.city),
-              _detailItem(Icons.pin_outlined, "Postal Code", addr.postalCode),
+              const SizedBox(height: 12),
+              ...warehouse.addressList.map((wa) {
+                final d = wa.addressDetails;
+                if (d == null) return const SizedBox.shrink();
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _detailItem(Icons.location_on_outlined, "Address", "${d.line1}${d.line2.isNotEmpty ? ', ' + d.line2 : ''}"),
+                      _detailItem(Icons.location_city_outlined, "City", d.city),
+                      _detailItem(Icons.pin_outlined, "Postal Code", d.postalCode),
+                      const SizedBox(height: 8),
+                    ],
+                  ),
+                );
+              }),
+            ],
+
+            if (warehouse.emails.isNotEmpty) ...[
+              const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider(height: 1)),
+              const Text("Email Addresses", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              const SizedBox(height: 12),
+              ...warehouse.emails.map((e) => _detailItem(Icons.email_outlined, e.contactTypeName ?? "Email", e.email)),
+            ],
+
+            if (warehouse.mobiles.isNotEmpty) ...[
+              const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider(height: 1)),
+              const Text("Mobile Numbers", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              const SizedBox(height: 12),
+              ...warehouse.mobiles.map((m) => _detailItem(Icons.phone_outlined, m.contactTypeName ?? "Mobile", m.number)),
             ],
             
             const SizedBox(height: 32),
