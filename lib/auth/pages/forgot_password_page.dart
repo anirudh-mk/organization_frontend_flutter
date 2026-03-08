@@ -13,7 +13,10 @@ class ForgotPasswordPage extends StatelessWidget {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.textPrimary, size: 20),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            FocusScope.of(context).unfocus();
+            Navigator.pop(context);
+          },
         ),
       ),
       body: SafeArea(
@@ -115,7 +118,10 @@ class ForgotPasswordPage extends StatelessWidget {
 
               Center(
                 child: TextButton(
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () {
+                    FocusScope.of(context).unfocus();
+                    Navigator.pop(context);
+                  },
                   child: RichText(
                     text: const TextSpan(
                       text: "Remember your password? ",

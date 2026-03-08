@@ -98,9 +98,14 @@ class _SignupPageState extends State<SignupPage> {
         elevation: 0,
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios_new_rounded, color: textPrimary, size: 20),
-          onPressed: () => _currentStep > 0
-              ? _pageController.previousPage(duration: const Duration(milliseconds: 300), curve: Curves.easeIn)
-              : Navigator.pop(context),
+          onPressed: () {
+            FocusScope.of(context).unfocus();
+            if (_currentStep > 0) {
+              _pageController.previousPage(duration: const Duration(milliseconds: 300), curve: Curves.easeIn);
+            } else {
+              Navigator.pop(context);
+            }
+          },
         ),
         title: _buildStepIndicator(),
         centerTitle: true,

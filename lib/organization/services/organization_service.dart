@@ -59,15 +59,29 @@ class OrganizationService extends BaseService {
     }
   }
 
-  Future<OrganizationModel> createOrganization(String name, String typeId) async {
+  Future<OrganizationModel> createOrganization(
+    String name,
+    String typeId, {
+    List<Map<String, dynamic>>? contacts,
+    List<Map<String, dynamic>>? addresses,
+  }) async {
     try {
+      final body = {
+        'name': name,
+        'type': typeId,
+      };
+      
+      if (contacts != null && contacts.isNotEmpty) {
+        body['contacts'] = contacts;
+      }
+      if (addresses != null && addresses.isNotEmpty) {
+        body['addresses'] = addresses;
+      }
+
       final response = await http.post(
         Uri.parse('$baseUrl/organizations/'),
         headers: await getHeaders(),
-        body: jsonEncode({
-          'name': name,
-          'type': typeId,
-        }),
+        body: jsonEncode(body),
       );
       
       if (response.statusCode == 201 || response.statusCode == 200) {
