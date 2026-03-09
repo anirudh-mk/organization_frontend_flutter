@@ -129,21 +129,83 @@ class _SiteListPageState extends State<SiteListPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(site.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                      Text("Code: ${site.code}", style: const TextStyle(color: AppColors.textSecondary)),
+                      Text(site.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis, maxLines: 1),
+                      Text("Code: ${site.code}", style: const TextStyle(color: AppColors.textSecondary), overflow: TextOverflow.ellipsis, maxLines: 1),
                     ],
                   ),
                 ),
-                _statusDot(site.status),
+                Flexible(child: _statusDot(site.status)),
               ],
             ),
             const SizedBox(height: 32),
-            _detailItem(Icons.info_outline, "Status", site.status.toUpperCase()),
+            _detailItem(Icons.info_outline, "Status", (site.statusDetails?.name ?? site.status).toUpperCase()),
             if (site.estimatedBudget != null) _detailItem(Icons.payments_outlined, "Budget", "₹${site.estimatedBudget}"),
+            
+            if (site.images.isNotEmpty) ...[
+              const SizedBox(height: 24),
+              const Text("Site Images", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              const SizedBox(height: 12),
+              SizedBox(
+                height: 120,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: site.images.length,
+                  itemBuilder: (context, idx) {
+                    final img = site.images[idx];
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 12),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: Image.network(
+                          img.image.startsWith('http') ? img.image : "http://127.0.0.1:8000${img.image}",
+                          width: 160,
+                          height: 120,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => Container(
+                            width: 160,
+                            color: AppColors.surface,
+                            child: const Icon(Icons.image_not_supported_outlined, color: AppColors.textMuted),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+
             if (site.expectedStartDate != null) _detailItem(Icons.calendar_today_outlined, "Start Date", "${site.expectedStartDate!.day}/${site.expectedStartDate!.month}/${site.expectedStartDate!.year}"),
             if (site.expectedEndDate != null) _detailItem(Icons.event_outlined, "End Date", "${site.expectedEndDate!.day}/${site.expectedEndDate!.month}/${site.expectedEndDate!.year}"),
 
             const SizedBox(height: 32),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => _showAssignResourceDialog(site),
+                    icon: const Icon(Icons.person_add_alt_1_outlined),
+                    label: const Text("Assign", style: TextStyle(fontSize: 12)),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => _showCreateQuotationDialog(site),
+                    icon: const Icon(Icons.request_quote_outlined),
+                    label: const Text("Quotation", style: TextStyle(fontSize: 12)),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
             Row(
               children: [
                 Expanded(
@@ -190,6 +252,95 @@ class _SiteListPageState extends State<SiteListPage> {
     );
   }
 
+  void _showAssignResourceDialog(SiteModel site) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text("Assign to ${site.name}"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.person_outline),
+              title: const Text("Assign Employee"),
+              onTap: () {
+                Navigator.pop(context);
+                // In a real app, show a search/picker for employees
+                _performAssignment(site, 'employee');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.construction_outlined),
+              title: const Text("Assign Equipment"),
+              onTap: () {
+                Navigator.pop(context);
+                // In a real app, show a search/picker for equipment
+                _performAssignment(site, 'equipment');
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _performAssignment(SiteModel site, String type) async {
+    // Simplified picker for demo purposes
+    final idController = TextEditingController();
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text("Enter ${type.toUpperCase()} ID"),
+        content: TextField(controller: idController, decoration: const InputDecoration(hintText: "UUID or ID")),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+          TextButton(onPressed: () => Navigator.pop(context, idController.text), child: const Text("Assign")),
+        ],
+      ),
+    );
+
+    if (result != null && result.isNotEmpty) {
+      try {
+        await _service.assignResource(siteId: site.id, type: type, id: result);
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("$type assigned successfully!"), backgroundColor: AppColors.success));
+      } catch (e) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error));
+      }
+    }
+  }
+
+  void _showCreateQuotationDialog(SiteModel site) {
+    final amountController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Create Quotation"),
+        content: TextField(
+          controller: amountController,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(labelText: "Contract Amount", prefixText: "₹"),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+          TextButton(
+            onPressed: () async {
+              final amount = double.tryParse(amountController.text);
+              if (amount == null) return;
+              Navigator.pop(context);
+              try {
+                await _service.createQuotation(siteId: site.id, amount: amount);
+                if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Quotation created successfully!"), backgroundColor: AppColors.success));
+              } catch (e) {
+                if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error));
+              }
+            },
+            child: const Text("Create"),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _detailItem(IconData icon, String label, String value) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -198,8 +349,16 @@ class _SiteListPageState extends State<SiteListPage> {
           Icon(icon, size: 20, color: AppColors.textSecondary),
           const SizedBox(width: 12),
           Text(label, style: const TextStyle(color: AppColors.textSecondary)),
-          const Spacer(),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              value, 
+              style: const TextStyle(fontWeight: FontWeight.w600),
+              textAlign: TextAlign.right,
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+            ),
+          ),
         ],
       ),
     );
@@ -377,7 +536,7 @@ class _SiteListPageState extends State<SiteListPage> {
                           decoration: BoxDecoration(color: AppColors.background, borderRadius: BorderRadius.circular(12)),
                           child: const Icon(Icons.architecture_rounded, color: AppColors.textSecondary, size: 20),
                         ),
-                        _statusDot(site.status),
+                        Flexible(child: _statusDot(site.status)),
                       ],
                     ),
                   ),
@@ -462,11 +621,11 @@ class _SiteListPageState extends State<SiteListPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(site.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14), overflow: TextOverflow.ellipsis),
-                            Text("Code: ${site.code}", style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                            Text("Code: ${site.code}", style: const TextStyle(fontSize: 12, color: AppColors.textSecondary), overflow: TextOverflow.ellipsis),
                           ],
                         ),
                       ),
-                      _statusDot(site.status),
+                      Flexible(child: _statusDot(site.status)),
                     ],
                   ),
                 ),
@@ -505,7 +664,14 @@ class _SiteListPageState extends State<SiteListPage> {
         children: [
           Container(width: 6, height: 6, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
           const SizedBox(width: 6),
-          Text(label, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w800)),
+          Flexible(
+            child: Text(
+              label, 
+              style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w800),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+            ),
+          ),
         ],
       ),
     );

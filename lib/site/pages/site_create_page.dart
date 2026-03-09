@@ -1,8 +1,13 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../theme/app_theme.dart';
 import '../../auth/services/token_manager.dart';
 import '../models/site_model.dart';
 import '../services/site_service.dart';
+import '../../client/services/client_service.dart';
+import '../../client/models/client_model.dart';
+import 'dart:convert';
 
 class SiteCreatePage extends StatefulWidget {
   final SiteModel? site;
@@ -15,16 +20,27 @@ class SiteCreatePage extends StatefulWidget {
 class _SiteCreatePageState extends State<SiteCreatePage> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  final _descriptionController = TextEditingController();
+  final _codeController = TextEditingController();
   final _locationController = TextEditingController();
   final _budgetController = TextEditingController();
-  final _quotationDetailsController = TextEditingController();
+  final _contractValueController = TextEditingController();
+  final _contractRemarksController = TextEditingController();
+  final _newClientNameController = TextEditingController();
+  
   DateTime? _expectedStartDate;
   DateTime? _expectedEndDate;
   String _selectedStatus = 'planning';
+  
+  // Client selection
+  final ClientService _clientService = ClientService();
+  List<ClientModel> _clients = [];
+  String? _selectedClientId;
+  bool _isNewClient = false;
 
   final SiteService _service = SiteService();
   bool _isLoading = false;
+  final List<File> _images = [];
+  final _picker = ImagePicker();
 
   final List<String> _statusOptions = [
     'planning',
@@ -35,6 +51,46 @@ class _SiteCreatePageState extends State<SiteCreatePage> {
 
   bool get _isEditing => widget.site != null;
 
+  @override
+  void initState() {
+    super.initState();
+    _loadInitialData();
+    if (widget.site != null) {
+      _nameController.text = widget.site!.name;
+      _codeController.text = widget.site!.code ?? '';
+      _budgetController.text = widget.site!.estimatedBudget?.toString() ?? '';
+      _selectedStatus = widget.site!.status.isNotEmpty ? widget.site!.status : 'planning';
+      // _selectedStatus = widget.site!.statusDetails?.name ?? 'planning'; // Adjust if status model is used
+      _expectedStartDate = widget.site!.expectedStartDate;
+      _expectedEndDate = widget.site!.expectedEndDate;
+      _selectedClientId = widget.site!.clientLink?.clientId;
+    }
+  }
+
+  Future<void> _loadInitialData() async {
+    setState(() => _isLoading = true);
+    try {
+      final clients = await _clientService.getClients();
+      setState(() {
+        _clients = clients;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _pickImage() async {
+    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+    if (image != null) {
+      setState(() => _images.add(File(image.path)));
+    }
+  }
+
+  void _removeImage(int index) {
+    setState(() => _images.removeAt(index));
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     
@@ -42,40 +98,52 @@ class _SiteCreatePageState extends State<SiteCreatePage> {
     try {
       final orgId = await TokenManager.getOrganizationId();
       
+      Map<String, dynamic>? clientData;
+      if (_isNewClient) {
+        clientData = {
+          "name": _newClientNameController.text.trim(),
+          "contract_value": double.tryParse(_contractValueController.text) ?? 0,
+          "contract_remarks": _contractRemarksController.text.trim(),
+        };
+      } else if (_selectedClientId != null) {
+        clientData = {
+          "client_id": _selectedClientId,
+          "contract_value": double.tryParse(_contractValueController.text) ?? 0,
+          "contract_remarks": _contractRemarksController.text.trim(),
+        };
+      }
+
       if (_isEditing) {
-        // Edit Mode
-        await _service.updateSite(widget.site!.id, {
+        // Handle update
+        // (Simplified for now as user requested onboarding focus)
+        final Map<String, dynamic> payload = {
           "name": _nameController.text.trim(),
+          "code": _codeController.text.trim(),
           "status": _selectedStatus,
           "estimated_budget": _budgetController.text.isNotEmpty ? double.tryParse(_budgetController.text) : null,
           "expected_start_date": _expectedStartDate?.toIso8601String().split('T')[0],
           "expected_end_date": _expectedEndDate?.toIso8601String().split('T')[0],
-        });
+        };
+        await _service.updateSite(widget.site!.id, payload, images: _images);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Site updated successfully!"), backgroundColor: AppColors.success));
           Navigator.pop(context, true);
         }
       } else {
-        // Create Mode
-        await _service.onboardSite({
-          "name": _nameController.text.trim(),
-          "status": _selectedStatus,
-          "estimated_budget": _budgetController.text.isNotEmpty ? double.tryParse(_budgetController.text) : null,
-          "expected_start_date": _expectedStartDate?.toIso8601String().split('T')[0],
-          "expected_end_date": _expectedEndDate?.toIso8601String().split('T')[0],
-          "organizations": orgId != null ? [orgId] : [],
-          "project_data": {
-            "name": _nameController.text.trim(),
-            "description": _descriptionController.text.trim(),
-            "quotation_details": _quotationDetailsController.text.trim(),
-          },
-          "addresses": [
-            {
-              "address_line_1": _locationController.text.trim(),
-              "is_primary": true
-            }
+        await _service.onboardSite(
+          name: _nameController.text.trim(),
+          organizationId: orgId ?? "",
+          status: _selectedStatus,
+          budget: double.tryParse(_budgetController.text),
+          startDate: _expectedStartDate,
+          endDate: _expectedEndDate,
+          clientData: clientData,
+          addresses: [
+            {"line_1": _locationController.text.trim(), "is_primary": true}
           ],
-        });
+          images: _images,
+        );
+        
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Site initialized successfully!"), backgroundColor: AppColors.success));
           Navigator.pop(context, true);
@@ -91,24 +159,11 @@ class _SiteCreatePageState extends State<SiteCreatePage> {
   }
 
   @override
-  void initState() {
-    super.initState();
-    if (widget.site != null) {
-      _nameController.text = widget.site!.name;
-      _budgetController.text = widget.site!.estimatedBudget?.toString() ?? '';
-      _selectedStatus = widget.site!.status;
-      _expectedStartDate = widget.site!.expectedStartDate;
-      _expectedEndDate = widget.site!.expectedEndDate;
-    }
-  }
-
-  @override
   void dispose() {
     _nameController.dispose();
-    _descriptionController.dispose();
+    _codeController.dispose();
     _locationController.dispose();
     _budgetController.dispose();
-    _quotationDetailsController.dispose();
     super.dispose();
   }
 
@@ -119,113 +174,259 @@ class _SiteCreatePageState extends State<SiteCreatePage> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        title: Text(_isEditing ? "Edit Site" : "New Site", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        title: Text(_isEditing ? "Edit Site" : "New Site",
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
         centerTitle: true,
       ),
-      body: _isLoading 
-        ? const Center(child: CircularProgressIndicator())
-        : Form(
-          key: _formKey,
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _sectionHeader("Identity"),
-                const SizedBox(height: 16),
-                _label("PROJECT NAME *"),
-                _field(_nameController, "e.g. Skyline Tower A", validator: (v) => v == null || v.isEmpty ? "Required" : null),
-                const SizedBox(height: 16),
-                _label("DESCRIPTION"),
-                _field(_descriptionController, "Brief project overview...", maxLines: 3),
-                const SizedBox(height: 16),
-                _label("SITE LOCATION"),
-                _field(_locationController, "e.g. 123 Construction St, Downtown"),
-                
-                const SizedBox(height: 32),
-                _sectionHeader("Project Scope"),
-                const SizedBox(height: 16),
-                Row(
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Form(
+              key: _formKey,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _label("STATUS"),
-                          _dropdown<String>(
-                            value: _selectedStatus,
-                            hint: "Select Status",
-                            items: _statusOptions.map((s) => DropdownMenuItem(value: s, child: Text(s.toUpperCase()))).toList(),
-                            onChanged: (val) {
-                              if (val != null) setState(() => _selectedStatus = val);
-                            },
+                    _sectionHeader("Site Information"),
+                    const SizedBox(height: 16),
+                    _label("SITE NAME *"),
+                    _field(_nameController, "e.g. Skyline Tower A",
+                        validator: (v) =>
+                            v == null || v.isEmpty ? "Required" : null),
+                    const SizedBox(height: 16),
+                    _label("SITE CODE"),
+                    _field(_codeController, "e.g. ST-001 (Optional)"),
+                    const SizedBox(height: 16),
+                    _label("SITE LOCATION"),
+                    _field(_locationController,
+                        "e.g. 123 Construction St, Downtown"),
+                    const SizedBox(height: 32),
+                    _sectionHeader("Project Details"),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _label("STATUS"),
+                              _dropdown<String>(
+                                value: _selectedStatus,
+                                hint: "Select Status",
+                                items: _statusOptions
+                                    .map((s) => DropdownMenuItem(
+                                        value: s, child: Text(s.toUpperCase())))
+                                    .toList(),
+                                onChanged: (val) {
+                                  if (val != null) {
+                                    setState(() => _selectedStatus = val);
+                                  }
+                                },
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _label("ESTIMATED BUDGET"),
+                              _field(_budgetController, "e.g. 500000",
+                                  keyboardType: TextInputType.number),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _label("START DATE"),
+                              _datePicker(
+                                selectedDate: _expectedStartDate,
+                                onSelect: (date) =>
+                                    setState(() => _expectedStartDate = date),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _label("END DATE"),
+                              _datePicker(
+                                selectedDate: _expectedEndDate,
+                                onSelect: (date) =>
+                                    setState(() => _expectedEndDate = date),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 32),
+                    _sectionHeader("Client & Contract"),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ChoiceChip(
+                            label: const Text("EXISTING CLIENT"),
+                            selected: !_isNewClient,
+                            onSelected: (val) =>
+                                setState(() => _isNewClient = !val),
+                            selectedColor:
+                                AppColors.primary.withValues(alpha: 0.1),
+                            labelStyle: TextStyle(
+                                color: !_isNewClient
+                                    ? AppColors.primary
+                                    : AppColors.textSecondary,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 10),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: ChoiceChip(
+                            label: const Text("NEW CLIENT"),
+                            selected: _isNewClient,
+                            onSelected: (val) =>
+                                setState(() => _isNewClient = val),
+                            selectedColor:
+                                AppColors.primary.withValues(alpha: 0.1),
+                            labelStyle: TextStyle(
+                                color: _isNewClient
+                                    ? AppColors.primary
+                                    : AppColors.textSecondary,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 10),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    if (!_isNewClient) ...[
+                      _label("SELECT CLIENT"),
+                      _dropdown<String>(
+                        value: _selectedClientId,
+                        hint: "Choose an existing client",
+                        items: _clients
+                            .map((c) => DropdownMenuItem(
+                                value: c.id, child: Text(c.name)))
+                            .toList(),
+                        onChanged: (val) =>
+                            setState(() => _selectedClientId = val),
+                      ),
+                    ] else ...[
+                      _label("CLIENT NAME"),
+                      _field(_newClientNameController, "e.g. Acme Corp",
+                          validator: (v) => _isNewClient && (v == null || v.isEmpty)
+                              ? "Required for new client"
+                              : null),
+                    ],
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _label("CONTRACT VALUE"),
+                              _field(_contractValueController, "e.g. 100000",
+                                  keyboardType: TextInputType.number),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    _label("CONTRACT REMARKS"),
+                    _field(_contractRemarksController,
+                        "Any specific terms or notes",
+                        maxLines: 2),
+                    const SizedBox(height: 32),
+                    _sectionHeader("Site Images"),
+                    const SizedBox(height: 16),
+                    _imagePickerSection(),
+                    const SizedBox(height: 48),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 56,
+                      child: ElevatedButton(
+                        onPressed: _isLoading ? null : _submit,
+                        child: _isLoading
+                            ? const CircularProgressIndicator(color: Colors.white)
+                            : Text(
+                                _isEditing
+                                    ? "Update Site Details"
+                                    : "Create Site & Project",
+                                style: const TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.bold)),
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _label("ESTIMATED BUDGET"),
-                          _field(_budgetController, "e.g. 500000", keyboardType: TextInputType.number),
-                        ],
-                      ),
-                    ),
+                    const SizedBox(height: 40),
                   ],
                 ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _label("START DATE"),
-                          _datePicker(
-                            selectedDate: _expectedStartDate,
-                            onSelect: (date) => setState(() => _expectedStartDate = date),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _label("END DATE"),
-                          _datePicker(
-                            selectedDate: _expectedEndDate,
-                            onSelect: (date) => setState(() => _expectedEndDate = date),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                _label("QUOTATION DETAILS"),
-                _field(_quotationDetailsController, "e.g. Total amount, terms...", maxLines: 3),
-
-                const SizedBox(height: 48),
-                SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _submit,
-                    child: _isLoading
-                        ? const CircularProgressIndicator(color: Colors.white)
-                        : Text(_isEditing ? "Update Site Details" : "Initialise Site Hub",
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  ),
-                ),
-                const SizedBox(height: 40),
-              ],
+              ),
             ),
-          ),
+    );
+  }
+
+  Widget _imagePickerSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: [
+            ..._images.asMap().entries.map((entry) {
+              int idx = entry.key;
+              File file = entry.value;
+              return Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: Image.file(file, width: 90, height: 90, fit: BoxFit.cover),
+                  ),
+                  Positioned(
+                    right: 4,
+                    top: 4,
+                    child: GestureDetector(
+                      onTap: () => _removeImage(idx),
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                        child: const Icon(Icons.close, size: 14, color: AppColors.error),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            }),
+            GestureDetector(
+              onTap: _pickImage,
+              child: Container(
+                width: 90,
+                height: 90,
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.15), style: BorderStyle.solid),
+                ),
+                child: const Icon(Icons.add_a_photo_outlined, color: AppColors.textMuted),
+              ),
+            ),
+          ],
         ),
+      ],
     );
   }
 
@@ -278,6 +479,10 @@ class _SiteCreatePageState extends State<SiteCreatePage> {
     required ValueChanged<T?>? onChanged,
     bool enabled = true,
   }) {
+    // Ensure the value exists in items to avoid assertion error
+    final bool valueExists = value != null && items.any((item) => item.value == value);
+    final T? selectedValue = valueExists ? value : null;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14),
       decoration: BoxDecoration(
@@ -287,7 +492,7 @@ class _SiteCreatePageState extends State<SiteCreatePage> {
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<T>(
-          value: value,
+          value: selectedValue,
           isExpanded: true,
           hint: Text(hint, style: const TextStyle(fontSize: 13, color: AppColors.textMuted)),
           items: enabled ? items : null,
@@ -318,11 +523,15 @@ class _SiteCreatePageState extends State<SiteCreatePage> {
         ),
         child: Row(
           children: [
-            Icon(Icons.calendar_today_rounded, size: 18, color: AppColors.textSecondary),
+            const Icon(Icons.calendar_today_rounded, size: 18, color: AppColors.textSecondary),
             const SizedBox(width: 12),
-            Text(
-              selectedDate == null ? "Select Date" : "${selectedDate.day}/${selectedDate.month}/${selectedDate.year}",
-              style: TextStyle(fontSize: 14, color: selectedDate == null ? AppColors.textMuted : AppColors.textPrimary),
+            Flexible(
+              child: Text(
+                selectedDate == null ? "Select Date" : "${selectedDate.day}/${selectedDate.month}/${selectedDate.year}",
+                style: TextStyle(fontSize: 14, color: selectedDate == null ? AppColors.textMuted : AppColors.textPrimary),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+              ),
             ),
           ],
         ),

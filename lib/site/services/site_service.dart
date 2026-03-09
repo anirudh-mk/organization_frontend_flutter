@@ -1,5 +1,8 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
+import 'package:path/path.dart' as path;
 import '../models/site_model.dart';
 import '../../shared/services/base_service.dart';
 
@@ -13,7 +16,15 @@ class SiteService extends BaseService {
         headers: await getHeaders(),
       );
       if (response.statusCode == 200) {
-        List<dynamic> body = jsonDecode(response.body);
+        dynamic decoded = jsonDecode(response.body);
+        List<dynamic> body;
+        if (decoded is Map && decoded.containsKey('results')) {
+          body = decoded['results'];
+        } else if (decoded is List) {
+          body = decoded;
+        } else {
+          body = [];
+        }
         return body.map((dynamic item) => SiteModel.fromJson(item)).toList();
       } else {
         throw Exception("Failed to load sites");
@@ -23,31 +34,104 @@ class SiteService extends BaseService {
     }
   }
 
-  Future<SiteModel> onboardSite(Map<String, dynamic> data) async {
+  Future<SiteModel> onboardSite({
+    required String name,
+    required String organizationId,
+    String? status,
+    double? budget,
+    DateTime? startDate,
+    DateTime? endDate,
+    Map<String, dynamic>? clientData,
+    List<Map<String, dynamic>>? addresses,
+    List<File>? images,
+  }) async {
     try {
-      final response = await http.post(
-        Uri.parse('http://127.0.0.1:8000/api/v1/site/onboard/'),
-        headers: await getHeaders(),
-        body: jsonEncode(data),
-      );
-      
+      final uri = Uri.parse('$baseUrl/');
+      final request = http.MultipartRequest('POST', uri);
+
+      request.headers.addAll(await getHeaders());
+
+      request.fields['name'] = name;
+      request.fields['organization'] = organizationId;
+      if (status != null) request.fields['status'] = status;
+      if (budget != null) request.fields['estimated_budget'] = budget.toString();
+      if (startDate != null) {
+        request.fields['expected_start_date'] =
+            startDate.toIso8601String().split('T')[0];
+      }
+      if (endDate != null) {
+        request.fields['expected_end_date'] =
+            endDate.toIso8601String().split('T')[0];
+      }
+
+      if (clientData != null) {
+        request.fields['client_data'] = jsonEncode(clientData);
+      }
+
+      if (addresses != null) {
+        request.fields['addresses'] = jsonEncode(addresses);
+      }
+
+      if (images != null) {
+        for (var i = 0; i < images.length; i++) {
+          final stream = http.ByteStream(images[i].openRead());
+          final length = await images[i].length();
+          final multipartFile = http.MultipartFile(
+            'images',
+            stream,
+            length,
+            filename: path.basename(images[i].path),
+          );
+          request.files.add(multipartFile);
+        }
+      }
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
       if (response.statusCode == 201) {
         return SiteModel.fromJson(jsonDecode(response.body));
       } else {
-        throw Exception("Failed to onboard site: ${response.body}");
+        throw Exception('Failed to onboard site: ${response.body}');
       }
     } catch (e) {
-      throw Exception("Error onboarding site: $e");
+      throw Exception('Error onboarding site: $e');
     }
   }
 
-  Future<SiteModel> updateSite(String id, Map<String, dynamic> data) async {
+  Future<SiteModel> updateSite(String id, Map<String, dynamic> data, {List<File>? images}) async {
     try {
-      final response = await http.patch(
-        Uri.parse('$baseUrl/$id/'),
-        headers: await getHeaders(),
-        body: jsonEncode(data),
-      );
+      final uri = Uri.parse('$baseUrl/$id/'); // Corrected endpoint
+      final request = http.MultipartRequest('PATCH', uri);
+      
+      final headers = await getHeaders();
+      request.headers.addAll(headers);
+
+      // Add fields
+      data.forEach((key, value) {
+        if (value != null) {
+          if (value is Map || value is List) {
+            request.fields[key] = jsonEncode(value);
+          } else {
+            request.fields[key] = value.toString();
+          }
+        }
+      });
+
+      // Add images if needed (though backend might handle this separately, 
+      // onboard already handles it. Update usually allows patching fields)
+      if (images != null) {
+        for (var image in images) {
+          request.files.add(await http.MultipartFile.fromPath(
+            'images',
+            image.path,
+            contentType: MediaType('image', 'jpeg'),
+          ));
+        }
+      }
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
       
       if (response.statusCode == 200) {
         return SiteModel.fromJson(jsonDecode(response.body));
@@ -56,6 +140,56 @@ class SiteService extends BaseService {
       }
     } catch (e) {
       throw Exception("Error updating site: $e");
+    }
+  }
+
+  Future<void> assignResource({
+    required String siteId,
+    required String type, // 'employee' or 'equipment'
+    required String id,
+    String? phaseId,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/$siteId/assign-resource/'),
+        headers: await getHeaders(),
+        body: jsonEncode({
+          'type': type,
+          'id': id,
+          'phase_id': phaseId,
+        }),
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception('Failed to assign resource: ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('Error assigning resource: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> createQuotation({
+    required String siteId,
+    required double amount,
+    Map<String, dynamic>? details,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/$siteId/create-quotation/'),
+        headers: await getHeaders(),
+        body: jsonEncode({
+          'amount': amount,
+          'details': details,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        throw Exception('Failed to create quotation: ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('Error creating quotation: $e');
     }
   }
 
