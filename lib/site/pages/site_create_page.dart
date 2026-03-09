@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
+import '../../auth/services/token_manager.dart';
+import '../models/site_model.dart';
 import '../services/site_service.dart';
 
 class SiteCreatePage extends StatefulWidget {
-  const SiteCreatePage({super.key});
+  final SiteModel? site;
+  const SiteCreatePage({super.key, this.site});
 
   @override
   State<SiteCreatePage> createState() => _SiteCreatePageState();
@@ -12,17 +15,25 @@ class SiteCreatePage extends StatefulWidget {
 class _SiteCreatePageState extends State<SiteCreatePage> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  final _codeController = TextEditingController();
-  String _selectedStatus = 'PLANNING';
+  final _descriptionController = TextEditingController();
+  final _locationController = TextEditingController();
+  final _budgetController = TextEditingController();
+  final _quotationDetailsController = TextEditingController();
+  DateTime? _expectedStartDate;
+  DateTime? _expectedEndDate;
+  String _selectedStatus = 'planning';
 
   final SiteService _service = SiteService();
   bool _isLoading = false;
 
+  // Project & Quotation
+  String? _selectedProjectId;
+
   final List<String> _statusOptions = [
-    'PLANNING',
-    'ACTIVE',
-    'ON_HOLD',
-    'COMPLETED'
+    'planning',
+    'active',
+    'on_hold',
+    'completed'
   ];
 
   Future<void> _submit() async {
@@ -30,15 +41,46 @@ class _SiteCreatePageState extends State<SiteCreatePage> {
     
     setState(() => _isLoading = true);
     try {
-      await _service.createSite({
-        "name": _nameController.text.trim(),
-        "code": _codeController.text.trim(),
-        "status": _selectedStatus,
-      });
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Site initialized successfully!")));
-        Navigator.pop(context, true); 
+      final orgId = await TokenManager.getOrganizationId();
+      
+      if (widget.site != null) {
+        // Edit Mode
+        await _service.updateSite(widget.site!.id, {
+          "name": _nameController.text.trim(),
+          "status": _selectedStatus,
+          "estimated_budget": _budgetController.text.isNotEmpty ? double.tryParse(_budgetController.text) : null,
+          "expected_start_date": _expectedStartDate?.toIso8601String().split('T')[0],
+          "expected_end_date": _expectedEndDate?.toIso8601String().split('T')[0],
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Site updated successfully!")));
+          Navigator.pop(context, true);
+        }
+      } else {
+        // Create Mode
+        await _service.onboardSite({
+          "name": _nameController.text.trim(),
+          "status": _selectedStatus,
+          "estimated_budget": _budgetController.text.isNotEmpty ? double.tryParse(_budgetController.text) : null,
+          "expected_start_date": _expectedStartDate?.toIso8601String().split('T')[0],
+          "expected_end_date": _expectedEndDate?.toIso8601String().split('T')[0],
+          "organizations": orgId != null ? [orgId] : [],
+          "project_data": {
+            "name": _nameController.text.trim(),
+            "description": _descriptionController.text.trim(),
+            "quotation_details": _quotationDetailsController.text.trim(),
+          },
+          "addresses": [
+            {
+              "address_line_1": _locationController.text.trim(),
+              "is_primary": true
+            }
+          ],
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Site initialized successfully!")));
+          Navigator.pop(context, true);
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -50,9 +92,26 @@ class _SiteCreatePageState extends State<SiteCreatePage> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    if (widget.site != null) {
+      _nameController.text = widget.site!.name;
+      _budgetController.text = widget.site!.estimatedBudget?.toString() ?? '';
+      _selectedStatus = widget.site!.status;
+      _expectedStartDate = widget.site!.expectedStartDate;
+      _expectedEndDate = widget.site!.expectedEndDate;
+      // Note: project details are harder to pre-fill without a separate project fetch,
+      // but we can at least handle the site fields for now.
+    }
+  }
+
+  @override
   void dispose() {
     _nameController.dispose();
-    _codeController.dispose();
+    _descriptionController.dispose();
+    _locationController.dispose();
+    _budgetController.dispose();
+    _quotationDetailsController.dispose();
     super.dispose();
   }
 
@@ -61,7 +120,46 @@ class _SiteCreatePageState extends State<SiteCreatePage> {
     return Scaffold(
       backgroundColor: AppColors.bgLight,
       appBar: AppBar(
-        title: const Text("Launch New Site"),
+        title: Text(widget.site != null ? "Edit Site" : "Launch New Site"),
+        actions: widget.site == null ? null : [
+          IconButton(
+            icon: const Icon(Icons.delete_outline_rounded, color: AppColors.error),
+            onPressed: () async {
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text("Delete Site"),
+                  content: const Text("Are you sure you want to delete this site permanently?"),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, true), 
+                      style: TextButton.styleFrom(foregroundColor: AppColors.error),
+                      child: const Text("Delete"),
+                    ),
+                  ],
+                ),
+              );
+              if (confirm == true) {
+                setState(() => _isLoading = true);
+                try {
+                  await _service.deleteSite(widget.site!.id);
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Site deleted.")));
+                    Navigator.pop(context, true);
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error));
+                  }
+                } finally {
+                  if (mounted) setState(() => _isLoading = false);
+                }
+              }
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
           onPressed: () => Navigator.pop(context),
@@ -85,11 +183,45 @@ class _SiteCreatePageState extends State<SiteCreatePage> {
                   validator: (v) => v == null || v.isEmpty ? "Required" : null,
                 ),
                 const SizedBox(height: 20),
+
+                TextFormField(
+                  controller: _descriptionController,
+                  maxLines: 2,
+                  decoration: _buildInputDecoration("Description", "Brief project overview...", Icons.notes_rounded),
+                ),
+                const SizedBox(height: 20),
+
+                TextFormField(
+                  controller: _locationController,
+                  decoration: _buildInputDecoration("Site Location", "e.g. 123 Construction St, Downtown", Icons.location_on_rounded),
+                ),
+                const SizedBox(height: 20),
                 
                 TextFormField(
-                  controller: _codeController,
-                  decoration: _buildInputDecoration("Site Code", "e.g. SKY-A", Icons.tag_rounded),
-                  validator: (v) => v == null || v.isEmpty ? "Required" : null,
+                  controller: _budgetController,
+                  keyboardType: TextInputType.number,
+                  decoration: _buildInputDecoration("Estimated Budget", "e.g. 500000", Icons.payments_rounded),
+                ),
+                const SizedBox(height: 20),
+                
+                Row(
+                  children: [
+                    Expanded(
+                      child: _DateSelector(
+                        label: "Start Date",
+                        selectedDate: _expectedStartDate,
+                        onSelect: (date) => setState(() => _expectedStartDate = date),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _DateSelector(
+                        label: "End Date",
+                        selectedDate: _expectedEndDate,
+                        onSelect: (date) => setState(() => _expectedEndDate = date),
+                      ),
+                    ),
+                  ],
                 ),
 
                 const SizedBox(height: 40),
@@ -99,10 +231,17 @@ class _SiteCreatePageState extends State<SiteCreatePage> {
                 DropdownButtonFormField<String>(
                   value: _selectedStatus,
                   decoration: _buildInputDecoration("Status", "Select Status", Icons.info_outline_rounded),
-                  items: _statusOptions.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                  items: _statusOptions.map((s) => DropdownMenuItem(value: s, child: Text(s.toUpperCase()))).toList(),
                   onChanged: (val) {
                     if (val != null) setState(() => _selectedStatus = val);
                   },
+                ),
+                
+                const SizedBox(height: 20),
+                TextFormField(
+                  controller: _quotationDetailsController,
+                  maxLines: 3,
+                  decoration: _buildInputDecoration("Quotation Details", "e.g. Total amount, terms...", Icons.description_rounded),
                 ),
 
                 const SizedBox(height: 60),
@@ -129,8 +268,8 @@ class _SiteCreatePageState extends State<SiteCreatePage> {
                       elevation: 0,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
                     ),
-                    child: const Text("Initialise Site Hub",
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    child: Text(widget.site != null ? "Update Site Details" : "Initialise Site Hub",
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   ),
                 ),
                 const SizedBox(height: 40),
@@ -175,6 +314,49 @@ class _SectionHeader extends StatelessWidget {
         Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.textNavy)),
         Text(subtitle, style: const TextStyle(fontSize: 13, color: AppColors.textGrey)),
       ],
+    );
+  }
+}
+
+class _DateSelector extends StatelessWidget {
+  final String label;
+  final DateTime? selectedDate;
+  final Function(DateTime) onSelect;
+
+  const _DateSelector({
+    required this.label,
+    required this.selectedDate,
+    required this.onSelect,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () async {
+        final date = await showDatePicker(
+          context: context,
+          initialDate: selectedDate ?? DateTime.now(),
+          firstDate: DateTime(2000),
+          lastDate: DateTime(2100),
+        );
+        if (date != null) onSelect(date);
+      },
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: label,
+          filled: true,
+          fillColor: Colors.white,
+          prefixIcon: const Icon(Icons.calendar_today_rounded, size: 18, color: AppColors.primaryBlue),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: AppColors.primaryBlue.withValues(alpha: 0.05)),
+          ),
+        ),
+        child: Text(
+          selectedDate == null ? "Select" : "${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}",
+          style: const TextStyle(fontSize: 14),
+        ),
+      ),
     );
   }
 }
