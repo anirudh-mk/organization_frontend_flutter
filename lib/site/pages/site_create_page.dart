@@ -26,15 +26,14 @@ class _SiteCreatePageState extends State<SiteCreatePage> {
   final SiteService _service = SiteService();
   bool _isLoading = false;
 
-  // Project & Quotation
-  String? _selectedProjectId;
-
   final List<String> _statusOptions = [
     'planning',
     'active',
     'on_hold',
     'completed'
   ];
+
+  bool get _isEditing => widget.site != null;
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
@@ -43,7 +42,7 @@ class _SiteCreatePageState extends State<SiteCreatePage> {
     try {
       final orgId = await TokenManager.getOrganizationId();
       
-      if (widget.site != null) {
+      if (_isEditing) {
         // Edit Mode
         await _service.updateSite(widget.site!.id, {
           "name": _nameController.text.trim(),
@@ -53,7 +52,7 @@ class _SiteCreatePageState extends State<SiteCreatePage> {
           "expected_end_date": _expectedEndDate?.toIso8601String().split('T')[0],
         });
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Site updated successfully!")));
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Site updated successfully!"), backgroundColor: AppColors.success));
           Navigator.pop(context, true);
         }
       } else {
@@ -78,7 +77,7 @@ class _SiteCreatePageState extends State<SiteCreatePage> {
           ],
         });
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Site initialized successfully!")));
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Site initialized successfully!"), backgroundColor: AppColors.success));
           Navigator.pop(context, true);
         }
       }
@@ -100,8 +99,6 @@ class _SiteCreatePageState extends State<SiteCreatePage> {
       _selectedStatus = widget.site!.status;
       _expectedStartDate = widget.site!.expectedStartDate;
       _expectedEndDate = widget.site!.expectedEndDate;
-      // Note: project details are harder to pre-fill without a separate project fetch,
-      // but we can at least handle the site fields for now.
     }
   }
 
@@ -118,158 +115,110 @@ class _SiteCreatePageState extends State<SiteCreatePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bgLight,
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text(widget.site != null ? "Edit Site" : "Launch New Site"),
-        actions: widget.site == null ? null : [
-          IconButton(
-            icon: const Icon(Icons.delete_outline_rounded, color: AppColors.error),
-            onPressed: () async {
-              final confirm = await showDialog<bool>(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: const Text("Delete Site"),
-                  content: const Text("Are you sure you want to delete this site permanently?"),
-                  actions: [
-                    TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")),
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, true), 
-                      style: TextButton.styleFrom(foregroundColor: AppColors.error),
-                      child: const Text("Delete"),
-                    ),
-                  ],
-                ),
-              );
-              if (confirm == true) {
-                setState(() => _isLoading = true);
-                try {
-                  await _service.deleteSite(widget.site!.id);
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Site deleted.")));
-                    Navigator.pop(context, true);
-                  }
-                } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error));
-                  }
-                } finally {
-                  if (mounted) setState(() => _isLoading = false);
-                }
-              }
-            },
-          ),
-          const SizedBox(width: 8),
-        ],
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-          onPressed: () => Navigator.pop(context),
-        ),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        title: Text(_isEditing ? "Edit Site" : "New Site", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        centerTitle: true,
       ),
       body: _isLoading 
         ? const Center(child: CircularProgressIndicator())
-        : SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Form(
-            key: _formKey,
+        : Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const _SectionHeader(title: "Identity", subtitle: "Basic site and branding details"),
-                const SizedBox(height: 20),
+                _sectionHeader("Identity"),
+                const SizedBox(height: 16),
+                _label("PROJECT NAME *"),
+                _field(_nameController, "e.g. Skyline Tower A", validator: (v) => v == null || v.isEmpty ? "Required" : null),
+                const SizedBox(height: 16),
+                _label("DESCRIPTION"),
+                _field(_descriptionController, "Brief project overview...", maxLines: 3),
+                const SizedBox(height: 16),
+                _label("SITE LOCATION"),
+                _field(_locationController, "e.g. 123 Construction St, Downtown"),
                 
-                TextFormField(
-                  controller: _nameController,
-                  decoration: _buildInputDecoration("Project Name", "e.g. Skyline Tower A", Icons.business_rounded),
-                  validator: (v) => v == null || v.isEmpty ? "Required" : null,
-                ),
-                const SizedBox(height: 20),
-
-                TextFormField(
-                  controller: _descriptionController,
-                  maxLines: 2,
-                  decoration: _buildInputDecoration("Description", "Brief project overview...", Icons.notes_rounded),
-                ),
-                const SizedBox(height: 20),
-
-                TextFormField(
-                  controller: _locationController,
-                  decoration: _buildInputDecoration("Site Location", "e.g. 123 Construction St, Downtown", Icons.location_on_rounded),
-                ),
-                const SizedBox(height: 20),
-                
-                TextFormField(
-                  controller: _budgetController,
-                  keyboardType: TextInputType.number,
-                  decoration: _buildInputDecoration("Estimated Budget", "e.g. 500000", Icons.payments_rounded),
-                ),
-                const SizedBox(height: 20),
-                
+                const SizedBox(height: 32),
+                _sectionHeader("Project Scope"),
+                const SizedBox(height: 16),
                 Row(
                   children: [
                     Expanded(
-                      child: _DateSelector(
-                        label: "Start Date",
-                        selectedDate: _expectedStartDate,
-                        onSelect: (date) => setState(() => _expectedStartDate = date),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _label("STATUS"),
+                          _dropdown<String>(
+                            value: _selectedStatus,
+                            hint: "Select Status",
+                            items: _statusOptions.map((s) => DropdownMenuItem(value: s, child: Text(s.toUpperCase()))).toList(),
+                            onChanged: (val) {
+                              if (val != null) setState(() => _selectedStatus = val);
+                            },
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(width: 16),
+                    const SizedBox(width: 12),
                     Expanded(
-                      child: _DateSelector(
-                        label: "End Date",
-                        selectedDate: _expectedEndDate,
-                        onSelect: (date) => setState(() => _expectedEndDate = date),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _label("ESTIMATED BUDGET"),
+                          _field(_budgetController, "e.g. 500000", keyboardType: TextInputType.number),
+                        ],
                       ),
                     ),
                   ],
                 ),
-
-                const SizedBox(height: 40),
-                const _SectionHeader(title: "Project Scope", subtitle: "Core status parameters"),
-                const SizedBox(height: 20),
-                
-                DropdownButtonFormField<String>(
-                  value: _selectedStatus,
-                  decoration: _buildInputDecoration("Status", "Select Status", Icons.info_outline_rounded),
-                  items: _statusOptions.map((s) => DropdownMenuItem(value: s, child: Text(s.toUpperCase()))).toList(),
-                  onChanged: (val) {
-                    if (val != null) setState(() => _selectedStatus = val);
-                  },
-                ),
-                
-                const SizedBox(height: 20),
-                TextFormField(
-                  controller: _quotationDetailsController,
-                  maxLines: 3,
-                  decoration: _buildInputDecoration("Quotation Details", "e.g. Total amount, terms...", Icons.description_rounded),
-                ),
-
-                const SizedBox(height: 60),
-
-                // Create Button
-                Container(
-                  width: double.infinity,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(18),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primaryBlue.withValues(alpha: 0.2),
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _label("START DATE"),
+                          _datePicker(
+                            selectedDate: _expectedStartDate,
+                            onSelect: (date) => setState(() => _expectedStartDate = date),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                  child: ElevatedButton(
-                    onPressed: _submit,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryBlue,
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
                     ),
-                    child: Text(widget.site != null ? "Update Site Details" : "Initialise Site Hub",
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _label("END DATE"),
+                          _datePicker(
+                            selectedDate: _expectedEndDate,
+                            onSelect: (date) => setState(() => _expectedEndDate = date),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                _label("QUOTATION DETAILS"),
+                _field(_quotationDetailsController, "e.g. Total amount, terms...", maxLines: 3),
+
+                const SizedBox(height: 48),
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _submit,
+                    child: _isLoading
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : Text(_isEditing ? "Update Site Details" : "Initialise Site Hub",
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   ),
                 ),
                 const SizedBox(height: 40),
@@ -280,57 +229,76 @@ class _SiteCreatePageState extends State<SiteCreatePage> {
     );
   }
 
-  InputDecoration _buildInputDecoration(String label, String hint, IconData icon) {
-    return InputDecoration(
-      labelText: label,
-      hintText: hint,
-      filled: true,
-      fillColor: Colors.white,
-      prefixIcon: Icon(icon, color: AppColors.primaryBlue, size: 20),
-      hintStyle: TextStyle(color: AppColors.textGrey.withValues(alpha: 0.5), fontSize: 14),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide(color: AppColors.primaryBlue.withValues(alpha: 0.05)),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: AppColors.primaryBlue, width: 1.5),
-      ),
-      contentPadding: const EdgeInsets.symmetric(vertical: 18),
+  Widget _sectionHeader(String title) {
+    return Row(children: [
+      Text(title, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+      const SizedBox(width: 12),
+      const Expanded(child: Divider()),
+    ]);
+  }
+
+  Widget _label(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(text,
+          style: const TextStyle(
+              fontWeight: FontWeight.w800,
+              color: AppColors.textSecondary,
+              fontSize: 11,
+              letterSpacing: 1.2)),
     );
   }
-}
 
-class _SectionHeader extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  const _SectionHeader({required this.title, required this.subtitle});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.textNavy)),
-        Text(subtitle, style: const TextStyle(fontSize: 13, color: AppColors.textGrey)),
-      ],
+  Widget _field(TextEditingController controller, String hint, {TextInputType? keyboardType, String? Function(String?)? validator, int maxLines = 1}) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      validator: validator,
+      maxLines: maxLines,
+      decoration: InputDecoration(
+        hintText: hint,
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+        enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: AppColors.textMuted.withValues(alpha: 0.12))),
+        focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: AppColors.primary)),
+        errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: AppColors.error)),
+      ),
     );
   }
-}
 
-class _DateSelector extends StatelessWidget {
-  final String label;
-  final DateTime? selectedDate;
-  final Function(DateTime) onSelect;
+  Widget _dropdown<T>({
+    required T? value,
+    required String hint,
+    required List<DropdownMenuItem<T>> items,
+    required ValueChanged<T?>? onChanged,
+    bool enabled = true,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      decoration: BoxDecoration(
+        color: enabled ? Colors.white : AppColors.background,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.12)),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<T>(
+          value: value,
+          isExpanded: true,
+          hint: Text(hint, style: const TextStyle(fontSize: 13, color: AppColors.textMuted)),
+          items: enabled ? items : null,
+          onChanged: enabled ? onChanged : null,
+          icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.textSecondary),
+        ),
+      ),
+    );
+  }
 
-  const _DateSelector({
-    required this.label,
-    required this.selectedDate,
-    required this.onSelect,
-  });
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _datePicker({required DateTime? selectedDate, required Function(DateTime) onSelect}) {
     return InkWell(
       onTap: () async {
         final date = await showDatePicker(
@@ -341,20 +309,22 @@ class _DateSelector extends StatelessWidget {
         );
         if (date != null) onSelect(date);
       },
-      child: InputDecorator(
-        decoration: InputDecoration(
-          labelText: label,
-          filled: true,
-          fillColor: Colors.white,
-          prefixIcon: const Icon(Icons.calendar_today_rounded, size: 18, color: AppColors.primaryBlue),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: AppColors.primaryBlue.withValues(alpha: 0.05)),
-          ),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.12)),
         ),
-        child: Text(
-          selectedDate == null ? "Select" : "${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}",
-          style: const TextStyle(fontSize: 14),
+        child: Row(
+          children: [
+            Icon(Icons.calendar_today_rounded, size: 18, color: AppColors.textSecondary),
+            const SizedBox(width: 12),
+            Text(
+              selectedDate == null ? "Select Date" : "${selectedDate.day}/${selectedDate.month}/${selectedDate.year}",
+              style: TextStyle(fontSize: 14, color: selectedDate == null ? AppColors.textMuted : AppColors.textPrimary),
+            ),
+          ],
         ),
       ),
     );
