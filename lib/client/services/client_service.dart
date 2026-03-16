@@ -58,4 +58,17 @@ class ClientService extends BaseService {
       throw Exception("Error deleting client: $e");
     }
   }
+
+  Future<String> getNextCode() async {
+    try {
+      final response = await http.get(Uri.parse('${_base}get-next-code/'), headers: await getHeaders());
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['code'];
+      }
+      throw Exception("Failed to get next code: ${response.statusCode}");
+    } catch (e) {
+      throw Exception("Error getting next code: $e");
+    }
+  }
 }

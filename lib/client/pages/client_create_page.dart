@@ -78,7 +78,23 @@ class _ClientCreatePageState extends State<ClientCreatePage> {
     if (_emailFields.isEmpty) _addEmailField();
     if (_mobileFields.isEmpty) _addMobileField();
     
+    if (!_isEditing) {
+      _fetchNextCode();
+    }
+    
     _initLocations();
+  }
+
+  Future<void> _fetchNextCode() async {
+    try {
+      final code = await _service.getNextCode();
+      if (mounted) {
+        setState(() => _codeController.text = code);
+      }
+    } catch (e) {
+      // Silently fail or log, as this is an automatic background fetch
+      debugPrint("Error fetching next code: $e");
+    }
   }
 
   void _addAddressField({
@@ -329,9 +345,8 @@ class _ClientCreatePageState extends State<ClientCreatePage> {
               const SizedBox(height: 16),
               Row(children: [
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  _label("CLIENT CODE *"),
-                  _field(_codeController, "e.g., CLT-001",
-                      validator: (v) => v == null || v.isEmpty ? "Required" : null),
+                  _label("CLIENT CODE"),
+                  _field(_codeController, "e.g., CLT-001 (Blank for auto)"),
                 ])),
                 const SizedBox(width: 12),
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
