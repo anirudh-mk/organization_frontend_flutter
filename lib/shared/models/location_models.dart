@@ -198,20 +198,24 @@ class AddressModel {
   });
 
   factory AddressModel.fromJson(Map<String, dynamic> json) {
+    Map<String, dynamic>? districtMap = json['district'] is Map ? json['district'] as Map<String, dynamic> : null;
+    Map<String, dynamic>? stateMap = districtMap?['state'] is Map ? districtMap!['state'] as Map<String, dynamic> : null;
+    Map<String, dynamic>? countryMap = stateMap?['country'] is Map ? stateMap!['country'] as Map<String, dynamic> : null;
+
     return AddressModel(
-      id: json['id'].toString(),
+      id: json['id']?.toString() ?? '',
       line1: json['line_1'] ?? '',
       line2: json['line_2'] ?? '',
-      districtId: (json['district'] is Map) 
-          ? json['district']['id'].toString() 
-          : json['district'].toString(),
+      districtId: districtMap?['id']?.toString() ?? json['district']?.toString() ?? '',
       city: json['city'] ?? '',
       postalCode: json['postal_code'] ?? '',
       latitude: json['latitude'] != null ? double.tryParse(json['latitude'].toString()) : null,
       longitude: json['longitude'] != null ? double.tryParse(json['longitude'].toString()) : null,
-      addressTypeId: json['address_type']?.toString(),
-      stateId: json['state_id']?.toString(),
-      countryId: json['country_id']?.toString(),
+      addressTypeId: (json['address_type'] is Map) 
+          ? json['address_type']['id']?.toString() 
+          : json['address_type']?.toString(),
+      stateId: stateMap?['id']?.toString() ?? json['state_id']?.toString(),
+      countryId: countryMap?['id']?.toString() ?? json['country_id']?.toString(),
       isPrimary: json['is_primary'] ?? false,
     );
   }

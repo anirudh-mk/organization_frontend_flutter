@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../theme/app_theme.dart';
 import '../models/client_model.dart';
 import '../services/client_service.dart';
@@ -97,6 +100,35 @@ class _ClientListPageState extends State<ClientListPage> {
         }
       }
     }
+  }
+
+  Future<void> _launchUrl(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Could not launch $url"), backgroundColor: AppColors.error),
+        );
+      }
+    }
+  }
+
+  void _callClient(String phone) => _launchUrl("tel:$phone");
+  void _smsClient(String phone) => _launchUrl("sms:$phone");
+  void _whatsappClient(String phone) {
+    // Basic number cleaning (remove non-digits except +)
+    final cleanPhone = phone.replaceAll(RegExp(r'[^\d+]'), '');
+    _launchUrl("https://wa.me/$cleanPhone");
+  }
+
+  void _editClient(ClientModel client) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => ClientCreatePage(client: client)),
+    );
+    if (result == true) _loadClients();
   }
 
   void _showClientDetails(ClientModel client) {
@@ -247,6 +279,20 @@ class _ClientListPageState extends State<ClientListPage> {
     );
   }
 
+  Widget _actionButton(IconData icon, Color color, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icon, color: color, size: 16),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -380,59 +426,120 @@ class _ClientListPageState extends State<ClientListPage> {
       delegate: SliverChildBuilderDelegate(
         (ctx, i) {
           final c = _displayClients[i];
-          return GestureDetector(
-            onTap: () => _showClientDetails(c),
-            child: Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.1)),
-              ),
-              child: Row(
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Slidable(
+              key: ValueKey(c.id),
+              startActionPane: ActionPane(
+                motion: const BehindMotion(),
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: const Icon(Icons.handshake_rounded, color: AppColors.primary, size: 22),
+                  SlidableAction(
+                    onPressed: (_) => _editClient(c),
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                    icon: Icons.edit,
+                    label: 'Edit',
                   ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(c.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                        const SizedBox(height: 2),
-                        Text(c.code, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
-                        if (c.primaryPhone.isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 8),
-                            child: Row(children: [
-                              const Icon(Icons.phone_rounded, size: 14, color: AppColors.textSecondary),
-                              const SizedBox(width: 8),
-                              Text(c.primaryPhone, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                            ]),
-                          ),
-                        if (c.primaryEmail.isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 4),
-                            child: Row(children: [
-                              const Icon(Icons.alternate_email_rounded, size: 14, color: AppColors.textSecondary),
-                              const SizedBox(width: 8),
-                              Text(c.primaryEmail, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                            ]),
-                          ),
-                      ],
+                  if (c.primaryPhone.isNotEmpty) ...[
+                    SlidableAction(
+                      onPressed: (_) => _callClient(c.primaryPhone),
+                      backgroundColor: Colors.indigo,
+                      foregroundColor: Colors.white,
+                      icon: Icons.phone,
+                      label: 'Call',
                     ),
-                  ),
-                  _statusDot(c.isActive),
-                  const SizedBox(width: 4),
-                  const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
+                    SlidableAction(
+                      onPressed: (_) => _smsClient(c.primaryPhone),
+                      backgroundColor: Colors.orange,
+                      foregroundColor: Colors.white,
+                      icon: Icons.message,
+                      label: 'SMS',
+                    ),
+                    SlidableAction(
+                      onPressed: (_) => _whatsappClient(c.primaryPhone),
+                      backgroundColor: const Color(0xFF25D366),
+                      foregroundColor: Colors.white,
+                      icon: FontAwesomeIcons.whatsapp,
+                      label: 'WhatsApp',
+                    ),
+                  ],
                 ],
+              ),
+              endActionPane: ActionPane(
+                motion: const BehindMotion(),
+                children: [
+                  SlidableAction(
+                    onPressed: (_) => _deleteClient(c),
+                    backgroundColor: AppColors.error,
+                    foregroundColor: Colors.white,
+                    icon: Icons.delete,
+                    label: 'Delete',
+                  ),
+                ],
+              ),
+              child: GestureDetector(
+                onTap: () => _showClientDetails(c),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.1)),
+                    boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.03), blurRadius: 16, offset: const Offset(0, 4))],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: const Icon(Icons.handshake_rounded, color: AppColors.primary, size: 22),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(c.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                            const SizedBox(height: 2),
+                            Text(c.code, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                            if (c.primaryPhone.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8),
+                                child: Row(children: [
+                                  const Icon(Icons.phone_rounded, size: 14, color: AppColors.textSecondary),
+                                  const SizedBox(width: 8),
+                                  Text(c.primaryPhone, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                                ]),
+                              ),
+                            if (c.primaryEmail.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Row(children: [
+                                  const Icon(Icons.alternate_email_rounded, size: 14, color: AppColors.textSecondary),
+                                  const SizedBox(width: 8),
+                                  Text(c.primaryEmail, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                                ]),
+                              ),
+                          ],
+                        ),
+                      ),
+                      _statusDot(c.isActive),
+                      if (c.primaryPhone.isNotEmpty) ...[
+                        const SizedBox(width: 8),
+                        _actionButton(Icons.phone_rounded, Colors.indigo, () => _callClient(c.primaryPhone)),
+                        const SizedBox(width: 6),
+                        _actionButton(Icons.message_rounded, Colors.orange, () => _smsClient(c.primaryPhone)),
+                        const SizedBox(width: 6),
+                        _actionButton(FontAwesomeIcons.whatsapp, const Color(0xFF25D366), () => _whatsappClient(c.primaryPhone)),
+                      ],
+                      const SizedBox(width: 8),
+                      const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
+                    ],
+                  ),
+                ),
               ),
             ),
           );
@@ -482,11 +589,19 @@ class _ClientListPageState extends State<ClientListPage> {
                   Text(c.code, style: const TextStyle(color: AppColors.textMuted, fontSize: 11)),
                   const SizedBox(height: 8),
                   if (c.primaryPhone.isNotEmpty)
-                    Row(children: [
-                      const Icon(Icons.phone_rounded, size: 11, color: AppColors.textMuted),
-                      const SizedBox(width: 4),
-                      Expanded(child: Text(c.primaryPhone, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary), overflow: TextOverflow.ellipsis)),
-                    ]),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          _actionButton(Icons.phone_rounded, Colors.indigo, () => _callClient(c.primaryPhone)),
+                          const SizedBox(width: 8),
+                          _actionButton(Icons.message_rounded, Colors.orange, () => _smsClient(c.primaryPhone)),
+                          const SizedBox(width: 8),
+                          _actionButton(FontAwesomeIcons.whatsapp, const Color(0xFF25D366), () => _whatsappClient(c.primaryPhone)),
+                        ],
+                      ),
+                    ),
                 ],
               ),
             ),
