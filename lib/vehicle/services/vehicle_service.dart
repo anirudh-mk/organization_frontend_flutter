@@ -12,13 +12,9 @@ class VehicleService extends BaseService {
       if (organizationId != null) {
         url += '?organization=$organizationId';
       }
-      final response = await http.get(
-        Uri.parse(url),
-        headers: await getHeaders(),
-      );
+      final response = await performRequest((headers) => http.get(Uri.parse(url), headers: headers));
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
-        
         return data.map((json) => VehicleModel.fromJson(json)).toList();
       } else {
         throw Exception("Failed to load vehicles: ${response.statusCode}");
@@ -30,11 +26,11 @@ class VehicleService extends BaseService {
 
   Future<VehicleModel> createVehicle(Map<String, dynamic> data) async {
     try {
-      final response = await http.post(
+      final response = await performRequest((headers) => http.post(
         Uri.parse(baseUrl),
-        headers: await getHeaders(),
+        headers: headers,
         body: jsonEncode(data),
-      );
+      ));
       
       if (response.statusCode == 201 || response.statusCode == 200) {
         return VehicleModel.fromJson(jsonDecode(response.body));
@@ -48,11 +44,11 @@ class VehicleService extends BaseService {
 
   Future<void> updateVehicle(String id, Map<String, dynamic> data) async {
     try {
-      final response = await http.patch(
+      final response = await performRequest((headers) => http.patch(
         Uri.parse('$baseUrl$id/'),
-        headers: await getHeaders(),
+        headers: headers,
         body: jsonEncode(data),
-      );
+      ));
       
       if (response.statusCode != 200) {
         throw Exception("Failed to update vehicle: ${response.body}");
@@ -64,10 +60,10 @@ class VehicleService extends BaseService {
 
   Future<void> deleteVehicle(String id) async {
     try {
-      final response = await http.delete(
+      final response = await performRequest((headers) => http.delete(
         Uri.parse('$baseUrl$id/'),
-        headers: await getHeaders(),
-      );
+        headers: headers,
+      ));
       
       if (response.statusCode != 204 && response.statusCode != 200) {
         throw Exception("Failed to delete vehicle: ${response.body}");
@@ -83,10 +79,7 @@ class VehicleService extends BaseService {
       if (organizationId != null) {
         url += '?organization=$organizationId';
       }
-      final response = await http.get(
-        Uri.parse(url),
-        headers: await getHeaders(),
-      );
+      final response = await performRequest((headers) => http.get(Uri.parse(url), headers: headers));
       if (response.statusCode == 200) {
         return Map<String, dynamic>.from(jsonDecode(response.body));
       }

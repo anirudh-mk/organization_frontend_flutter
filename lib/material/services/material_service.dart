@@ -8,15 +8,15 @@ class MaterialService extends BaseService {
 
   Future<List<MaterialCategoryModel>> getMaterialCategories() async {
     try {
-      final response = await http.get(
+      final response = await performRequest((headers) => http.get(
         Uri.parse('$baseUrl/categories/'),
-        headers: await getHeaders(),
-      );
+        headers: headers,
+      ));
       if (response.statusCode == 200) {
         List<dynamic> body = jsonDecode(response.body);
         return body.map((dynamic item) => MaterialCategoryModel.fromJson(item)).toList();
       } else {
-        throw Exception("Failed to load categories");
+        throw Exception("Failed to load categories: ${response.statusCode}");
       }
     } catch (e) {
       throw Exception("Error fetching categories: $e");
@@ -25,15 +25,15 @@ class MaterialService extends BaseService {
 
   Future<List<MaterialModel>> getMaterials() async {
     try {
-      final response = await http.get(
+      final response = await performRequest((headers) => http.get(
         Uri.parse('$baseUrl/materials/'),
-        headers: await getHeaders(),
-      );
+        headers: headers,
+      ));
       if (response.statusCode == 200) {
         List<dynamic> body = jsonDecode(response.body);
         return body.map((dynamic item) => MaterialModel.fromJson(item)).toList();
       } else {
-        throw Exception("Failed to load materials");
+        throw Exception("Failed to load materials: ${response.statusCode}");
       }
     } catch (e) {
       throw Exception("Error fetching materials: $e");
@@ -42,11 +42,11 @@ class MaterialService extends BaseService {
 
   Future<MaterialModel> createMaterial(Map<String, dynamic> data) async {
     try {
-      final response = await http.post(
+      final response = await performRequest((headers) => http.post(
         Uri.parse('$baseUrl/materials/'),
-        headers: await getHeaders(),
+        headers: headers,
         body: jsonEncode(data),
-      );
+      ));
       if (response.statusCode == 201) {
         return MaterialModel.fromJson(jsonDecode(response.body));
       } else {

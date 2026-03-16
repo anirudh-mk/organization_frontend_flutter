@@ -12,10 +12,10 @@ class OrganizationService extends BaseService {
 
   Future<OrganizationModel?> getCurrentOrganization() async {
     try {
-      final response = await http.get(
+      final response = await performRequest((headers) => http.get(
         Uri.parse('$baseUrl/organization/organizations/current/'),
-        headers: await getHeaders(),
-      );
+        headers: headers,
+      ));
       
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -38,10 +38,10 @@ class OrganizationService extends BaseService {
 
   Future<List<OrganizationModel>> getOrganizations() async {
     try {
-      final response = await http.get(
+      final response = await performRequest((headers) => http.get(
         Uri.parse('$baseUrl/organization/organizations/'),
-        headers: await getHeaders(),
-      );
+        headers: headers,
+      ));
       
       if (response.statusCode == 200) {
         dynamic body = jsonDecode(response.body);
@@ -64,10 +64,10 @@ class OrganizationService extends BaseService {
 
   Future<List<OrganizationTypeModel>> getOrganizationTypes() async {
     try {
-      final response = await http.get(
+      final response = await performRequest((headers) => http.get(
         Uri.parse('$baseUrl/organization/types/'),
-        headers: await getHeaders(),
-      );
+        headers: headers,
+      ));
       
       if (response.statusCode == 200) {
         dynamic body = jsonDecode(response.body);
@@ -90,10 +90,10 @@ class OrganizationService extends BaseService {
 
   Future<List<CountryModel>> getCountries() async {
     try {
-      final response = await http.get(
+      final response = await performRequest((headers) => http.get(
         Uri.parse('$baseUrl/shared/countries/'),
-        headers: await getHeaders(),
-      );
+        headers: headers,
+      ));
 
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
@@ -107,10 +107,10 @@ class OrganizationService extends BaseService {
 
   Future<List<StateModel>> getStates(String countryId) async {
     try {
-      final response = await http.get(
+      final response = await performRequest((headers) => http.get(
         Uri.parse('$baseUrl/shared/states/?country=$countryId'),
-        headers: await getHeaders(),
-      );
+        headers: headers,
+      ));
 
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
@@ -124,10 +124,10 @@ class OrganizationService extends BaseService {
 
   Future<List<DistrictModel>> getDistricts(String stateId) async {
     try {
-      final response = await http.get(
+      final response = await performRequest((headers) => http.get(
         Uri.parse('$baseUrl/shared/districts/?state=$stateId'),
-        headers: await getHeaders(),
-      );
+        headers: headers,
+      ));
 
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
@@ -141,10 +141,10 @@ class OrganizationService extends BaseService {
 
   Future<List<AddressTypeModel>> getAddressTypes() async {
     try {
-      final response = await http.get(
+      final response = await performRequest((headers) => http.get(
         Uri.parse('$baseUrl/shared/address-type/'),
-        headers: await getHeaders(),
-      );
+        headers: headers,
+      ));
 
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
@@ -163,34 +163,26 @@ class OrganizationService extends BaseService {
     File? logo,
   }) async {
     try {
-      final uri = Uri.parse('$baseUrl/organization/organizations/');
-      final request = http.MultipartRequest('POST', uri);
+      final response = await performMultipartRequest((headers) async {
+        final uri = Uri.parse('$baseUrl/organization/organizations/');
+        final request = http.MultipartRequest('POST', uri);
+        request.headers.addAll(headers);
+        request.fields['name'] = name;
+        request.fields['type'] = typeId;
+        if (addresses != null && addresses.isNotEmpty) {
+          request.fields['addresses_json'] = jsonEncode(addresses);
+        }
+        if (logo != null) {
+          request.files.add(await http.MultipartFile.fromPath(
+            'logo',
+            logo.path,
+            contentType: MediaType('image', 'jpeg'),
+          ));
+        }
+        return request;
+      });
       
-      // Add headers
-      final headers = await getHeaders();
-      request.headers.addAll(headers);
-
-      // Add fields
-      request.fields['name'] = name;
-      request.fields['type'] = typeId;
-
-      if (addresses != null && addresses.isNotEmpty) {
-        request.fields['addresses_json'] = jsonEncode(addresses);
-      }
-
-      // Add logo
-      if (logo != null) {
-        request.files.add(await http.MultipartFile.fromPath(
-          'logo',
-          logo.path,
-          contentType: MediaType('image', 'jpeg'),
-        ));
-      }
-
-      final streamedResponse = await request.send();
-      final response = await http.Response.fromStream(streamedResponse);
-      
-      if (streamedResponse.statusCode == 201 || streamedResponse.statusCode == 200) {
+      if (response.statusCode == 201 || response.statusCode == 200) {
         final org = OrganizationModel.fromJson(jsonDecode(response.body));
         await TokenManager.saveOrganizationDetails(
           id: org.id,
@@ -208,13 +200,12 @@ class OrganizationService extends BaseService {
 
   Future<void> switchOrganization(String orgId) async {
     try {
-      final response = await http.post(
+      final response = await performRequest((headers) => http.post(
         Uri.parse('$baseUrl/organization/organizations/$orgId/switch/'),
-        headers: await getHeaders(),
-      );
+        headers: headers,
+      ));
 
       if (response.statusCode == 200) {
-        // After switching on backend, refresh current org details locally
         await getCurrentOrganization();
       } else {
         throw Exception("Failed to switch organization (${response.statusCode}): ${response.body}");
@@ -231,29 +222,24 @@ class OrganizationService extends BaseService {
     File? logo,
   }) async {
     try {
-      final uri = Uri.parse('$baseUrl/organization/organizations/$id/');
-      final request = http.MultipartRequest('PATCH', uri);
+      final response = await performMultipartRequest((headers) async {
+        final uri = Uri.parse('$baseUrl/organization/organizations/$id/');
+        final request = http.MultipartRequest('PATCH', uri);
+        request.headers.addAll(headers);
+        if (name != null) request.fields['name'] = name;
+        if (typeId != null) request.fields['type'] = typeId;
+        if (logo != null) {
+          request.files.add(await http.MultipartFile.fromPath(
+            'logo',
+            logo.path,
+            contentType: MediaType('image', 'jpeg'),
+          ));
+        }
+        return request;
+      });
       
-      final headers = await getHeaders();
-      request.headers.addAll(headers);
-
-      if (name != null) request.fields['name'] = name;
-      if (typeId != null) request.fields['type'] = typeId;
-
-      if (logo != null) {
-        request.files.add(await http.MultipartFile.fromPath(
-          'logo',
-          logo.path,
-          contentType: MediaType('image', 'jpeg'),
-        ));
-      }
-
-      final streamedResponse = await request.send();
-      final response = await http.Response.fromStream(streamedResponse);
-      
-      if (streamedResponse.statusCode == 200) {
+      if (response.statusCode == 200) {
         final org = OrganizationModel.fromJson(jsonDecode(response.body));
-        // If updating the current one, refresh local state
         final currentId = await TokenManager.getOrganizationId();
         if (currentId == org.id) {
           await TokenManager.saveOrganizationDetails(
@@ -276,11 +262,11 @@ class OrganizationService extends BaseService {
     List<Map<String, dynamic>> addresses,
   ) async {
     try {
-      final response = await http.post(
+      final response = await performRequest((headers) => http.post(
         Uri.parse('$baseUrl/organization/organizations/$orgId/update-addresses/'),
-        headers: await getHeaders(),
+        headers: headers,
         body: jsonEncode({'addresses': addresses}),
-      );
+      ));
 
       if (response.statusCode != 200) {
         throw Exception("Failed to update addresses (${response.statusCode}): ${response.body}");

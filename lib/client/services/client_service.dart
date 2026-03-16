@@ -8,7 +8,7 @@ class ClientService extends BaseService {
 
   Future<List<ClientModel>> getClients() async {
     try {
-      final response = await http.get(Uri.parse(_base), headers: await getHeaders());
+      final response = await performRequest((headers) => http.get(Uri.parse(_base), headers: headers));
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         List<dynamic> results = body is Map && body.containsKey('results') ? body['results'] : (body is List ? body : []);
@@ -22,9 +22,7 @@ class ClientService extends BaseService {
 
   Future<ClientModel> createClient(Map<String, dynamic> data) async {
     try {
-      final headers = await getHeaders();
-      headers['Content-Type'] = 'application/json';
-      final response = await http.post(Uri.parse(_base), headers: headers, body: jsonEncode(data));
+      final response = await performRequest((headers) => http.post(Uri.parse(_base), headers: headers, body: jsonEncode(data)));
       if (response.statusCode == 201 || response.statusCode == 200) {
         return ClientModel.fromJson(jsonDecode(response.body));
       }
@@ -36,9 +34,7 @@ class ClientService extends BaseService {
 
   Future<ClientModel> updateClient(String id, Map<String, dynamic> data) async {
     try {
-      final headers = await getHeaders();
-      headers['Content-Type'] = 'application/json';
-      final response = await http.patch(Uri.parse('$_base$id/'), headers: headers, body: jsonEncode(data));
+      final response = await performRequest((headers) => http.patch(Uri.parse('$_base$id/'), headers: headers, body: jsonEncode(data)));
       if (response.statusCode == 200) {
         return ClientModel.fromJson(jsonDecode(response.body));
       }
@@ -50,7 +46,7 @@ class ClientService extends BaseService {
 
   Future<void> deleteClient(String id) async {
     try {
-      final response = await http.delete(Uri.parse('$_base$id/'), headers: await getHeaders());
+      final response = await performRequest((headers) => http.delete(Uri.parse('$_base$id/'), headers: headers));
       if (response.statusCode != 204 && response.statusCode != 200) {
         throw Exception("Failed to delete client: ${response.body}");
       }
@@ -61,7 +57,7 @@ class ClientService extends BaseService {
 
   Future<String> getNextCode() async {
     try {
-      final response = await http.get(Uri.parse('${_base}get-next-code/'), headers: await getHeaders());
+      final response = await performRequest((headers) => http.get(Uri.parse('${_base}get-next-code/'), headers: headers));
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         return data['code'];

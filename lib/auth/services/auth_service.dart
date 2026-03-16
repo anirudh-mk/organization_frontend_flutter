@@ -30,8 +30,10 @@ class AuthService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final token = data['access'];
+        final refresh = data['refresh'];
         if (token != null) {
           await TokenManager.saveAccessToken(token);
+          if (refresh != null) await TokenManager.saveRefreshToken(refresh);
           return true;
         }
       }
@@ -77,8 +79,10 @@ class AuthService {
       if (response.statusCode == 201) {
         final data = jsonDecode(response.body);
         final token = data['access'];
+        final refresh = data['refresh'];
         if (token != null) {
           await TokenManager.saveAccessToken(token);
+          if (refresh != null) await TokenManager.saveRefreshToken(refresh);
           return true;
         }
       } else {
@@ -126,8 +130,10 @@ class AuthService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final token = data['access'];
+        final refresh = data['refresh'];
         if (token != null) {
           await TokenManager.saveAccessToken(token);
+          if (refresh != null) await TokenManager.saveRefreshToken(refresh);
           return true;
         }
       } else {
@@ -161,6 +167,36 @@ class AuthService {
          throw Exception(e.toString().replaceFirst("Exception: ", ""));
       }
       throw Exception("Error logging in: $e");
+    }
+  }
+
+  Future<bool> refreshToken() async {
+    try {
+      final refresh = await TokenManager.getRefreshToken();
+      if (refresh == null) return false;
+
+      final response = await http.post(
+        Uri.parse('$authBaseUrl/token/refresh/'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'refresh': refresh}),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final token = data['access'];
+        if (token != null) {
+          await TokenManager.saveAccessToken(token);
+          // SimpleJWT rotation might return a new refresh token
+          if (data['refresh'] != null) {
+            await TokenManager.saveRefreshToken(data['refresh']);
+          }
+          return true;
+        }
+      }
+      return false;
+    } catch (e) {
+      print("Token refresh error: $e");
+      return false;
     }
   }
 

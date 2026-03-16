@@ -17,10 +17,10 @@ class LocationService extends BaseService {
 
   Future<List<CountryModel>> getCountries() async {
     try {
-      final response = await http.get(
+      final response = await performRequest((headers) => http.get(
         Uri.parse('${baseUrl}countries/'),
-        headers: await getHeaders(),
-      );
+        headers: headers,
+      ));
       if (response.statusCode == 200) {
         final List<dynamic> results = _extractResults(jsonDecode(response.body));
         return results.map((item) => CountryModel.fromJson(item)).toList();
@@ -34,10 +34,10 @@ class LocationService extends BaseService {
 
   Future<List<StateModel>> getStates(String countryId) async {
     try {
-      final response = await http.get(
+      final response = await performRequest((headers) => http.get(
         Uri.parse('${baseUrl}states/?country=$countryId'),
-        headers: await getHeaders(),
-      );
+        headers: headers,
+      ));
       if (response.statusCode == 200) {
         final List<dynamic> results = _extractResults(jsonDecode(response.body));
         return results.map((item) => StateModel.fromJson(item)).toList();
@@ -51,10 +51,10 @@ class LocationService extends BaseService {
 
   Future<List<DistrictModel>> getDistricts(String stateId) async {
     try {
-      final response = await http.get(
+      final response = await performRequest((headers) => http.get(
         Uri.parse('${baseUrl}districts/?state=$stateId'),
-        headers: await getHeaders(),
-      );
+        headers: headers,
+      ));
       if (response.statusCode == 200) {
         final List<dynamic> results = _extractResults(jsonDecode(response.body));
         return results.map((item) => DistrictModel.fromJson(item)).toList();
@@ -68,10 +68,10 @@ class LocationService extends BaseService {
 
   Future<List<AddressTypeModel>> getAddressTypes() async {
     try {
-      final response = await http.get(
+      final response = await performRequest((headers) => http.get(
         Uri.parse('${baseUrl}address-type/'),
-        headers: await getHeaders(),
-      );
+        headers: headers,
+      ));
       if (response.statusCode == 200) {
         final List<dynamic> results = _extractResults(jsonDecode(response.body));
         return results.map((item) => AddressTypeModel.fromJson(item)).toList();
@@ -85,10 +85,10 @@ class LocationService extends BaseService {
 
   Future<List<ContactTypeModel>> getContactTypes() async {
     try {
-      final response = await http.get(
+      final response = await performRequest((headers) => http.get(
         Uri.parse('${baseUrl}contact-type/'),
-        headers: await getHeaders(),
-      );
+        headers: headers,
+      ));
       if (response.statusCode == 200) {
         final List<dynamic> results = _extractResults(jsonDecode(response.body));
         return results.map((item) => ContactTypeModel.fromJson(item)).toList();

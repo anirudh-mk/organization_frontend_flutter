@@ -11,10 +11,10 @@ class SiteService extends BaseService {
 
   Future<List<SiteModel>> getSites() async {
     try {
-      final response = await http.get(
+      final response = await performRequest((headers) => http.get(
         Uri.parse('$baseUrl/'),
-        headers: await getHeaders(),
-      );
+        headers: headers,
+      ));
       if (response.statusCode == 200) {
         dynamic decoded = jsonDecode(response.body);
         List<dynamic> body;
@@ -27,7 +27,7 @@ class SiteService extends BaseService {
         }
         return body.map((dynamic item) => SiteModel.fromJson(item)).toList();
       } else {
-        throw Exception("Failed to load sites");
+        throw Exception("Failed to load sites: ${response.statusCode}");
       }
     } catch (e) {
       throw Exception("Error fetching sites: $e");
@@ -46,48 +46,37 @@ class SiteService extends BaseService {
     List<File>? images,
   }) async {
     try {
-      final uri = Uri.parse('$baseUrl/');
-      final request = http.MultipartRequest('POST', uri);
-
-      request.headers.addAll(await getHeaders());
-
-      request.fields['name'] = name;
-      request.fields['organization'] = organizationId;
-      if (status != null) request.fields['status'] = status;
-      if (budget != null) request.fields['estimated_budget'] = budget.toString();
-      if (startDate != null) {
-        request.fields['expected_start_date'] =
-            startDate.toIso8601String().split('T')[0];
-      }
-      if (endDate != null) {
-        request.fields['expected_end_date'] =
-            endDate.toIso8601String().split('T')[0];
-      }
-
-      if (clientData != null) {
-        request.fields['client_data'] = jsonEncode(clientData);
-      }
-
-      if (addresses != null) {
-        request.fields['addresses'] = jsonEncode(addresses);
-      }
-
-      if (images != null) {
-        for (var i = 0; i < images.length; i++) {
-          final stream = http.ByteStream(images[i].openRead());
-          final length = await images[i].length();
-          final multipartFile = http.MultipartFile(
-            'images',
-            stream,
-            length,
-            filename: path.basename(images[i].path),
-          );
-          request.files.add(multipartFile);
+      final response = await performMultipartRequest((headers) async {
+        final uri = Uri.parse('$baseUrl/');
+        final request = http.MultipartRequest('POST', uri);
+        request.headers.addAll(headers);
+        request.fields['name'] = name;
+        request.fields['organization'] = organizationId;
+        if (status != null) request.fields['status'] = status;
+        if (budget != null) request.fields['estimated_budget'] = budget.toString();
+        if (startDate != null) {
+          request.fields['expected_start_date'] = startDate.toIso8601String().split('T')[0];
         }
-      }
-
-      final streamedResponse = await request.send();
-      final response = await http.Response.fromStream(streamedResponse);
+        if (endDate != null) {
+          request.fields['expected_end_date'] = endDate.toIso8601String().split('T')[0];
+        }
+        if (clientData != null) request.fields['client_data'] = jsonEncode(clientData);
+        if (addresses != null) request.fields['addresses'] = jsonEncode(addresses);
+        if (images != null) {
+          for (var i = 0; i < images.length; i++) {
+            final stream = http.ByteStream(images[i].openRead());
+            final length = await images[i].length();
+            final multipartFile = http.MultipartFile(
+              'images',
+              stream,
+              length,
+              filename: path.basename(images[i].path),
+            );
+            request.files.add(multipartFile);
+          }
+        }
+        return request;
+      });
 
       if (response.statusCode == 201) {
         return SiteModel.fromJson(jsonDecode(response.body));
@@ -101,37 +90,30 @@ class SiteService extends BaseService {
 
   Future<SiteModel> updateSite(String id, Map<String, dynamic> data, {List<File>? images}) async {
     try {
-      final uri = Uri.parse('$baseUrl/$id/'); // Corrected endpoint
-      final request = http.MultipartRequest('PATCH', uri);
-      
-      final headers = await getHeaders();
-      request.headers.addAll(headers);
-
-      // Add fields
-      data.forEach((key, value) {
-        if (value != null) {
-          if (value is Map || value is List) {
-            request.fields[key] = jsonEncode(value);
-          } else {
-            request.fields[key] = value.toString();
+      final response = await performMultipartRequest((headers) async {
+        final uri = Uri.parse('$baseUrl/$id/');
+        final request = http.MultipartRequest('PATCH', uri);
+        request.headers.addAll(headers);
+        data.forEach((key, value) {
+          if (value != null) {
+            if (value is Map || value is List) {
+              request.fields[key] = jsonEncode(value);
+            } else {
+              request.fields[key] = value.toString();
+            }
+          }
+        });
+        if (images != null) {
+          for (var image in images) {
+            request.files.add(await http.MultipartFile.fromPath(
+              'images',
+              image.path,
+              contentType: MediaType('image', 'jpeg'),
+            ));
           }
         }
+        return request;
       });
-
-      // Add images if needed (though backend might handle this separately, 
-      // onboard already handles it. Update usually allows patching fields)
-      if (images != null) {
-        for (var image in images) {
-          request.files.add(await http.MultipartFile.fromPath(
-            'images',
-            image.path,
-            contentType: MediaType('image', 'jpeg'),
-          ));
-        }
-      }
-
-      final streamedResponse = await request.send();
-      final response = await http.Response.fromStream(streamedResponse);
       
       if (response.statusCode == 200) {
         return SiteModel.fromJson(jsonDecode(response.body));
@@ -150,15 +132,15 @@ class SiteService extends BaseService {
     String? phaseId,
   }) async {
     try {
-      final response = await http.post(
+      final response = await performRequest((headers) => http.post(
         Uri.parse('$baseUrl/$siteId/assign-resource/'),
-        headers: await getHeaders(),
+        headers: headers,
         body: jsonEncode({
           'type': type,
           'id': id,
           'phase_id': phaseId,
         }),
-      );
+      ));
 
       if (response.statusCode != 200) {
         throw Exception('Failed to assign resource: ${response.body}');
@@ -174,14 +156,14 @@ class SiteService extends BaseService {
     Map<String, dynamic>? details,
   }) async {
     try {
-      final response = await http.post(
+      final response = await performRequest((headers) => http.post(
         Uri.parse('$baseUrl/$siteId/create-quotation/'),
-        headers: await getHeaders(),
+        headers: headers,
         body: jsonEncode({
           'amount': amount,
           'details': details,
         }),
-      );
+      ));
 
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
@@ -195,10 +177,10 @@ class SiteService extends BaseService {
 
   Future<void> deleteSite(String id) async {
     try {
-      final response = await http.delete(
+      final response = await performRequest((headers) => http.delete(
         Uri.parse('$baseUrl/$id/'),
-        headers: await getHeaders(),
-      );
+        headers: headers,
+      ));
       
       if (response.statusCode != 204) {
         throw Exception("Failed to delete site: ${response.body}");

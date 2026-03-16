@@ -8,15 +8,15 @@ class ProjectService extends BaseService {
 
   Future<List<ProjectModel>> getProjects() async {
     try {
-      final response = await http.get(
+      final response = await performRequest((headers) => http.get(
         Uri.parse(baseUrl),
-        headers: await getHeaders(),
-      );
+        headers: headers,
+      ));
       if (response.statusCode == 200) {
         List<dynamic> body = jsonDecode(response.body);
         return body.map((dynamic item) => ProjectModel.fromJson(item)).toList();
       } else {
-        throw Exception("Failed to load projects");
+        throw Exception("Failed to load projects: ${response.statusCode}");
       }
     } catch (e) {
       throw Exception("Error fetching projects: $e");
@@ -25,11 +25,11 @@ class ProjectService extends BaseService {
 
   Future<ProjectModel> createProject(Map<String, dynamic> data) async {
     try {
-      final response = await http.post(
+      final response = await performRequest((headers) => http.post(
         Uri.parse(baseUrl),
-        headers: await getHeaders(),
+        headers: headers,
         body: jsonEncode(data),
-      );
+      ));
       
       if (response.statusCode == 201) {
         return ProjectModel.fromJson(jsonDecode(response.body));

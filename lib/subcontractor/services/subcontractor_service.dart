@@ -9,10 +9,10 @@ class SubcontractorService extends BaseService {
 
   Future<List<SubcontractorModel>> getSubcontractors() async {
     try {
-      final response = await http.get(
+      final response = await performRequest((headers) => http.get(
         Uri.parse(baseUrl),
-        headers: await getHeaders(),
-      );
+        headers: headers,
+      ));
       if (response.statusCode == 200) {
         dynamic body = jsonDecode(response.body);
         
@@ -45,11 +45,11 @@ class SubcontractorService extends BaseService {
         }
       }
       
-      final response = await http.post(
+      final response = await performRequest((headers) => http.post(
         Uri.parse(baseUrl),
-        headers: await getHeaders(),
+        headers: headers,
         body: jsonEncode(data),
-      );
+      ));
       
       if (response.statusCode == 201 || response.statusCode == 200) {
         return SubcontractorModel.fromJson(jsonDecode(response.body));
@@ -63,11 +63,11 @@ class SubcontractorService extends BaseService {
 
   Future<SubcontractorModel> updateSubcontractor(String id, Map<String, dynamic> data) async {
     try {
-      final response = await http.put(
+      final response = await performRequest((headers) => http.patch(
         Uri.parse('$baseUrl$id/'),
-        headers: await getHeaders(),
+        headers: headers,
         body: jsonEncode(data),
-      );
+      ));
       
       if (response.statusCode == 200) {
         return SubcontractorModel.fromJson(jsonDecode(response.body));
@@ -81,10 +81,10 @@ class SubcontractorService extends BaseService {
 
   Future<void> deleteSubcontractor(String id) async {
     try {
-      final response = await http.delete(
+      final response = await performRequest((headers) => http.delete(
         Uri.parse('$baseUrl$id/'),
-        headers: await getHeaders(),
-      );
+        headers: headers,
+      ));
       if (response.statusCode != 204) {
         throw Exception("Failed to delete subcontractor: ${response.body}");
       }

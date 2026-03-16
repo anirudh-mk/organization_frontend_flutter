@@ -8,15 +8,15 @@ class EmployeeService extends BaseService {
 
   Future<List<EmployeeModel>> getEmployees() async {
     try {
-      final response = await http.get(
+      final response = await performRequest((headers) => http.get(
         Uri.parse('$baseUrl/'),
-        headers: await getHeaders(),
-      );
+        headers: headers,
+      ));
       if (response.statusCode == 200) {
         List<dynamic> body = jsonDecode(response.body);
         return body.map((dynamic item) => EmployeeModel.fromJson(item)).toList();
       } else {
-        throw Exception("Failed to load employees");
+        throw Exception("Failed to load employees: ${response.statusCode}");
       }
     } catch (e) {
       throw Exception("Error fetching employees: $e");
@@ -25,11 +25,11 @@ class EmployeeService extends BaseService {
 
   Future<EmployeeModel> createEmployee(Map<String, dynamic> data) async {
     try {
-      final response = await http.post(
+      final response = await performRequest((headers) => http.post(
         Uri.parse('$baseUrl/'),
-        headers: await getHeaders(),
+        headers: headers,
         body: jsonEncode(data),
-      );
+      ));
       
       if (response.statusCode == 201) {
         return EmployeeModel.fromJson(jsonDecode(response.body));

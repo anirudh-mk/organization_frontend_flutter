@@ -15,15 +15,12 @@ class WarehouseService extends BaseService {
         url = url.replace(queryParameters: {'organization': organizationId});
       }
 
-      final response = await http.get(
-        url,
-        headers: await getHeaders(),
-      );
+      final response = await performRequest((headers) => http.get(url, headers: headers));
+
       if (response.statusCode == 200) {
         dynamic body = jsonDecode(response.body);
         
         List<dynamic> results;
-        // DRF may return paginated responses
         if (body is Map && body.containsKey('results')) {
           results = body['results'];
         } else if (body is List) {
@@ -34,7 +31,7 @@ class WarehouseService extends BaseService {
         
         return results.map((dynamic item) => WarehouseModel.fromJson(item)).toList();
       } else {
-        throw Exception("Failed to load warehouses");
+        throw Exception("Failed to load warehouses: ${response.statusCode}");
       }
     } catch (e) {
       throw Exception("Error fetching warehouses: $e");
@@ -43,9 +40,6 @@ class WarehouseService extends BaseService {
 
   Future<WarehouseModel> createWarehouse(Map<String, dynamic> data) async {
     try {
-      final headers = await getHeaders();
-      headers['Content-Type'] = 'application/json';
-
       // Organization is required by the DRF API
       if (!data.containsKey('organization')) {
         final orgId = await TokenManager.getOrganizationId();
@@ -54,11 +48,11 @@ class WarehouseService extends BaseService {
         }
       }
       
-      final response = await http.post(
+      final response = await performRequest((headers) => http.post(
         Uri.parse(baseUrl),
         headers: headers,
         body: jsonEncode(data),
-      );
+      ));
       
       if (response.statusCode == 201 || response.statusCode == 200) {
         return WarehouseModel.fromJson(jsonDecode(response.body));
@@ -72,9 +66,6 @@ class WarehouseService extends BaseService {
 
   Future<WarehouseModel> updateWarehouse(String id, Map<String, dynamic> data) async {
     try {
-      final headers = await getHeaders();
-      headers['Content-Type'] = 'application/json';
-
       // Organization is required by the DRF API
       if (!data.containsKey('organization')) {
         final orgId = await TokenManager.getOrganizationId();
@@ -83,11 +74,11 @@ class WarehouseService extends BaseService {
         }
       }
 
-      final response = await http.patch(
+      final response = await performRequest((headers) => http.patch(
         Uri.parse('$baseUrl$id/'),
         headers: headers,
         body: jsonEncode(data),
-      );
+      ));
 
       if (response.statusCode == 200) {
         return WarehouseModel.fromJson(jsonDecode(response.body));
@@ -101,10 +92,10 @@ class WarehouseService extends BaseService {
 
   Future<void> deleteWarehouse(String id) async {
     try {
-      final response = await http.delete(
+      final response = await performRequest((headers) => http.delete(
         Uri.parse('$baseUrl$id/'),
-        headers: await getHeaders(),
-      );
+        headers: headers,
+      ));
       if (response.statusCode != 204) {
         throw Exception("Failed to delete warehouse: ${response.body}");
       }
@@ -115,7 +106,10 @@ class WarehouseService extends BaseService {
 
   Future<String> getNextCode() async {
     try {
-      final response = await http.get(Uri.parse('${baseUrl}get-next-code/'), headers: await getHeaders());
+      final response = await performRequest((headers) => http.get(
+        Uri.parse('${baseUrl}get-next-code/'), 
+        headers: headers,
+      ));
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         return data['code'];
