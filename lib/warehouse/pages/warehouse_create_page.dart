@@ -75,9 +75,22 @@ class _WarehouseCreatePageState extends State<WarehouseCreatePage> {
 
     if (_addressFields.isEmpty) _addAddressField();
     if (_emailFields.isEmpty) _addEmailField();
-    if (_mobileFields.isEmpty) _addMobileField();
+    if (!_isEditing) {
+      _fetchNextCode();
+    }
 
     _initLocations();
+  }
+
+  Future<void> _fetchNextCode() async {
+    try {
+      final code = await _service.getNextCode();
+      if (mounted) {
+        setState(() => _codeController.text = code);
+      }
+    } catch (e) {
+      debugPrint("Error fetching next code: $e");
+    }
   }
 
   void _addAddressField({
@@ -322,9 +335,8 @@ class _WarehouseCreatePageState extends State<WarehouseCreatePage> {
               const SizedBox(height: 16),
               Row(children: [
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  _label("WAREHOUSE CODE *"),
-                  _field(_codeController, "e.g., WH-001",
-                      validator: (v) => v == null || v.isEmpty ? "Required" : null),
+                  _label("WAREHOUSE CODE"),
+                  _field(_codeController, "e.g., WH-001 (Blank for auto)"),
                 ])),
                 const SizedBox(width: 12),
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

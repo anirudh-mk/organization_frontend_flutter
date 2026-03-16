@@ -170,15 +170,6 @@ class _SubcontractorListPageState extends State<SubcontractorListPage> {
               const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider(height: 1)),
             ],
 
-            if (sub.bankName.isNotEmpty) ...[
-              const Text("Payment Details", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              const SizedBox(height: 12),
-              _detailItem(Icons.account_balance_outlined, "Bank", sub.bankName),
-              _detailItem(Icons.numbers_outlined, "Account", sub.accountNumber),
-              _detailItem(Icons.code_outlined, "IFSC", sub.ifscCode),
-              _detailItem(Icons.person_outline, "Holder", sub.accountHolderName),
-            ],
-
             const SizedBox(height: 32),
             Row(
               children: [

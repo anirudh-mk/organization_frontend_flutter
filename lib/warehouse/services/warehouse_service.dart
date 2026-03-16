@@ -75,7 +75,15 @@ class WarehouseService extends BaseService {
       final headers = await getHeaders();
       headers['Content-Type'] = 'application/json';
 
-      final response = await http.put(
+      // Organization is required by the DRF API
+      if (!data.containsKey('organization')) {
+        final orgId = await TokenManager.getOrganizationId();
+        if (orgId != null) {
+          data['organization'] = orgId;
+        }
+      }
+
+      final response = await http.patch(
         Uri.parse('$baseUrl$id/'),
         headers: headers,
         body: jsonEncode(data),
@@ -102,6 +110,19 @@ class WarehouseService extends BaseService {
       }
     } catch (e) {
       throw Exception("Error deleting warehouse: $e");
+    }
+  }
+
+  Future<String> getNextCode() async {
+    try {
+      final response = await http.get(Uri.parse('${baseUrl}get-next-code/'), headers: await getHeaders());
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['code'];
+      }
+      throw Exception("Failed to get next code: ${response.statusCode}");
+    } catch (e) {
+      throw Exception("Error getting next code: $e");
     }
   }
 }

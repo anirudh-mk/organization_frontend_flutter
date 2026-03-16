@@ -79,12 +79,6 @@ class SubcontractorModel {
   final String name;
   final String specialization;
   
-  // Payment Details
-  final String bankName;
-  final String accountNumber;
-  final String ifscCode;
-  final String accountHolderName;
-  
   final bool isActive;
   final String organizationId;
 
@@ -96,10 +90,6 @@ class SubcontractorModel {
     required this.id,
     required this.name,
     this.specialization = '',
-    this.bankName = '',
-    this.accountNumber = '',
-    this.ifscCode = '',
-    this.accountHolderName = '',
     this.isActive = true,
     required this.organizationId,
     this.addresses = const [],
@@ -133,10 +123,6 @@ class SubcontractorModel {
       id: json['id'].toString(),
       name: json['name'] ?? '',
       specialization: json['specialization'] ?? '',
-      bankName: json['bank_name'] ?? '',
-      accountNumber: json['account_number'] ?? '',
-      ifscCode: json['ifsc_code'] ?? '',
-      accountHolderName: json['account_holder_name'] ?? '',
       isActive: json['is_active'] ?? true,
       organizationId: json['organization']?.toString() ?? '',
       addresses: addrList,
@@ -149,10 +135,6 @@ class SubcontractorModel {
     return {
       'name': name,
       'specialization': specialization,
-      'bank_name': bankName,
-      'account_number': accountNumber,
-      'ifsc_code': ifscCode,
-      'account_holder_name': accountHolderName,
       'is_active': isActive,
     };
   }

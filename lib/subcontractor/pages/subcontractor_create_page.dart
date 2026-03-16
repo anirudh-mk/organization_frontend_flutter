@@ -24,12 +24,6 @@ class _SubcontractorCreatePageState extends State<SubcontractorCreatePage> {
   // Basic fields
   final _nameController = TextEditingController();
   final _specializationController = TextEditingController();
-  
-  // Payment fields
-  final _bankNameController = TextEditingController();
-  final _accountNumberController = TextEditingController();
-  final _ifscCodeController = TextEditingController();
-  final _accountHolderNameController = TextEditingController();
 
   bool _isActive = true;
 
@@ -52,10 +46,6 @@ class _SubcontractorCreatePageState extends State<SubcontractorCreatePage> {
       final s = widget.subcontractor!;
       _nameController.text = s.name;
       _specializationController.text = s.specialization;
-      _bankNameController.text = s.bankName;
-      _accountNumberController.text = s.accountNumber;
-      _ifscCodeController.text = s.ifscCode;
-      _accountHolderNameController.text = s.accountHolderName;
       _isActive = s.isActive;
 
       for (var addrObj in s.addresses) {
@@ -220,10 +210,6 @@ class _SubcontractorCreatePageState extends State<SubcontractorCreatePage> {
       final data = {
         'name': _nameController.text.trim(),
         'specialization': _specializationController.text.trim(),
-        'bank_name': _bankNameController.text.trim(),
-        'account_number': _accountNumberController.text.trim(),
-        'ifsc_code': _ifscCodeController.text.trim(),
-        'account_holder_name': _accountHolderNameController.text.trim(),
         'is_active': _isActive,
         'address_input': addresses,
         'email_input': emailsList,
@@ -260,10 +246,6 @@ class _SubcontractorCreatePageState extends State<SubcontractorCreatePage> {
   void dispose() {
     _nameController.dispose();
     _specializationController.dispose();
-    _bankNameController.dispose();
-    _accountNumberController.dispose();
-    _ifscCodeController.dispose();
-    _accountHolderNameController.dispose();
     for (var f in _addressFields) {
       f['line1']?.dispose();
       f['line2']?.dispose();
@@ -320,37 +302,6 @@ class _SubcontractorCreatePageState extends State<SubcontractorCreatePage> {
                     const Center(child: CircularProgressIndicator())
                   else
                     _addressSection(),
-
-                  const SizedBox(height: 32),
-                  _sectionHeader("Payment Details"),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        _label("BANK NAME"),
-                        _field(_bankNameController, "e.g. Chase"),
-                      ])),
-                      const SizedBox(width: 16),
-                      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        _label("ACCOUNT NUMBER"),
-                        _field(_accountNumberController, "123456789", keyboardType: TextInputType.number),
-                      ])),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        _label("ROUTING/IFSC CODE"),
-                        _field(_ifscCodeController, "Routing code"),
-                      ])),
-                      const SizedBox(width: 16),
-                      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        _label("ACCOUNT HOLDER"),
-                        _field(_accountHolderNameController, "Name on account"),
-                      ])),
-                    ],
-                  ),
 
                   const SizedBox(height: 32),
                   _sectionHeader("Status"),
