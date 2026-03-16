@@ -117,10 +117,6 @@ class _ClientCreatePageState extends State<ClientCreatePage> {
         'countryId': initialCountryId,
         'stateId': initialStateId,
         'districtId': initialDistrictId,
-        'selectedType': null,
-        'selectedCountry': null,
-        'selectedState': null,
-        'selectedDistrict': null,
         'states': <StateModel>[],
         'districts': <DistrictModel>[],
       });
@@ -132,7 +128,7 @@ class _ClientCreatePageState extends State<ClientCreatePage> {
       _emailFields.add({
         'controller': TextEditingController(text: initialValue),
         'typeId': initialTypeId,
-        'type': null,
+        'type': _contactTypes.isNotEmpty ? _contactTypes.first : null,
       });
     });
   }
@@ -142,7 +138,7 @@ class _ClientCreatePageState extends State<ClientCreatePage> {
       _mobileFields.add({
         'controller': TextEditingController(text: initialValue),
         'typeId': initialTypeId,
-        'type': null,
+        'type': _contactTypes.isNotEmpty ? _contactTypes.first : null,
       });
     });
   }
@@ -172,7 +168,7 @@ class _ClientCreatePageState extends State<ClientCreatePage> {
       // Match details for addresses
       for (var i = 0; i < _addressFields.length; i++) {
         var f = _addressFields[i];
-        f['selectedType'] = _addressTypes.where((t) => t.id == f['typeId']).firstOrNull;
+        f['selectedType'] = _addressTypes.where((t) => t.id == f['typeId']).firstOrNull ?? (_addressTypes.isNotEmpty ? _addressTypes.first : null);
         f['selectedCountry'] = _countries.where((c) => c.id == f['countryId']).firstOrNull;
         
         if (f['selectedCountry'] != null) {
