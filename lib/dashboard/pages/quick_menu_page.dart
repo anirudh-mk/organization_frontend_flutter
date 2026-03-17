@@ -9,6 +9,7 @@ import '../../subcontractor/pages/subcontractor_list_page.dart';
 import '../../material/pages/material_list_page.dart';
 import '../../finance/pages/finance_dashboard_page.dart';
 import '../../finance/pages/transaction_form_page.dart';
+import '../../vendor/pages/vendor_list_page.dart';
 import '../../theme/app_theme.dart';
 
 class QuickMenuPage extends StatelessWidget {
@@ -187,6 +188,20 @@ class QuickMenuPage extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => const SubcontractorListPage()),
+                    );
+                  },
+                ),
+                const SizedBox(height: 12),
+                _BentoShortcut(
+                  icon: Icons.handshake_rounded,
+                  title: "Manage Vendors",
+                  subtitle: "View and add vendors",
+                  color: Colors.deepPurple.withValues(alpha: 0.05),
+                  iconColor: Colors.deepPurple,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const VendorListPage()),
                     );
                   },
                 ),
