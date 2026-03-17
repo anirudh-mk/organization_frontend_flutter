@@ -7,6 +7,8 @@ import 'package:organization_frontend_app/client/pages/client_list_page.dart';
 import '../../vehicle/pages/vehicle_list_page.dart';
 import '../../subcontractor/pages/subcontractor_list_page.dart';
 import '../../material/pages/material_list_page.dart';
+import '../../finance/pages/finance_dashboard_page.dart';
+import '../../finance/pages/ledger_list_page.dart';
 import '../../theme/app_theme.dart';
 
 class QuickMenuPage extends StatelessWidget {
@@ -206,7 +208,7 @@ class QuickMenuPage extends StatelessWidget {
                 const SizedBox(height: 32),
 
                 /// Other Utilities
-                const _SectionHeader(title: "Utilities"),
+                const _SectionHeader(title: "Finance & Reports"),
                 const SizedBox(height: 16),
                 Container(
                   decoration: BoxDecoration(
@@ -218,20 +220,26 @@ class QuickMenuPage extends StatelessWidget {
                     children: [
                       _UtilityTile(
                         icon: Icons.account_balance_wallet_rounded,
-                        title: "Payroll & Payments",
-                        onTap: () {},
+                        title: "Payment Hub",
+                        onTap: () {
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => const FinanceDashboardPage()));
+                        },
+                      ),
+                      Divider(height: 1, color: AppColors.textMuted.withValues(alpha: 0.05), indent: 56),
+                      _UtilityTile(
+                        icon: Icons.account_balance_rounded,
+                        title: "Account Ledgers",
+                        onTap: () {
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => const LedgerListPage()));
+                        },
                       ),
                       Divider(height: 1, color: AppColors.textMuted.withValues(alpha: 0.05), indent: 56),
                       _UtilityTile(
                         icon: Icons.analytics_rounded,
-                        title: "Advanced Reports",
-                        onTap: () {},
-                      ),
-                      Divider(height: 1, color: AppColors.textMuted.withValues(alpha: 0.05), indent: 56),
-                      _UtilityTile(
-                        icon: Icons.help_outline_rounded,
-                        title: "Support Center",
-                        onTap: () {},
+                        title: "Financial Reports",
+                        onTap: () {
+                           Navigator.push(context, MaterialPageRoute(builder: (_) => const FinanceDashboardPage()));
+                        },
                       ),
                     ],
                   ),
