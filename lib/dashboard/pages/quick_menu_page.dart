@@ -8,7 +8,7 @@ import '../../vehicle/pages/vehicle_list_page.dart';
 import '../../subcontractor/pages/subcontractor_list_page.dart';
 import '../../material/pages/material_list_page.dart';
 import '../../finance/pages/finance_dashboard_page.dart';
-import '../../finance/pages/ledger_list_page.dart';
+import '../../finance/pages/transaction_form_page.dart';
 import '../../theme/app_theme.dart';
 
 class QuickMenuPage extends StatelessWidget {
@@ -192,6 +192,34 @@ class QuickMenuPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 _BentoShortcut(
+                  icon: Icons.add_card_rounded,
+                  title: "Record Payment",
+                  subtitle: "Track outgoing funds",
+                  color: AppColors.error.withValues(alpha: 0.05),
+                  iconColor: AppColors.error,
+                  onTap: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const TransactionFormPage(isPayment: true)),
+                    );
+                  },
+                ),
+                const SizedBox(height: 12),
+                _BentoShortcut(
+                  icon: Icons.receipt_long_rounded,
+                  title: "Record Receipt",
+                  subtitle: "Track incoming funds",
+                  color: AppColors.success.withValues(alpha: 0.05),
+                  iconColor: AppColors.success,
+                  onTap: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const TransactionFormPage(isPayment: false)),
+                    );
+                  },
+                ),
+                const SizedBox(height: 12),
+                _BentoShortcut(
                   icon: Icons.inventory_2_rounded,
                   title: "Materials",
                   subtitle: "Manage inventory items",
@@ -220,23 +248,15 @@ class QuickMenuPage extends StatelessWidget {
                     children: [
                       _UtilityTile(
                         icon: Icons.account_balance_wallet_rounded,
-                        title: "Payment Hub",
+                        title: "Finance Dashboard",
                         onTap: () {
                           Navigator.push(context, MaterialPageRoute(builder: (_) => const FinanceDashboardPage()));
                         },
                       ),
                       Divider(height: 1, color: AppColors.textMuted.withValues(alpha: 0.05), indent: 56),
                       _UtilityTile(
-                        icon: Icons.account_balance_rounded,
-                        title: "Account Ledgers",
-                        onTap: () {
-                          Navigator.push(context, MaterialPageRoute(builder: (_) => const LedgerListPage()));
-                        },
-                      ),
-                      Divider(height: 1, color: AppColors.textMuted.withValues(alpha: 0.05), indent: 56),
-                      _UtilityTile(
                         icon: Icons.analytics_rounded,
-                        title: "Financial Reports",
+                        title: "Profit & Loss Reports",
                         onTap: () {
                            Navigator.push(context, MaterialPageRoute(builder: (_) => const FinanceDashboardPage()));
                         },

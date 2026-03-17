@@ -4,7 +4,6 @@ import '../services/finance_service.dart';
 import '../models/transaction_model.dart';
 import '../models/finance_category.dart';
 import 'transaction_form_page.dart';
-import 'ledger_list_page.dart';
 
 class FinanceDashboardPage extends StatefulWidget {
   const FinanceDashboardPage({super.key});
@@ -82,17 +81,6 @@ class _FinanceDashboardPageState extends State<FinanceDashboardPage> {
                   ),
                 ),
               ),
-              actions: [
-                IconButton(
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const LedgerListPage()),
-                  ),
-                  icon: const Icon(Icons.account_balance_rounded),
-                  style: IconButton.styleFrom(backgroundColor: colorScheme.surface),
-                ),
-                const SizedBox(width: 16),
-              ],
             ),
 
             /// ───────────── Content ─────────────
