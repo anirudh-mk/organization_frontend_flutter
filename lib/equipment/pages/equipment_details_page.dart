@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../theme/app_theme.dart';
 import '../models/equipment_model.dart';
 
@@ -78,14 +79,14 @@ class EquipmentDetailPage extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.08)),
+                      border: Border.all(color: AppColors.textMuted.withOpacity(0.08)),
                     ),
                     child: Column(
                       children: [
                         _buildInfoTile(theme, "Ownership Type", equipment.ownershipTypeDetail?.name ?? 'N/A'),
-                        Divider(height: 1, color: AppColors.textMuted.withValues(alpha: 0.05), indent: 20, endIndent: 20),
+                        Divider(height: 1, color: AppColors.textMuted.withOpacity(0.05), indent: 20, endIndent: 20),
                         _buildInfoTile(theme, "Purchase Date", equipment.purchaseDate ?? 'N/A'),
-                        Divider(height: 1, color: AppColors.textMuted.withValues(alpha: 0.05), indent: 20, endIndent: 20),
+                        Divider(height: 1, color: AppColors.textMuted.withOpacity(0.05), indent: 20, endIndent: 20),
                         _buildInfoTile(theme, "Purchase Cost", equipment.purchaseCost != null ? "₹${equipment.purchaseCost}" : 'N/A'),
                       ],
                     ),
@@ -99,21 +100,93 @@ class EquipmentDetailPage extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.08)),
+                        border: Border.all(color: AppColors.textMuted.withOpacity(0.08)),
                       ),
                       child: Column(
                         children: [
                           _buildInfoTile(theme, "Vendor", equipment.rentalDetails!.vendorName ?? 'N/A'),
-                          Divider(height: 1, color: AppColors.textMuted.withValues(alpha: 0.05), indent: 20, endIndent: 20),
+                          Divider(height: 1, color: AppColors.textMuted.withOpacity(0.05), indent: 20, endIndent: 20),
                           _buildInfoTile(theme, "Rental Start", equipment.rentalDetails!.rentalStartDate),
-                          Divider(height: 1, color: AppColors.textMuted.withValues(alpha: 0.05), indent: 20, endIndent: 20),
+                          Divider(height: 1, color: AppColors.textMuted.withOpacity(0.05), indent: 20, endIndent: 20),
                           _buildInfoTile(theme, "Daily Rate", "₹${equipment.rentalDetails!.rentalRatePerDay}"),
                         ],
                       ),
                     ),
                   ],
 
-                  const SizedBox(height: 120),
+                  if (equipment.notes != null && equipment.notes!.isNotEmpty) ...[
+                    const SizedBox(height: 24),
+                    Text("General Notes", style: theme.textTheme.titleLarge),
+                    const SizedBox(height: 12),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: AppColors.textMuted.withOpacity(0.08)),
+                      ),
+                      child: Text(
+                        equipment.notes!,
+                        style: theme.textTheme.bodyMedium?.copyWith(height: 1.5, color: AppColors.textPrimary),
+                      ),
+                    ),
+                  ],
+
+                  if (equipment.photos.isNotEmpty) ...[
+                    const SizedBox(height: 24),
+                    Text("Photos", style: theme.textTheme.titleLarge),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      height: 140,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: equipment.photos.length,
+                        itemBuilder: (context, index) {
+                          final photo = equipment.photos[index];
+                          return Container(
+                            width: 120,
+                            margin: const EdgeInsets.only(right: 12),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(20),
+                              image: DecorationImage(
+                                image: NetworkImage(photo.imageUrl),
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+
+                  if (equipment.attachments.isNotEmpty) ...[
+                    const SizedBox(height: 24),
+                    Text("Documents", style: theme.textTheme.titleLarge),
+                    const SizedBox(height: 16),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: AppColors.textMuted.withOpacity(0.08)),
+                      ),
+                      child: Column(
+                        children: equipment.attachments.map((att) => ListTile(
+                          onTap: () => _openAttachment(att.fileUrl),
+                          leading: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.05), borderRadius: BorderRadius.circular(10)),
+                            child: const Icon(Icons.description_outlined, color: AppColors.primary, size: 20),
+                          ),
+                          title: Text(att.fileName, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                          subtitle: Text(att.fileSize != null ? "${(att.fileSize! / 1024).toStringAsFixed(1)} KB" : "Document", style: const TextStyle(fontSize: 12)),
+                          trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.textMuted),
+                        )).toList(),
+                      ),
+                    ),
+                  ],
+
+                  const SizedBox(height: 40),
                 ],
               ),
             ),
@@ -130,13 +203,13 @@ class EquipmentDetailPage extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.08)),
+          border: Border.all(color: AppColors.textMuted.withOpacity(0.08)),
         ),
         child: Column(
           children: [
             Container(
               padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: col.withValues(alpha: 0.05), shape: BoxShape.circle),
+              decoration: BoxDecoration(color: col.withOpacity(0.05), shape: BoxShape.circle),
               child: Icon(icon, color: col, size: 20),
             ),
             const SizedBox(height: 12),
@@ -154,5 +227,12 @@ class EquipmentDetailPage extends StatelessWidget {
       title: Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 11, fontWeight: FontWeight.w600)),
       subtitle: Text(val, style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.textPrimary, fontSize: 15)),
     );
+  }
+
+  Future<void> _openAttachment(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    }
   }
 }
