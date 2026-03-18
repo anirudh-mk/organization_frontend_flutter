@@ -10,6 +10,7 @@ import '../../material/pages/material_list_page.dart';
 import '../../finance/pages/finance_dashboard_page.dart';
 import '../../finance/pages/transaction_form_page.dart';
 import '../../vendor/pages/vendor_list_page.dart';
+import '../../equipment/pages/equipment_list_page.dart';
 import '../../theme/app_theme.dart';
 
 class QuickMenuPage extends StatelessWidget {
@@ -87,7 +88,12 @@ class QuickMenuPage extends StatelessWidget {
                         _QuickMenuIcon(
                           icon: Icons.construction_rounded,
                           label: "Gear",
-                          onTap: () => onNavigateToTab(4),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const EquipmentListPage()),
+                            );
+                          },
                         ),
                       ],
                     );
@@ -133,7 +139,12 @@ class QuickMenuPage extends StatelessWidget {
                   subtitle: "Check machinery status",
                   color: Colors.amber.withValues(alpha: 0.05),
                   iconColor: Colors.amber,
-                  onTap: () => onNavigateToTab(4),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const EquipmentListPage()),
+                    );
+                  },
                 ),
                 const SizedBox(height: 12),
                 _BentoShortcut(

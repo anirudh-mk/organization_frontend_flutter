@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
+import '../models/equipment_model.dart';
 
 class EquipmentDetailPage extends StatelessWidget {
-  const EquipmentDetailPage({super.key});
+  final EquipmentModel equipment;
+
+  const EquipmentDetailPage({super.key, required this.equipment});
 
   @override
   Widget build(BuildContext context) {
@@ -39,12 +42,12 @@ class EquipmentDetailPage extends StatelessWidget {
                     ),
                     const SizedBox(height: 20),
                     Text(
-                      "JCB Backhoe #402",
+                      equipment.name,
                       style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      "Whitefield Site Assignment",
+                      "ID: ${equipment.code}",
                       style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
                     ),
                   ],
@@ -58,13 +61,13 @@ class EquipmentDetailPage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                   Text("Operational Health", style: theme.textTheme.titleLarge),
+                   Text("Operational Info", style: theme.textTheme.titleLarge),
                   const SizedBox(height: 16),
                   Row(
                     children: [
-                      _buildStat("Fuel Level", "72%", Icons.gas_meter_rounded, AppColors.primary),
+                      _buildStat("Category", equipment.categoryDetail?.name ?? 'N/A', Icons.category_rounded, AppColors.primary),
                       const SizedBox(width: 16),
-                      _buildStat("Machine Health", "94%", Icons.handyman_rounded, Colors.teal),
+                      _buildStat("Status", equipment.statusDetail?.name ?? 'N/A', Icons.info_outline_rounded, equipment.isActive ? AppColors.success : AppColors.error),
                     ],
                   ),
                   const SizedBox(height: 40),
@@ -79,14 +82,36 @@ class EquipmentDetailPage extends StatelessWidget {
                     ),
                     child: Column(
                       children: [
-                        _buildInfoTile(theme, "Manufacturer Model", "CAT 2024-X"),
+                        _buildInfoTile(theme, "Ownership Type", equipment.ownershipTypeDetail?.name ?? 'N/A'),
                         Divider(height: 1, color: AppColors.textMuted.withValues(alpha: 0.05), indent: 20, endIndent: 20),
-                        _buildInfoTile(theme, "Serial Number", "SN-99281-B"),
+                        _buildInfoTile(theme, "Purchase Date", equipment.purchaseDate ?? 'N/A'),
                         Divider(height: 1, color: AppColors.textMuted.withValues(alpha: 0.05), indent: 20, endIndent: 20),
-                        _buildInfoTile(theme, "Last Service Date", "12 Jan 2026"),
+                        _buildInfoTile(theme, "Purchase Cost", equipment.purchaseCost != null ? "₹${equipment.purchaseCost}" : 'N/A'),
                       ],
                     ),
                   ),
+
+                  if (equipment.rentalDetails != null) ...[
+                    const SizedBox(height: 24),
+                    Text("Rental Information", style: theme.textTheme.titleLarge),
+                    const SizedBox(height: 16),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.08)),
+                      ),
+                      child: Column(
+                        children: [
+                          _buildInfoTile(theme, "Vendor", equipment.rentalDetails!.vendorName ?? 'N/A'),
+                          Divider(height: 1, color: AppColors.textMuted.withValues(alpha: 0.05), indent: 20, endIndent: 20),
+                          _buildInfoTile(theme, "Rental Start", equipment.rentalDetails!.rentalStartDate),
+                          Divider(height: 1, color: AppColors.textMuted.withValues(alpha: 0.05), indent: 20, endIndent: 20),
+                          _buildInfoTile(theme, "Daily Rate", "₹${equipment.rentalDetails!.rentalRatePerDay}"),
+                        ],
+                      ),
+                    ),
+                  ],
 
                   const SizedBox(height: 120),
                 ],
@@ -115,7 +140,7 @@ class EquipmentDetailPage extends StatelessWidget {
               child: Icon(icon, color: col, size: 20),
             ),
             const SizedBox(height: 12),
-            Text(val, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20)),
+            Text(val, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
             Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 11, fontWeight: FontWeight.w600)),
           ],
         ),

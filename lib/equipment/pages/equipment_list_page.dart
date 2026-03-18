@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
+import '../models/equipment_model.dart';
+import '../services/equipment_service.dart';
 import 'equipment_details_page.dart';
 import 'equipment_create_page.dart';
 
@@ -11,7 +13,50 @@ class EquipmentListPage extends StatefulWidget {
 }
 
 class _EquipmentListPageState extends State<EquipmentListPage> {
-  bool isGridView = true; // State for switching between Grid and List
+  bool isGridView = true;
+  final EquipmentService _service = EquipmentService();
+  late Future<List<EquipmentModel>> _equipmentsFuture;
+  List<EquipmentModel> _allEquipments = [];
+  List<EquipmentModel> _displayEquipments = [];
+
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+    _searchController.addListener(_applyFilters);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _loadData() {
+    setState(() {
+      _equipmentsFuture = _fetchEquipments();
+    });
+  }
+
+  Future<List<EquipmentModel>> _fetchEquipments() async {
+    final list = await _service.getEquipments();
+    setState(() {
+      _allEquipments = list;
+      _applyFilters();
+    });
+    return list;
+  }
+
+  void _applyFilters() {
+    setState(() {
+      _displayEquipments = _allEquipments.where((e) {
+        return e.name.toLowerCase().contains(_searchController.text.toLowerCase()) ||
+               e.code.toLowerCase().contains(_searchController.text.toLowerCase());
+      }).toList();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +66,6 @@ class _EquipmentListPageState extends State<EquipmentListPage> {
     return Scaffold(
       body: CustomScrollView(
         slivers: [
-          /// ───────────── Modern Header ─────────────
           SliverAppBar(
             pinned: true,
             toolbarHeight: 72,
@@ -33,26 +77,14 @@ class _EquipmentListPageState extends State<EquipmentListPage> {
             ),
             actions: [
               IconButton(
-                icon: Icon(
-                  isGridView ? Icons.format_list_bulleted_rounded : Icons.grid_view_rounded,
-                ),
+                icon: Icon(isGridView ? Icons.format_list_bulleted_rounded : Icons.grid_view_rounded),
                 onPressed: () => setState(() => isGridView = !isGridView),
-                style: IconButton.styleFrom(
-                  backgroundColor: colorScheme.surface,
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.qr_code_scanner_rounded),
-                onPressed: () {},
-                style: IconButton.styleFrom(
-                  backgroundColor: colorScheme.surface,
-                ),
+                style: IconButton.styleFrom(backgroundColor: colorScheme.surface),
               ),
               const SizedBox(width: 16),
             ],
           ),
 
-          /// ───────────── Search & Filter ─────────────
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
@@ -60,39 +92,29 @@ class _EquipmentListPageState extends State<EquipmentListPage> {
                 children: [
                   Expanded(
                     child: TextField(
-                      decoration: InputDecoration(
-                        hintText: "Search equipment ID...",
-                        prefixIcon: const Icon(Icons.search_rounded, size: 20),
-                        contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                      controller: _searchController,
+                      decoration: const InputDecoration(
+                        hintText: "Search equipment...",
+                        prefixIcon: Icon(Icons.search_rounded, size: 20),
+                        contentPadding: EdgeInsets.symmetric(vertical: 0),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Container(
-                    height: 56,
-                    width: 56,
-                    decoration: BoxDecoration(
-                      color: colorScheme.primary,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: const Icon(Icons.tune_rounded, color: Colors.white, size: 20),
                   ),
                 ],
               ),
             ),
           ),
 
-          /// ───────────── Stats Summary ─────────────
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Row(
                 children: [
-                  _miniStat("Total Fleet", "42"),
+                   _miniStat("Total Fleet", _allEquipments.length.toString()),
                   const SizedBox(width: 12),
-                  _miniStat("In Use", "34", isHighlight: true),
+                  _miniStat("Active", _allEquipments.where((e) => e.isActive).length.toString(), isHighlight: true),
                   const SizedBox(width: 12),
-                  _miniStat("Service", "08"),
+                  _miniStat("Inactive", _allEquipments.where((e) => !e.isActive).length.toString()),
                 ],
               ),
             ),
@@ -100,24 +122,41 @@ class _EquipmentListPageState extends State<EquipmentListPage> {
 
           const SliverToBoxAdapter(child: SizedBox(height: 24)),
 
-          /// ───────────── List/Grid Content ─────────────
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            sliver: isGridView ? _buildEquipmentGrid() : _buildEquipmentList(),
+          FutureBuilder<List<EquipmentModel>>(
+            future: _equipmentsFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting && _allEquipments.isEmpty) {
+                return const SliverFillRemaining(child: Center(child: CircularProgressIndicator()));
+              }
+              if (snapshot.hasError && _allEquipments.isEmpty) {
+                return SliverFillRemaining(child: Center(child: Text("Error loading inventory: ${snapshot.error}")));
+              }
+              if (_displayEquipments.isEmpty) {
+                return const SliverFillRemaining(child: Center(child: Text("No equipment found.")));
+              }
+
+              return SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                sliver: isGridView 
+                  ? _buildEquipmentGrid(_displayEquipments) 
+                  : _buildEquipmentList(_displayEquipments),
+              );
+            },
           ),
 
           const SliverToBoxAdapter(child: SizedBox(height: 120)),
         ],
       ),
       floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 90), // Floating above navbar
+        padding: const EdgeInsets.only(bottom: 90),
         child: FloatingActionButton.extended(
           heroTag: 'equipment_list_fab',
-          onPressed: () {
-            Navigator.push(
+          onPressed: () async {
+            final result = await Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const EquipmentCreatePage()),
             );
+            if (result == true) _loadData();
           },
           backgroundColor: colorScheme.primary,
           foregroundColor: Colors.white,
@@ -151,7 +190,7 @@ class _EquipmentListPageState extends State<EquipmentListPage> {
     );
   }
 
-  Widget _buildEquipmentGrid() {
+  Widget _buildEquipmentGrid(List<EquipmentModel> list) {
     return SliverGrid(
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
@@ -160,43 +199,33 @@ class _EquipmentListPageState extends State<EquipmentListPage> {
         childAspectRatio: 0.85,
       ),
       delegate: SliverChildBuilderDelegate(
-        (context, index) => _buildEquipmentCard(context, index),
-        childCount: 6,
+        (context, index) => _buildEquipmentCard(context, list[index]),
+        childCount: list.length,
       ),
     );
   }
 
-  Widget _buildEquipmentList() {
+  Widget _buildEquipmentList(List<EquipmentModel> list) {
     return SliverList(
       delegate: SliverChildBuilderDelegate(
         (context, index) => Padding(
           padding: const EdgeInsets.only(bottom: 12),
-          child: _buildEquipmentListTile(context, index),
+          child: _buildEquipmentListTile(context, list[index]),
         ),
-        childCount: 6,
+        childCount: list.length,
       ),
     );
   }
 
-  Widget _buildEquipmentCard(BuildContext context, int index) {
-    final List<String> types = ["Excavator", "Crane", "Mixer", "Truck"];
-    final String type = types[index % 4];
-    final bool isWorking = index % 3 != 0;
-
+  Widget _buildEquipmentCard(BuildContext context, EquipmentModel equipment) {
     return GestureDetector(
-      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const EquipmentDetailPage())),
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => EquipmentDetailPage(equipment: equipment))),
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(32),
           border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.1)),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primary.withValues(alpha: 0.04),
-              blurRadius: 24,
-              offset: const Offset(0, 8),
-            ),
-          ],
+          boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.04), blurRadius: 24, offset: const Offset(0, 8))],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -208,17 +237,10 @@ class _EquipmentListPageState extends State<EquipmentListPage> {
                 children: [
                   Container(
                     padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppColors.background,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      index % 2 == 0 ? Icons.construction_rounded : Icons.local_shipping_rounded,
-                      color: AppColors.textSecondary,
-                      size: 20,
-                    ),
+                    decoration: BoxDecoration(color: AppColors.background, borderRadius: BorderRadius.circular(12)),
+                    child: const Icon(Icons.construction_rounded, color: AppColors.textSecondary, size: 20),
                   ),
-                  _statusDot(isWorking),
+                  _statusDot(equipment.isActive),
                 ],
               ),
             ),
@@ -228,16 +250,9 @@ class _EquipmentListPageState extends State<EquipmentListPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    type,
-                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                  Text(equipment.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14), overflow: TextOverflow.ellipsis),
                   const SizedBox(height: 2),
-                  Text(
-                    "ID: #EQ-00${index + 1}",
-                    style: TextStyle(color: AppColors.textSecondary, fontSize: 11, fontWeight: FontWeight.w500),
-                  ),
+                  Text("ID: ${equipment.code}", style: const TextStyle(color: AppColors.textSecondary, fontSize: 11, fontWeight: FontWeight.w500)),
                 ],
               ),
             ),
@@ -247,47 +262,35 @@ class _EquipmentListPageState extends State<EquipmentListPage> {
     );
   }
 
-  Widget _buildEquipmentListTile(BuildContext context, int index) {
-    final List<String> types = ["Excavator", "Crane", "Mixer", "Truck"];
-    final bool isWorking = index % 3 != 0;
-
+  Widget _buildEquipmentListTile(BuildContext context, EquipmentModel equipment) {
     return GestureDetector(
-      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const EquipmentDetailPage())),
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => EquipmentDetailPage(equipment: equipment))),
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
           border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.1)),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primary.withValues(alpha: 0.03),
-              blurRadius: 16,
-              offset: const Offset(0, 4),
-            ),
-          ],
+          boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.03), blurRadius: 16, offset: const Offset(0, 4))],
         ),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: AppColors.background,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Icon(index % 2 == 0 ? Icons.construction_rounded : Icons.local_shipping_rounded, color: AppColors.textSecondary),
+              decoration: BoxDecoration(color: AppColors.background, borderRadius: BorderRadius.circular(16)),
+              child: const Icon(Icons.construction_rounded, color: AppColors.textSecondary),
             ),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(types[index % 4], style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-                  Text("ID: #EQ-00${index + 1} • Site Alpha", style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                  Text(equipment.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                  Text("ID: ${equipment.code} • ${equipment.categoryDetail?.name ?? ''}", style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                 ],
               ),
             ),
-            _statusDot(isWorking),
+            _statusDot(equipment.isActive),
           ],
         ),
       ),
@@ -298,26 +301,15 @@ class _EquipmentListPageState extends State<EquipmentListPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: (working ? AppColors.success : AppColors.warning).withValues(alpha: 0.08),
+        color: (working ? AppColors.success : AppColors.error).withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 6,
-            height: 6,
-            decoration: BoxDecoration(color: working ? AppColors.success : AppColors.warning, shape: BoxShape.circle),
-          ),
+          Container(width: 6, height: 6, decoration: BoxDecoration(color: working ? AppColors.success : AppColors.error, shape: BoxShape.circle)),
           const SizedBox(width: 6),
-          Text(
-            working ? "Active" : "Idle",
-            style: TextStyle(
-              color: working ? AppColors.success : AppColors.warning,
-              fontSize: 10,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
+          Text(working ? "Active" : "Inactive", style: TextStyle(color: working ? AppColors.success : AppColors.error, fontSize: 10, fontWeight: FontWeight.w800)),
         ],
       ),
     );
