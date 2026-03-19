@@ -132,12 +132,14 @@ class _EquipmentListPageState extends State<EquipmentListPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(equipment.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                      Text(equipment.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold), maxLines: 2, overflow: TextOverflow.ellipsis),
                       Text("Code: ${equipment.code}", style: const TextStyle(color: AppColors.textSecondary)),
                     ],
                   ),
                 ),
+                const SizedBox(width: 8),
                 _statusDot(equipment.isActive),
+
               ],
             ),
             const SizedBox(height: 32),
@@ -418,7 +420,14 @@ class _EquipmentListPageState extends State<EquipmentListPage> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text("Code: ${equipment.code}", style: const TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.bold)),
+                  Expanded(
+                    child: Text("Code: ${equipment.code}", 
+                      style: const TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.bold),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
                   _statusDot(equipment.isActive),
                 ],
               ),
@@ -487,16 +496,17 @@ class _EquipmentListPageState extends State<EquipmentListPage> {
                     ),
               ),
               const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(equipment.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14), overflow: TextOverflow.ellipsis),
-                    Text("Code: ${equipment.code}", style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                  ],
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(equipment.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14), overflow: TextOverflow.ellipsis, maxLines: 1),
+                      Text("Code: ${equipment.code}", style: const TextStyle(fontSize: 12, color: AppColors.textSecondary), overflow: TextOverflow.ellipsis, maxLines: 1),
+                    ],
+                  ),
                 ),
-              ),
-              _statusDot(equipment.isActive),
+                const SizedBox(width: 8),
+                _statusDot(equipment.isActive),
             ],
           ),
         ),
