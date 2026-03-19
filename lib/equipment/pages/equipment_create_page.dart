@@ -179,7 +179,34 @@ class _EquipmentCreatePageState extends State<EquipmentCreatePage> {
     }
   }
 
+  Future<void> _selectDate(BuildContext context, TextEditingController controller) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.tryParse(controller.text) ?? DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2101),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: AppColors.primary,
+              onPrimary: Colors.white,
+              onSurface: AppColors.textPrimary,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) {
+      setState(() {
+        controller.text = picked.toString().split(' ')[0];
+      });
+    }
+  }
+
   Future<void> _openAttachment(String url) async {
+
     final uri = Uri.parse(url);
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri);
@@ -348,8 +375,11 @@ class _EquipmentCreatePageState extends State<EquipmentCreatePage> {
                   Row(children: [
                     Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       _label("PURCHASE DATE"),
-                      _field(_purchaseDateController, "YYYY-MM-DD"),
+                      _field(_purchaseDateController, "Select Date", 
+                        readOnly: true, 
+                        onTap: () => _selectDate(context, _purchaseDateController)),
                     ])),
+
                     const SizedBox(width: 12),
                     Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       _label("PURCHASE COST"),
@@ -371,8 +401,12 @@ class _EquipmentCreatePageState extends State<EquipmentCreatePage> {
                   Row(children: [
                     Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       _label("RENTAL START *"),
-                      _field(_rentalStartDateController, "YYYY-MM-DD", validator: (v) => v == null || v.isEmpty ? "Required" : null),
+                      _field(_rentalStartDateController, "Select Date", 
+                        readOnly: true, 
+                        onTap: () => _selectDate(context, _rentalStartDateController),
+                        validator: (v) => v == null || v.isEmpty ? "Required" : null),
                     ])),
+
                     const SizedBox(width: 12),
                     Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       _label("DAILY RATE *"),
@@ -382,12 +416,18 @@ class _EquipmentCreatePageState extends State<EquipmentCreatePage> {
                   const SizedBox(height: 16),
                   Row(children: [
                     Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      _label("RENTAL END"),
+                      _field(_rentalEndDateController, "Select Date", 
+                        readOnly: true, 
+                        onTap: () => _selectDate(context, _rentalEndDateController)),
+                    ])),
+                    const SizedBox(width: 12),
+                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       _label("SECURITY DEPOSIT"),
                       _field(_securityDepositController, "0.00", keyboardType: TextInputType.number),
                     ])),
-                    const SizedBox(width: 12),
-                    Expanded(child: Container()), 
                   ]),
+
                 ],
               ],
 
@@ -500,16 +540,19 @@ class _EquipmentCreatePageState extends State<EquipmentCreatePage> {
   }
 
   Widget _field(TextEditingController controller, String hint,
-      {TextInputType? keyboardType, String? Function(String?)? validator, int maxLines = 1}) {
+      {TextInputType? keyboardType, String? Function(String?)? validator, int maxLines = 1, bool readOnly = false, VoidCallback? onTap}) {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
       validator: validator,
       maxLines: maxLines,
+      readOnly: readOnly,
+      onTap: onTap,
       decoration: InputDecoration(
         hintText: hint,
         filled: true,
         fillColor: Colors.white,
+        suffixIcon: onTap != null ? const Icon(Icons.calendar_today_outlined, size: 20, color: AppColors.textSecondary) : null,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
         enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
@@ -521,6 +564,7 @@ class _EquipmentCreatePageState extends State<EquipmentCreatePage> {
       ),
     );
   }
+
 
   Widget _dropdown<T>({
     required T? value,

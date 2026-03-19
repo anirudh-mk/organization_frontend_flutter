@@ -370,8 +370,10 @@ class _EquipmentListPageState extends State<EquipmentListPage> {
         crossAxisCount: 2,
         crossAxisSpacing: 16,
         mainAxisSpacing: 16,
-        childAspectRatio: 0.85,
+        childAspectRatio: 0.72, // Better proportion for taller images
       ),
+
+
       delegate: SliverChildBuilderDelegate(
         (context, index) => _buildEquipmentCard(context, list[index]),
         childCount: list.length,
@@ -397,50 +399,80 @@ class _EquipmentListPageState extends State<EquipmentListPage> {
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(32),
-          border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.1)),
-          boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.04), blurRadius: 24, offset: const Offset(0, 8))],
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primary.withValues(alpha: 0.06),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-              child: equipment.photos.isNotEmpty
-                ? Image.network(equipment.photos.first.imageUrl, height: 100, width: double.infinity, fit: BoxFit.cover)
-                : Container(
-                    height: 100, 
-                    width: double.infinity, 
-                    color: AppColors.background,
-                    child: const Icon(Icons.construction_rounded, color: AppColors.textSecondary, size: 32),
-                  ),
+            Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                  child: equipment.photos.isNotEmpty
+                    ? Image.network(
+                        equipment.photos.first.imageUrl,
+                        height: 170, // Increased height
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                      )
+                    : Container(
+                        height: 170,
+                        width: double.infinity,
+                        color: AppColors.background,
+                        child: Icon(Icons.construction_rounded, color: AppColors.textMuted.withValues(alpha: 0.4), size: 48),
+                      ),
+                ),
+
+                Positioned(
+                  top: 10,
+                  right: 10,
+                  child: _statusDot(equipment.isActive, isBadge: true),
+                ),
+              ],
             ),
             Padding(
-              padding: const EdgeInsets.all(12),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 14), // Tightened padding
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Text("Code: ${equipment.code}", 
-                      style: const TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.bold),
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
-                    ),
+                  Text(
+                    equipment.name,
+                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: AppColors.textPrimary, letterSpacing: -0.2),
+                    maxLines: 1, // Keep it one line for cleaner look in v3
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(width: 4),
-                  _statusDot(equipment.isActive),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppColors.background,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          equipment.code.toUpperCase(),
+                          style: const TextStyle(color: AppColors.textSecondary, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
-            const Spacer(),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              child: Text(equipment.name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: AppColors.textPrimary), maxLines: 2, overflow: TextOverflow.ellipsis),
-            ),
+
           ],
         ),
       ),
     );
+
   }
 
   Widget _buildEquipmentListTile(BuildContext context, EquipmentModel equipment) {
@@ -479,10 +511,16 @@ class _EquipmentListPageState extends State<EquipmentListPage> {
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.1)),
-            boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.03), blurRadius: 16, offset: const Offset(0, 4))],
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.primary.withValues(alpha: 0.04),
+                blurRadius: 16,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
+
           child: Row(
             children: [
               ClipRRect(
@@ -514,21 +552,37 @@ class _EquipmentListPageState extends State<EquipmentListPage> {
     );
   }
 
-  Widget _statusDot(bool isActive) {
+  Widget _statusDot(bool isActive, {bool isBadge = false}) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: EdgeInsets.symmetric(horizontal: isBadge ? 10 : 8, vertical: isBadge ? 6 : 4),
       decoration: BoxDecoration(
-        color: (isActive ? AppColors.success : AppColors.error).withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(8),
+        color: isBadge ? Colors.white.withValues(alpha: 0.9) : (isActive ? AppColors.success : AppColors.error).withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(isBadge ? 12 : 8),
+        boxShadow: isBadge ? [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 8, offset: const Offset(0, 2))] : null,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(width: 6, height: 6, decoration: BoxDecoration(color: isActive ? AppColors.success : AppColors.error, shape: BoxShape.circle)),
+          Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(
+              color: isActive ? AppColors.success : AppColors.error,
+              shape: BoxShape.circle,
+            ),
+          ),
           const SizedBox(width: 6),
-          Text(isActive ? "Active" : "Inactive", style: TextStyle(color: isActive ? AppColors.success : AppColors.error, fontSize: 10, fontWeight: FontWeight.w800)),
+          Text(
+            isActive ? "Active" : "Inactive",
+            style: TextStyle(
+              color: isBadge ? AppColors.textPrimary : (isActive ? AppColors.success : AppColors.error),
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
         ],
       ),
     );
   }
+
 }
