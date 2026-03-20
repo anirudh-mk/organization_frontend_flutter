@@ -60,7 +60,9 @@ class _EmployeeListPageState extends State<EmployeeListPage> {
     setState(() {
       _filteredEmployees = _employees.where((emp) {
         final matchesQuery = emp.displayName.toLowerCase().contains(query) ||
-            (emp.employeeCode?.toLowerCase().contains(query) ?? false);
+            (emp.employeeCode?.toLowerCase().contains(query) ?? false) ||
+            emp.emails.any((e) => e.email.toLowerCase().contains(query)) ||
+            emp.mobiles.any((m) => m.number.contains(query));
 
         final matchesStatus = _filterStatus == 'All' ||
             (_filterStatus == 'Active' && emp.isActive) ||

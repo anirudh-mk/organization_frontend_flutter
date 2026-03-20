@@ -58,8 +58,8 @@ class EmployeeModel {
       attachments: json['attachments'] != null 
           ? (json['attachments'] as List).map((a) => AttachmentModel.fromJson(a)).toList()
           : [],
-      jobRoleName: json['job_role_name'],
-      employeeCode: json['employee_code'],
+      jobRoleName: json['job_role_name']?.toString(),
+      employeeCode: json['employee_code']?.toString(),
       status: json['status'] ?? 'active',
       isActive: json['is_active'] ?? true,
     );

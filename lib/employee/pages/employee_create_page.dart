@@ -1,14 +1,16 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../shared/models/attachment_model.dart';
-import '../../shared/models/location_models.dart';
-import '../../organization/models/organization_model.dart' show UserOrganizationRoleModel;
-import '../../organization/services/organization_service.dart';
+import '../../theme/app_theme.dart';
 import '../models/employee_model.dart';
 import '../services/employee_service.dart';
-import '../../theme/app_theme.dart';
+import '../../shared/models/attachment_model.dart';
+import '../../shared/models/location_models.dart';
+import '../../shared/services/location_service.dart';
+import '../../organization/models/organization_model.dart' show UserOrganizationRoleModel;
+import '../../organization/services/organization_service.dart';
 
 class EmployeeCreatePage extends StatefulWidget {
   final EmployeeModel? employee;
@@ -23,23 +25,25 @@ class _EmployeeCreatePageState extends State<EmployeeCreatePage> {
   final _formKey = GlobalKey<FormState>();
   final EmployeeService _service = EmployeeService();
   final OrganizationService _orgService = OrganizationService();
+  final LocationService _locationService = LocationService();
 
   late TextEditingController _firstNameController;
   late TextEditingController _lastNameController;
   late TextEditingController _codeController;
   late TextEditingController _salaryController;
 
-  // Multiple contacts
-  final List<TextEditingController> _mobileControllers = [];
-  final List<TextEditingController> _emailControllers = [];
+  // Multiple contacts (Vendor-style)
+  final List<Map<String, dynamic>> _emailFields = [];
+  final List<Map<String, dynamic>> _mobileFields = [];
 
-  // Address management
-  final List<AddressModel> _tempAddresses = [];
+  // Multiple addresses (Vendor-style, in-line)
+  final List<Map<String, dynamic>> _addressFields = [];
   
   String? _selectedRoleId;
   bool _isActive = true;
 
   List<UserOrganizationRoleModel> _roles = [];
+  List<ContactTypeModel> _contactTypes = [];
   List<CountryModel> _countries = [];
   List<AddressTypeModel> _addressTypes = [];
   
@@ -61,19 +65,31 @@ class _EmployeeCreatePageState extends State<EmployeeCreatePage> {
 
     if (widget.employee != null) {
       for (var m in widget.employee!.mobiles) {
-        _mobileControllers.add(TextEditingController(text: m.number));
+        _addMobileField(initialValue: m.number, initialTypeId: m.contactTypeId);
       }
       for (var e in widget.employee!.emails) {
-        _emailControllers.add(TextEditingController(text: e.email));
+        _addEmailField(initialValue: e.email, initialTypeId: e.contactTypeId);
       }
-      _tempAddresses.addAll(widget.employee!.addresses);
+      for (var a in widget.employee!.addresses) {
+        _addAddressField(
+          initialLine1: a.line1,
+          initialLine2: a.line2,
+          initialCity: a.city,
+          initialPostalCode: a.postalCode,
+          initialTypeId: a.addressTypeId,
+          initialDistrictId: a.districtId,
+          initialStateId: a.stateId,
+          initialCountryId: a.countryId,
+        );
+      }
       _isActive = widget.employee!.isActive;
       _existingPhotos = widget.employee!.photos;
       _existingAttachments = widget.employee!.attachments;
     }
 
-    if (_mobileControllers.isEmpty) _mobileControllers.add(TextEditingController());
-    if (_emailControllers.isEmpty) _emailControllers.add(TextEditingController());
+    if (_emailFields.isEmpty) _addEmailField();
+    if (_mobileFields.isEmpty) _addMobileField();
+    if (_addressFields.isEmpty) _addAddressField();
 
     _loadLookups();
   }
@@ -82,47 +98,132 @@ class _EmployeeCreatePageState extends State<EmployeeCreatePage> {
     try {
       final results = await Future.wait([
         _orgService.getRoles(),
-        _orgService.getCountries(),
-        _orgService.getAddressTypes(),
+        _locationService.getContactTypes(),
+        _locationService.getCountries(),
+        _locationService.getAddressTypes(),
         widget.employee == null ? _service.getNextCode() : Future.value(''),
       ]);
 
       setState(() {
         _roles = results[0] as List<UserOrganizationRoleModel>;
-        _countries = results[1] as List<CountryModel>;
-        _addressTypes = results[2] as List<AddressTypeModel>;
-        if (widget.employee == null) _codeController.text = results[3] as String;
+        _contactTypes = results[1] as List<ContactTypeModel>;
+        _countries = results[2] as List<CountryModel>;
+        _addressTypes = results[3] as List<AddressTypeModel>;
+        if (widget.employee == null) _codeController.text = results[4] as String;
         
         if (widget.employee != null && widget.employee?.jobRoleName != null) {
           try {
             _selectedRoleId = _roles.firstWhere((r) => r.name == widget.employee!.jobRoleName).id;
-          } catch (_) {
-            _selectedRoleId = null;
-          }
+          } catch (_) {}
         }
+
+        // Match contact types
+        for (var f in _emailFields) {
+          f['type'] = _contactTypes.where((t) => t.id == f['typeId']).firstOrNull ?? (_contactTypes.isNotEmpty ? _contactTypes.first : null);
+        }
+        for (var f in _mobileFields) {
+          f['type'] = _contactTypes.where((t) => t.id == f['typeId']).firstOrNull ?? (_contactTypes.isNotEmpty ? _contactTypes.first : null);
+        }
+
         _isLoading = false;
       });
+
+      // Match address details (async because of nested lookups)
+      for (var f in _addressFields) {
+        f['selectedType'] = _addressTypes.where((t) => t.id == f['typeId']).firstOrNull;
+        f['selectedCountry'] = _countries.where((c) => c.id == f['countryId']).firstOrNull;
+        if (f['selectedCountry'] != null) {
+          final states = await _locationService.getStates(f['selectedCountry'].id);
+          f['states'] = states;
+          f['selectedState'] = states.where((s) => s.id == f['stateId']).firstOrNull;
+          if (f['selectedState'] != null) {
+            final districts = await _locationService.getDistricts(f['selectedState'].id);
+            f['districts'] = districts;
+            f['selectedDistrict'] = districts.where((d) => d.id == f['districtId']).firstOrNull;
+          }
+        }
+      }
+      if (mounted) setState(() {});
+
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
       setState(() => _isLoading = false);
     }
   }
 
-  void _addMobileField() => setState(() => _mobileControllers.add(TextEditingController()));
-  void _removeMobileField(int index) => setState(() => _mobileControllers.removeAt(index));
+  void _addEmailField({String initialValue = '', String? initialTypeId}) {
+    setState(() {
+      _emailFields.add({
+        'controller': TextEditingController(text: initialValue),
+        'typeId': initialTypeId,
+        'type': _contactTypes.where((t) => t.id == initialTypeId).firstOrNull,
+      });
+    });
+  }
 
-  void _addEmailField() => setState(() => _emailControllers.add(TextEditingController()));
-  void _removeEmailField(int index) => setState(() => _emailControllers.removeAt(index));
+  void _addMobileField({String initialValue = '', String? initialTypeId}) {
+    setState(() {
+      _mobileFields.add({
+        'controller': TextEditingController(text: initialValue),
+        'typeId': initialTypeId,
+        'type': _contactTypes.where((t) => t.id == initialTypeId).firstOrNull,
+      });
+    });
+  }
 
-  Future<void> _addAddress() async {
-    final result = await showModalBottomSheet<AddressModel>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => _AddressFormSheet(countries: _countries, addressTypes: _addressTypes),
-    );
-    if (result != null) {
-      setState(() => _tempAddresses.add(result));
+  void _addAddressField({
+    String initialLine1 = '',
+    String initialLine2 = '',
+    String initialCity = '',
+    String initialPostalCode = '',
+    String? initialTypeId,
+    String? initialDistrictId,
+    String? initialStateId,
+    String? initialCountryId,
+  }) {
+    setState(() {
+      _addressFields.add({
+        'line1': TextEditingController(text: initialLine1),
+        'line2': TextEditingController(text: initialLine2),
+        'city': TextEditingController(text: initialCity),
+        'postalCode': TextEditingController(text: initialPostalCode),
+        'typeId': initialTypeId,
+        'countryId': initialCountryId,
+        'stateId': initialStateId,
+        'districtId': initialDistrictId,
+        'selectedType': null,
+        'selectedCountry': null,
+        'selectedState': null,
+        'selectedDistrict': null,
+        'states': <StateModel>[],
+        'districts': <DistrictModel>[],
+      });
+    });
+  }
+
+  Future<void> _onAddressCountryChanged(int idx, CountryModel? country) async {
+    setState(() {
+      _addressFields[idx]['selectedCountry'] = country;
+      _addressFields[idx]['selectedState'] = null;
+      _addressFields[idx]['selectedDistrict'] = null;
+      _addressFields[idx]['states'] = <StateModel>[];
+      _addressFields[idx]['districts'] = <DistrictModel>[];
+    });
+    if (country != null) {
+      final states = await _locationService.getStates(country.id);
+      if (mounted) setState(() => _addressFields[idx]['states'] = states);
+    }
+  }
+
+  Future<void> _onAddressStateChanged(int idx, StateModel? state) async {
+    setState(() {
+      _addressFields[idx]['selectedState'] = state;
+      _addressFields[idx]['selectedDistrict'] = null;
+      _addressFields[idx]['districts'] = <DistrictModel>[];
+    });
+    if (state != null) {
+      final districts = await _locationService.getDistricts(state.id);
+      if (mounted) setState(() => _addressFields[idx]['districts'] = districts);
     }
   }
 
@@ -131,16 +232,24 @@ class _EmployeeCreatePageState extends State<EmployeeCreatePage> {
     setState(() => _isSaving = true);
 
     try {
-      final mobiles = _mobileControllers.map((c) => {'number': c.text}).where((m) => m['number']!.isNotEmpty).toList();
-      final emails = _emailControllers.map((c) => {'email': c.text}).where((e) => e['email']!.isNotEmpty).toList();
-      final addresses = _tempAddresses.map((a) => {
-        'line_1': a.line1,
-        'line_2': a.line2,
-        'city': a.city,
-        'postal_code': a.postalCode,
-        'district': a.districtId,
-        'address_type': a.addressTypeId,
-        'is_primary': a.isPrimary,
+      final emails = _emailFields.where((f) => f['controller'].text.isNotEmpty).map((f) => {
+        'email': f['controller'].text.trim(),
+        'contact_type': (f['type'] as ContactTypeModel?)?.id,
+      }).toList();
+
+      final mobiles = _mobileFields.where((f) => f['controller'].text.isNotEmpty).map((f) => {
+        'number': f['controller'].text.trim(),
+        'contact_type': (f['type'] as ContactTypeModel?)?.id,
+      }).toList();
+
+      final addresses = _addressFields.where((f) => f['line1'].text.isNotEmpty && f['selectedDistrict'] != null).map((f) => {
+        'line_1': f['line1'].text.trim(),
+        'line_2': f['line2'].text.trim(),
+        'city': f['city'].text.trim(),
+        'postal_code': f['postalCode'].text.trim(),
+        'district': (f['selectedDistrict'] as DistrictModel).id,
+        'address_type': (f['selectedType'] as AddressTypeModel?)?.id,
+        'is_primary': f['is_primary'] ?? false,
       }).toList();
 
       final data = {
@@ -150,8 +259,8 @@ class _EmployeeCreatePageState extends State<EmployeeCreatePage> {
         'job_role': _selectedRoleId,
         'expected_salary': _salaryController.text.isEmpty ? null : _salaryController.text,
         'is_active': _isActive,
-        'mobile_input': mobiles,
         'email_input': emails,
+        'mobile_input': mobiles,
         'address_input': addresses,
       };
 
@@ -195,35 +304,35 @@ class _EmployeeCreatePageState extends State<EmployeeCreatePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _sectionHeader("Profile Photos"),
+              _sectionHeader("Profile Photos", null),
               const SizedBox(height: 16),
               _buildPhotoPicker(),
 
               const SizedBox(height: 32),
-              _sectionHeader("Identity & Role"),
+              _sectionHeader("Identity & Role", null),
               const SizedBox(height: 16),
               _buildIdentityFields(),
               
               const SizedBox(height: 32),
-              _sectionHeader("Contact Information"),
+              _sectionHeader("Contact Info", null),
               const SizedBox(height: 16),
-              _buildContactSection("MOBILE NUMBERS", _mobileControllers, _addMobileField, _removeMobileField, TextInputType.phone),
-              const SizedBox(height: 20),
-              _buildContactSection("EMAIL ADDRESSES", _emailControllers, _addEmailField, _removeEmailField, TextInputType.emailAddress),
+              _emailSection(),
+              const SizedBox(height: 16),
+              _mobileSection(),
 
               const SizedBox(height: 32),
-              _sectionHeader("Addresses"),
+              _sectionHeader("Addresses", TextButton.icon(onPressed: () => _addAddressField(), icon: const Icon(Icons.add_location_alt_rounded, size: 16), label: const Text("Add Address", style: TextStyle(fontSize: 12)))),
               const SizedBox(height: 16),
-              _buildAddressSection(),
+              _addressSection(),
 
               const SizedBox(height: 32),
-              _sectionHeader("Financials"),
+              _sectionHeader("Financials", null),
               const SizedBox(height: 16),
               _label("EXPECTED SALARY (PER MONTH)"),
               _field(_salaryController, "0.00", keyboardType: TextInputType.number),
 
               const SizedBox(height: 32),
-              _sectionHeader("KYC & Documents"),
+              _sectionHeader("KYC & Documents", null),
               const SizedBox(height: 16),
               _buildAttachmentSection(),
 
@@ -235,6 +344,80 @@ class _EmployeeCreatePageState extends State<EmployeeCreatePage> {
         ),
       ),
     );
+  }
+
+  Widget _emailSection() {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [_label("EMAILS"), TextButton.icon(onPressed: () => _addEmailField(), icon: const Icon(Icons.add, size: 16), label: const Text("Add Email", style: TextStyle(fontSize: 12)))]),
+      ..._emailFields.asMap().entries.map((entry) {
+        int idx = entry.key;
+        var field = entry.value;
+        return Padding(padding: const EdgeInsets.only(bottom: 12), child: Row(children: [
+          Expanded(flex: 2, child: _dropdown<ContactTypeModel>(value: field['type'], hint: "Type", items: _contactTypes.map((t) => DropdownMenuItem(value: t, child: Text(t.name))).toList(), onChanged: (v) => setState(() => _emailFields[idx]['type'] = v))),
+          const SizedBox(width: 8),
+          Expanded(flex: 4, child: _field(field['controller'], "email@example.com", keyboardType: TextInputType.emailAddress)),
+          if (_emailFields.length > 1) IconButton(icon: const Icon(Icons.remove_circle_outline, color: Colors.red), onPressed: () => setState(() => _emailFields.removeAt(idx))),
+        ]));
+      }),
+    ]);
+  }
+
+  Widget _mobileSection() {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [_label("MOBILES"), TextButton.icon(onPressed: () => _addMobileField(), icon: const Icon(Icons.add, size: 16), label: const Text("Add Mobile", style: TextStyle(fontSize: 12)))]),
+      ..._mobileFields.asMap().entries.map((entry) {
+        int idx = entry.key;
+        var field = entry.value;
+        return Padding(padding: const EdgeInsets.only(bottom: 12), child: Row(children: [
+          Expanded(flex: 2, child: _dropdown<ContactTypeModel>(value: field['type'], hint: "Type", items: _contactTypes.map((t) => DropdownMenuItem(value: t, child: Text(t.name))).toList(), onChanged: (v) => setState(() => _mobileFields[idx]['type'] = v))),
+          const SizedBox(width: 8),
+          Expanded(flex: 4, child: _field(field['controller'], "+91 ...", keyboardType: TextInputType.phone)),
+          if (_mobileFields.length > 1) IconButton(icon: const Icon(Icons.remove_circle_outline, color: Colors.red), onPressed: () => setState(() => _mobileFields.removeAt(idx))),
+        ]));
+      }),
+    ]);
+  }
+
+  Widget _addressSection() {
+    return Column(children: _addressFields.asMap().entries.map((entry) {
+      int idx = entry.key;
+      var f = entry.value;
+      return Container(
+        margin: const EdgeInsets.only(bottom: 24),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.1))),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+            _label("ADDRESS #${idx + 1}"),
+            if (_addressFields.length > 1) IconButton(icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20), onPressed: () => setState(() => _addressFields.removeAt(idx))),
+          ]),
+          const SizedBox(height: 8),
+          _label("ADDRESS TYPE"),
+          _dropdown<AddressTypeModel>(value: f['selectedType'], hint: "Select Type", items: _addressTypes.map((t) => DropdownMenuItem(value: t, child: Text(t.name))).toList(), onChanged: (v) => setState(() => f['selectedType'] = v)),
+          const SizedBox(height: 16),
+          Row(children: [
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_label("COUNTRY"), _dropdown<CountryModel>(value: f['selectedCountry'], hint: "Country", items: _countries.map((c) => DropdownMenuItem(value: c, child: Text(c.name))).toList(), onChanged: (v) => _onAddressCountryChanged(idx, v))])),
+            const SizedBox(width: 12),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_label("STATE"), _dropdown<StateModel>(value: f['selectedState'], hint: "State", items: (f['states'] as List<StateModel>).map((s) => DropdownMenuItem(value: s, child: Text(s.name))).toList(), onChanged: f['selectedCountry'] != null ? (v) => _onAddressStateChanged(idx, v) : null, enabled: f['selectedCountry'] != null)]))
+          ]),
+          const SizedBox(height: 16),
+          _label("DISTRICT"),
+          _dropdown<DistrictModel>(value: f['selectedDistrict'], hint: "District", items: (f['districts'] as List<DistrictModel>).map((d) => DropdownMenuItem(value: d, child: Text(d.name))).toList(), onChanged: f['selectedState'] != null ? (v) => setState(() => f['selectedDistrict'] = v) : null, enabled: f['selectedState'] != null),
+          const SizedBox(height: 16),
+          _label("STREET ADDRESS (LINE 1)"),
+          _field(f['line1'], "Building No., Street Name"),
+          const SizedBox(height: 16),
+          _label("ADDRESS LINE 2"),
+          _field(f['line2'], "Suite, Floor, Landmark"),
+          const SizedBox(height: 16),
+          Row(children: [
+            Expanded(flex: 2, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_label("CITY"), _field(f['city'], "City")])),
+            const SizedBox(width: 12),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_label("POSTAL CODE"), _field(f['postalCode'], "Zip")])),
+          ]),
+        ]),
+      );
+    }).toList());
   }
 
   Widget _buildPhotoPicker() {
@@ -270,10 +453,16 @@ class _EmployeeCreatePageState extends State<EmployeeCreatePage> {
   }
 
   Widget _mediaThumbnail(String path, VoidCallback onDelete) {
+    var image;
+    if (path.startsWith('http')) {
+      image = Image.network(path, width: 120, height: 140, fit: BoxFit.cover);
+    } else {
+      image = Image.file(File(path), width: 120, height: 140, fit: BoxFit.cover);
+    }
     return Container(
       width: 120, margin: const EdgeInsets.only(right: 12),
       child: Stack(children: [
-        ClipRRect(borderRadius: BorderRadius.circular(20), child: Image.network(path, width: 120, height: 140, fit: BoxFit.cover)),
+        ClipRRect(borderRadius: BorderRadius.circular(20), child: image),
         Positioned(right: 8, top: 8, child: InkWell(onTap: onDelete, child: Container(padding: const EdgeInsets.all(6), decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle), child: const Icon(Icons.close, size: 14, color: Colors.white)))),
       ]),
     );
@@ -301,51 +490,6 @@ class _EmployeeCreatePageState extends State<EmployeeCreatePage> {
           ])),
         ])),
       ]),
-    ]);
-  }
-
-  Widget _buildContactSection(String label, List<TextEditingController> controllers, VoidCallback onAdd, Function(int) onRemove, TextInputType type) {
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      _label(label),
-      ...controllers.asMap().entries.map((entry) {
-        int idx = entry.key;
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: Row(children: [
-            Expanded(child: _field(entry.value, "Enter details...", keyboardType: type)),
-            if (controllers.length > 1) IconButton(icon: const Icon(Icons.remove_circle_outline, color: Colors.red), onPressed: () => onRemove(idx)),
-          ]),
-        );
-      }),
-      TextButton.icon(onPressed: onAdd, icon: const Icon(Icons.add_circle_outline, size: 20), label: const Text("Add Another")),
-    ]);
-  }
-
-  Widget _buildAddressSection() {
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      ..._tempAddresses.asMap().entries.map((entry) {
-        final a = entry.value;
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.1))),
-          child: Row(children: [
-            const Icon(Icons.location_on_outlined, color: AppColors.primary),
-            const SizedBox(width: 12),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(a.line1, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-              Text("${a.city}, ${a.postalCode}", style: TextStyle(color: AppColors.textSecondary, fontSize: 11)),
-            ])),
-            IconButton(icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20), onPressed: () => setState(() => _tempAddresses.removeAt(entry.key))),
-          ]),
-        );
-      }),
-      OutlinedButton.icon(
-        onPressed: _addAddress,
-        style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
-        icon: const Icon(Icons.add_location_alt_outlined, size: 18),
-        label: const Text("Add New Address"),
-      ),
     ]);
   }
 
@@ -387,81 +531,13 @@ class _EmployeeCreatePageState extends State<EmployeeCreatePage> {
     ));
   }
 
-  Widget _sectionHeader(String title) {
-    return Row(children: [Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)), const SizedBox(width: 12), const Expanded(child: Divider())]);
+  Widget _sectionHeader(String title, Widget? action) {
+    return Row(children: [Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)), const SizedBox(width: 12), const Expanded(child: Divider()), if (action != null) action]);
   }
+
   Widget _label(String text) => Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(text, style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.textSecondary, fontSize: 10, letterSpacing: 1.2)));
-  Widget _field(TextEditingController ctrl, String hint, {TextInputType? keyboardType, String? Function(String?)? validator}) => TextFormField(controller: ctrl, keyboardType: keyboardType, validator: validator, decoration: InputDecoration(hintText: hint, filled: true, fillColor: Colors.white, enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: AppColors.textMuted.withValues(alpha: 0.12))), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: AppColors.primary))));
-  Widget _dropdown<T>({required T? value, required String hint, required List<DropdownMenuItem<T>> items, required ValueChanged<T?> onChanged}) => Container(padding: const EdgeInsets.symmetric(horizontal: 14), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.12))), child: DropdownButtonHideUnderline(child: DropdownButton<T>(value: value, isExpanded: true, hint: Text(hint, style: const TextStyle(fontSize: 13)), items: items, onChanged: onChanged)));
-}
 
-class _AddressFormSheet extends StatefulWidget {
-  final List<CountryModel> countries;
-  final List<AddressTypeModel> addressTypes;
-  const _AddressFormSheet({required this.countries, required this.addressTypes});
+  Widget _field(TextEditingController ctrl, String hint, {TextInputType? keyboardType, String? Function(String?)? validator}) => TextFormField(controller: ctrl, keyboardType: keyboardType, validator: validator, decoration: InputDecoration(hintText: hint, filled: true, fillColor: Colors.white, enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: AppColors.textMuted.withValues(alpha: 0.12))), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: AppColors.primary)), errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Colors.red))));
 
-  @override
-  State<_AddressFormSheet> createState() => _AddressFormSheetState();
-}
-
-class _AddressFormSheetState extends State<_AddressFormSheet> {
-  final _formKey = GlobalKey<FormState>();
-  final _line1 = TextEditingController();
-  final _line2 = TextEditingController();
-  final _city = TextEditingController();
-  final _zip = TextEditingController();
-
-  CountryModel? _country;
-  StateModel? _state;
-  DistrictModel? _district;
-  AddressTypeModel? _type;
-  
-  List<StateModel> _states = [];
-  List<DistrictModel> _districts = [];
-  bool _isLoading = false;
-
-  final _service = OrganizationService();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(context).viewInsets.bottom + 24),
-      decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(30))),
-      child: Form(key: _formKey, child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text("Add Address", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 24),
-        _dropdown<CountryModel>("Country", widget.countries.map((c) => DropdownMenuItem<CountryModel>(value: c, child: Text(c.name))).toList(), _country, (v) async {
-          setState(() { _country = v; _state = null; _district = null; _states = []; _isLoading = true; });
-          final res = await _service.getStates(v!.id);
-          setState(() { _states = res; _isLoading = false; });
-        }),
-        const SizedBox(height: 12),
-        _dropdown<StateModel>("State", _states.map((s) => DropdownMenuItem<StateModel>(value: s, child: Text(s.name))).toList(), _state, (v) async {
-          setState(() { _state = v; _district = null; _districts = []; _isLoading = true; });
-          final res = await _service.getDistricts(v!.id);
-          setState(() { _districts = res; _isLoading = false; });
-        }, enabled: _country != null),
-        const SizedBox(height: 12),
-        _dropdown<DistrictModel>("District", _districts.map((d) => DropdownMenuItem<DistrictModel>(value: d, child: Text(d.name))).toList(), _district, (v) => setState(() => _district = v), enabled: _state != null),
-        const SizedBox(height: 12),
-        _field(_line1, "Address Line 1"),
-        const SizedBox(height: 12),
-        _field(_city, "City"),
-        const SizedBox(height: 12),
-        Row(children: [
-          Expanded(child: _field(_zip, "Pin Code")),
-          const SizedBox(width: 12),
-          Expanded(child: _dropdown<AddressTypeModel>("Type", widget.addressTypes.map((t) => DropdownMenuItem<AddressTypeModel>(value: t, child: Text(t.name))).toList(), _type, (v) => setState(() => _type = v))),
-        ]),
-        const SizedBox(height: 32),
-        SizedBox(width: double.infinity, height: 56, child: ElevatedButton(onPressed: () {
-          if (!_formKey.currentState!.validate() || _district == null) return;
-          Navigator.pop(context, AddressModel(id: '', line1: _line1.text, line2: _line2.text, districtId: _district!.id, city: _city.text, postalCode: _zip.text, addressTypeId: _type?.id));
-        }, style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))), child: const Text("Save Address", style: TextStyle(color: Colors.white)))),
-      ])),
-    );
-  }
-
-  Widget _field(TextEditingController c, String h) => TextFormField(controller: c, decoration: InputDecoration(hintText: h, filled: true, fillColor: AppColors.background, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none)), validator: (v) => v!.isEmpty ? "Req" : null);
-  Widget _dropdown<T>(String h, List<DropdownMenuItem<T>> items, T? val, ValueChanged<T?>? onC, {bool enabled = true}) => Container(padding: const EdgeInsets.symmetric(horizontal: 12), decoration: BoxDecoration(color: enabled ? AppColors.background : Colors.grey[200], borderRadius: BorderRadius.circular(12)), child: DropdownButtonHideUnderline(child: DropdownButton<T>(value: val, isExpanded: true, hint: Text(h, style: const TextStyle(fontSize: 13)), items: enabled ? items : null, onChanged: onC)));
+  Widget _dropdown<T>({required T? value, required String hint, required List<DropdownMenuItem<T>> items, required ValueChanged<T?>? onChanged, bool enabled = true}) => Container(padding: const EdgeInsets.symmetric(horizontal: 14), decoration: BoxDecoration(color: enabled ? Colors.white : AppColors.background, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.12))), child: DropdownButtonHideUnderline(child: DropdownButton<T>(value: value, isExpanded: true, hint: Text(hint, style: const TextStyle(fontSize: 13, color: AppColors.textMuted)), items: enabled ? items : null, onChanged: enabled ? onChanged : null, icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.textSecondary))));
 }
