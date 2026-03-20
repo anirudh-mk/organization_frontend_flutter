@@ -6,7 +6,7 @@ class CountryModel {
   CountryModel({
     required this.id,
     required this.name,
-    required this.code,
+    this.code = '',
   });
 
   factory CountryModel.fromJson(Map<String, dynamic> json) {
@@ -32,7 +32,7 @@ class StateModel {
   StateModel({
     required this.id,
     required this.name,
-    required this.code,
+    this.code = '',
     required this.countryId,
   });
 
@@ -63,7 +63,7 @@ class DistrictModel {
   DistrictModel({
     required this.id,
     required this.name,
-    required this.code,
+    this.code = '',
     required this.stateId,
   });
 
@@ -87,16 +87,19 @@ class DistrictModel {
 class AddressTypeModel {
   final String id;
   final String name;
+  final String code;
 
   AddressTypeModel({
     required this.id,
     required this.name,
+    this.code = '',
   });
 
   factory AddressTypeModel.fromJson(Map<String, dynamic> json) {
     return AddressTypeModel(
       id: json['id'].toString(),
       name: json['name'] ?? '',
+      code: json['code'] ?? '',
     );
   }
 

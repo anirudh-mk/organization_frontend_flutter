@@ -1,11 +1,13 @@
 import '../../shared/models/attachment_model.dart';
+import '../../shared/models/location_models.dart';
 
 class EmployeeModel {
   final String id;
   final String firstName;
   final String lastName;
-  final List<EmployeeMobileModel> mobiles;
-  final List<EmployeeEmailModel> emails;
+  final List<MobileModel> mobiles;
+  final List<EmailModel> emails;
+  final List<AddressModel> addresses;
   final double expectedSalary;
   final String displayName;
   final List<EmployeePhotoModel> photos;
@@ -21,6 +23,7 @@ class EmployeeModel {
     this.lastName = '',
     this.mobiles = const [],
     this.emails = const [],
+    this.addresses = const [],
     this.expectedSalary = 0.0,
     required this.displayName,
     this.photos = const [],
@@ -37,10 +40,13 @@ class EmployeeModel {
       firstName: json['first_name'] ?? '',
       lastName: json['last_name'] ?? '',
       mobiles: json['mobiles'] != null 
-          ? (json['mobiles'] as List).map((m) => EmployeeMobileModel.fromJson(m)).toList()
+          ? (json['mobiles'] as List).map((m) => MobileModel.fromJson(m)).toList()
           : [],
       emails: json['emails'] != null 
-          ? (json['emails'] as List).map((e) => EmployeeEmailModel.fromJson(e)).toList()
+          ? (json['emails'] as List).map((e) => EmailModel.fromJson(e)).toList()
+          : [],
+      addresses: json['addresses'] != null 
+          ? (json['addresses'] as List).map((a) => AddressModel.fromJson(a)).toList()
           : [],
       expectedSalary: json['expected_salary'] != null 
           ? double.tryParse(json['expected_salary'].toString()) ?? 0.0 
@@ -67,38 +73,6 @@ class EmployeeModel {
       'expected_salary': expectedSalary,
       'is_active': isActive,
     };
-  }
-}
-
-class EmployeeEmailModel {
-  final int id;
-  final String email;
-  final String? contactType;
-
-  EmployeeEmailModel({required this.id, required this.email, this.contactType});
-
-  factory EmployeeEmailModel.fromJson(Map<String, dynamic> json) {
-    return EmployeeEmailModel(
-      id: json['id'] ?? 0,
-      email: json['email_str'] ?? json['email_details']?['email'] ?? json['email'] ?? '',
-      contactType: json['contact_type_name'],
-    );
-  }
-}
-
-class EmployeeMobileModel {
-  final int id;
-  final String number;
-  final String? contactType;
-
-  EmployeeMobileModel({required this.id, required this.number, this.contactType});
-
-  factory EmployeeMobileModel.fromJson(Map<String, dynamic> json) {
-    return EmployeeMobileModel(
-      id: json['id'] ?? 0,
-      number: json['number'] ?? json['mobile_details']?['number'] ?? json['number'] ?? '',
-      contactType: json['contact_type_name'],
-    );
   }
 }
 

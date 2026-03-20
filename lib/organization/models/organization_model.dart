@@ -1,3 +1,5 @@
+export '../../shared/models/location_models.dart';
+
 class OrganizationTypeModel {
   final String id;
   final String name;
@@ -51,70 +53,6 @@ class UserOrganizationRoleModel {
 
   @override
   int get hashCode => id.hashCode;
-}
-
-class CountryModel {
-  final String id;
-  final String name;
-  final String code;
-
-  CountryModel({required this.id, required this.name, required this.code});
-
-  factory CountryModel.fromJson(Map<String, dynamic> json) {
-    return CountryModel(
-      id: json['id']?.toString() ?? '',
-      name: json['name']?.toString() ?? '',
-      code: json['code']?.toString() ?? '',
-    );
-  }
-}
-
-class StateModel {
-  final String id;
-  final String name;
-  final String countryId;
-
-  StateModel({required this.id, required this.name, required this.countryId});
-
-  factory StateModel.fromJson(Map<String, dynamic> json) {
-    return StateModel(
-      id: json['id']?.toString() ?? '',
-      name: json['name']?.toString() ?? '',
-      countryId: json['country']?.toString() ?? '',
-    );
-  }
-}
-
-class DistrictModel {
-  final String id;
-  final String name;
-  final String stateId;
-
-  DistrictModel({required this.id, required this.name, required this.stateId});
-
-  factory DistrictModel.fromJson(Map<String, dynamic> json) {
-    return DistrictModel(
-      id: json['id']?.toString() ?? '',
-      name: json['name']?.toString() ?? '',
-      stateId: json['state']?.toString() ?? '',
-    );
-  }
-}
-
-class AddressTypeModel {
-  final String id;
-  final String name;
-  final String code;
-
-  AddressTypeModel({required this.id, required this.name, required this.code});
-
-  factory AddressTypeModel.fromJson(Map<String, dynamic> json) {
-    return AddressTypeModel(
-      id: json['id']?.toString() ?? '',
-      name: json['name']?.toString() ?? '',
-      code: json['code']?.toString() ?? '',
-    );
-  }
 }
 
 /// Represents the nested address object returned by the backend
