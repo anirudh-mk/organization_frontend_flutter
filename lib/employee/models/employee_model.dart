@@ -1,5 +1,7 @@
+import '../../shared/models/attachment_model.dart';
+
 class EmployeeModel {
-  final int id;
+  final String id;
   final String firstName;
   final String lastName;
   final List<EmployeeMobileModel> mobiles;
@@ -7,7 +9,11 @@ class EmployeeModel {
   final double expectedSalary;
   final String displayName;
   final List<EmployeePhotoModel> photos;
-  final List<dynamic> attachments; // Using dynamic for now or create AttachmentModel if needed
+  final List<AttachmentModel> attachments; 
+  final String? jobRoleName;
+  final String? employeeCode;
+  final String status;
+  final bool isActive;
 
   EmployeeModel({
     required this.id,
@@ -19,11 +25,15 @@ class EmployeeModel {
     required this.displayName,
     this.photos = const [],
     this.attachments = const [],
+    this.jobRoleName,
+    this.employeeCode,
+    this.status = 'active',
+    this.isActive = true,
   });
 
   factory EmployeeModel.fromJson(Map<String, dynamic> json) {
     return EmployeeModel(
-      id: json['id'] ?? 0,
+      id: json['id']?.toString() ?? '',
       firstName: json['first_name'] ?? '',
       lastName: json['last_name'] ?? '',
       mobiles: json['mobiles'] != null 
@@ -39,7 +49,13 @@ class EmployeeModel {
       photos: json['photos'] != null 
           ? (json['photos'] as List).map((p) => EmployeePhotoModel.fromJson(p)).toList()
           : [],
-      attachments: json['attachments'] ?? [],
+      attachments: json['attachments'] != null 
+          ? (json['attachments'] as List).map((a) => AttachmentModel.fromJson(a)).toList()
+          : [],
+      jobRoleName: json['job_role_name'],
+      employeeCode: json['employee_code'],
+      status: json['status'] ?? 'active',
+      isActive: json['is_active'] ?? true,
     );
   }
 
@@ -49,6 +65,7 @@ class EmployeeModel {
       'first_name': firstName,
       'last_name': lastName,
       'expected_salary': expectedSalary,
+      'is_active': isActive,
     };
   }
 }
@@ -63,7 +80,7 @@ class EmployeeEmailModel {
   factory EmployeeEmailModel.fromJson(Map<String, dynamic> json) {
     return EmployeeEmailModel(
       id: json['id'] ?? 0,
-      email: json['email_str'] ?? json['email_details']?['email'] ?? '',
+      email: json['email_str'] ?? json['email_details']?['email'] ?? json['email'] ?? '',
       contactType: json['contact_type_name'],
     );
   }
@@ -79,14 +96,14 @@ class EmployeeMobileModel {
   factory EmployeeMobileModel.fromJson(Map<String, dynamic> json) {
     return EmployeeMobileModel(
       id: json['id'] ?? 0,
-      number: json['number'] ?? json['mobile_details']?['number'] ?? '',
+      number: json['number'] ?? json['mobile_details']?['number'] ?? json['number'] ?? '',
       contactType: json['contact_type_name'],
     );
   }
 }
 
 class EmployeePhotoModel {
-  final int id;
+  final String id;
   final String imageUrl;
   final bool isPrimary;
   final String? description;
@@ -100,8 +117,8 @@ class EmployeePhotoModel {
 
   factory EmployeePhotoModel.fromJson(Map<String, dynamic> json) {
     return EmployeePhotoModel(
-      id: json['id'] ?? 0,
-      imageUrl: json['imageUrl'] ?? '',
+      id: json['id']?.toString() ?? '',
+      imageUrl: json['image'] ?? '',
       isPrimary: json['is_primary'] ?? false,
       description: json['description'],
     );

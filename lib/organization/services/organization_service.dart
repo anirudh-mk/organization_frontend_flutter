@@ -88,6 +88,32 @@ class OrganizationService extends BaseService {
     }
   }
 
+  Future<List<UserOrganizationRoleModel>> getRoles() async {
+    try {
+      final response = await performRequest((headers) => http.get(
+        Uri.parse('$baseUrl/organization/roles/'),
+        headers: headers,
+      ));
+      
+      if (response.statusCode == 200) {
+        dynamic body = jsonDecode(response.body);
+        List<dynamic> results;
+        if (body is Map && body.containsKey('results')) {
+          results = body['results'];
+        } else if (body is List) {
+          results = body;
+        } else {
+          results = [];
+        }
+        return results.map((item) => UserOrganizationRoleModel.fromJson(item)).toList();
+      } else {
+        throw Exception("Failed to load organization roles");
+      }
+    } catch (e) {
+      throw Exception("Error fetching organization roles: $e");
+    }
+  }
+
   Future<List<CountryModel>> getCountries() async {
     try {
       final response = await performRequest((headers) => http.get(

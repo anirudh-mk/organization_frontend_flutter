@@ -24,6 +24,35 @@ class OrganizationTypeModel {
   int get hashCode => id.hashCode;
 }
 
+class UserOrganizationRoleModel {
+  final String id;
+  final String name;
+  final String code;
+
+  UserOrganizationRoleModel({
+    required this.id,
+    required this.name,
+    required this.code,
+  });
+
+  factory UserOrganizationRoleModel.fromJson(Map<String, dynamic> json) {
+    return UserOrganizationRoleModel(
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      code: json['code']?.toString() ?? '',
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is UserOrganizationRoleModel && other.id == id;
+  }
+
+  @override
+  int get hashCode => id.hashCode;
+}
+
 class CountryModel {
   final String id;
   final String name;
