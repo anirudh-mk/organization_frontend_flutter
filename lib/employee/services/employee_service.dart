@@ -2,6 +2,9 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/employee_model.dart';
 import '../../shared/services/base_service.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:http_parser/http_parser.dart';
 
 class EmployeeService extends BaseService {
   static const String baseUrl = 'http://127.0.0.1:8000/api/v1/employee';
@@ -40,4 +43,44 @@ class EmployeeService extends BaseService {
       throw Exception("Error creating employee: $e");
     }
   }
+
+  Future<void> uploadPhotos(int employeeId, List<XFile> photos) async {
+    try {
+      await performMultipartRequest((headers) async {
+        var request = http.MultipartRequest('POST', Uri.parse('$baseUrl/$employeeId/upload_photos/'));
+        request.headers.addAll(headers);
+        for (var photo in photos) {
+          request.files.add(await http.MultipartFile.fromPath(
+            'photos',
+            photo.path,
+            contentType: MediaType('image', 'jpeg'),
+          ));
+        }
+        return request;
+      });
+    } catch (e) {
+      throw Exception("Error uploading photos: $e");
+    }
+  }
+
+  Future<void> uploadAttachments(int employeeId, List<PlatformFile> files) async {
+    try {
+      await performMultipartRequest((headers) async {
+        var request = http.MultipartRequest('POST', Uri.parse('$baseUrl/$employeeId/upload_attachments/'));
+        request.headers.addAll(headers);
+        for (var file in files) {
+          if (file.path != null) {
+            request.files.add(await http.MultipartFile.fromPath(
+              'attachments',
+              file.path!,
+            ));
+          }
+        }
+        return request;
+      });
+    } catch (e) {
+      throw Exception("Error uploading attachments: $e");
+    }
+  }
+
 }

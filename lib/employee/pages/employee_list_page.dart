@@ -137,8 +137,9 @@ class _EmployeeListPageState extends State<EmployeeListPage> {
         crossAxisCount: 2,
         crossAxisSpacing: 16,
         mainAxisSpacing: 16,
-        childAspectRatio: 0.85,
+        childAspectRatio: 0.72,
       ),
+
       delegate: SliverChildBuilderDelegate(
         (context, index) => _buildEmployeeCard(index, _employees[index]),
         childCount: _employees.length,
@@ -159,60 +160,85 @@ class _EmployeeListPageState extends State<EmployeeListPage> {
   }
 
   Widget _buildEmployeeCard(int index, EmployeeModel employee) {
-    final bool isOnDuty = true; // Hardcoded until user wants attendance logic
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(32),
-        border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.1)),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.04),
-            blurRadius: 24,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                CircleAvatar(
-                  radius: 18,
-                  backgroundColor: AppColors.background,
-                  child: const Icon(Icons.person_outline_rounded, size: 18, color: AppColors.textSecondary),
-                ),
-                _statusDot(isOnDuty),
-              ],
+    final bool isOnDuty = true; // Hardcoded for now
+    return GestureDetector(
+      onTap: () {
+        // Navigate to details if needed
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primary.withValues(alpha: 0.06),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
             ),
-          ),
-          const Spacer(),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Stack(
               children: [
-                Text(
-                  employee.displayName,
-                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
-                  overflow: TextOverflow.ellipsis,
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                  child: employee.photos.isNotEmpty
+                    ? Image.network(
+                        employee.photos.first.imageUrl,
+                        height: 170,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                      )
+                    : Container(
+                        height: 170,
+                        width: double.infinity,
+                        color: AppColors.background,
+                        child: Icon(Icons.person_rounded, color: AppColors.textMuted.withValues(alpha: 0.4), size: 48),
+                      ),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  employee.phoneNumber.isNotEmpty ? employee.phoneNumber : "No Phone Data",
-                  style: TextStyle(color: AppColors.textSecondary, fontSize: 11, fontWeight: FontWeight.w500),
+                Positioned(
+                  top: 10,
+                  right: 10,
+                  child: _statusDot(isOnDuty),
                 ),
               ],
             ),
-          ),
-        ],
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    employee.displayName,
+                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: AppColors.textPrimary, letterSpacing: -0.2),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(Icons.phone_android_rounded, size: 10, color: AppColors.textSecondary.withValues(alpha: 0.6)),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          employee.mobiles.isNotEmpty ? employee.mobiles.first.number : 'No mobile number',
+                          style: const TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.w600),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
+
 
   Widget _buildEmployeeListTile(int index, EmployeeModel employee) {
     final bool isOnDuty = true; 
@@ -221,10 +247,9 @@ class _EmployeeListPageState extends State<EmployeeListPage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.1)),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.03),
+            color: AppColors.primary.withValues(alpha: 0.04),
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),
@@ -232,53 +257,61 @@ class _EmployeeListPageState extends State<EmployeeListPage> {
       ),
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 20,
-            backgroundColor: AppColors.background,
-            child: const Icon(Icons.person_rounded, color: AppColors.textSecondary),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: employee.photos.isNotEmpty
+              ? Image.network(employee.photos.first.imageUrl, width: 48, height: 48, fit: BoxFit.cover)
+              : Container(
+                  width: 48, height: 48,
+                  color: AppColors.background,
+                  child: const Icon(Icons.person_rounded, color: AppColors.textSecondary),
+                ),
           ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(employee.displayName, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-                Text(employee.phoneNumber.isNotEmpty ? employee.phoneNumber : "No Phone Data", style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                Text(employee.displayName, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: AppColors.textPrimary)),
+                const SizedBox(height: 2),
+                Text(employee.emails.isNotEmpty ? employee.emails.first.email : "No Email", style: TextStyle(fontSize: 11, color: AppColors.textSecondary.withValues(alpha: 0.7))),
               ],
             ),
           ),
+          const SizedBox(width: 8),
           _statusDot(isOnDuty),
         ],
       ),
     );
   }
 
+
   Widget _statusDot(bool active) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: (active ? AppColors.success : AppColors.warning).withValues(alpha: 0.08),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 6,
-            height: 6,
+            width: 6, height: 6,
             decoration: BoxDecoration(color: active ? AppColors.success : AppColors.warning, shape: BoxShape.circle),
           ),
           const SizedBox(width: 6),
-          Text(
-            active ? "On Duty" : "Off",
-            style: TextStyle(
-              color: active ? AppColors.success : AppColors.warning,
-              fontSize: 10,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
+          Text(active ? "On Duty" : "Off", style: TextStyle(color: active ? AppColors.success : AppColors.warning, fontSize: 10, fontWeight: FontWeight.w800)),
         ],
       ),
     );
   }
+
 }
