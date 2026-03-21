@@ -224,6 +224,10 @@ class _EmployeeCreatePageState extends State<EmployeeCreatePage> {
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
+    if (_selectedRoleId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please select a job role")));
+      return;
+    }
     setState(() => _isSaving = true);
 
     try {
@@ -270,7 +274,7 @@ class _EmployeeCreatePageState extends State<EmployeeCreatePage> {
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Staff details saved!")));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Employee details saved!")));
         Navigator.pop(context, true);
       }
     } catch (e) {
@@ -288,7 +292,7 @@ class _EmployeeCreatePageState extends State<EmployeeCreatePage> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: AppColors.background, elevation: 0, scrolledUnderElevation: 0,
-        title: Text(widget.employee == null ? "Onboard Staff" : "Edit Profile", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        title: Text(widget.employee == null ? "Create Employee" : "Edit Profile", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
         centerTitle: false,
         leading: IconButton(icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20), onPressed: () => Navigator.pop(context)),
       ),
@@ -332,12 +336,18 @@ class _EmployeeCreatePageState extends State<EmployeeCreatePage> {
               _sectionTitle("KYC & Documents"),
               _buildAttachmentSection(),
 
-              const SizedBox(height: 48),
-              _buildSaveButton(),
-              const SizedBox(height: 40),
+              const SizedBox(height: 100),
             ],
           ),
         ),
+      ),
+      bottomNavigationBar: Container(
+        padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+        decoration: BoxDecoration(
+          color: AppColors.background,
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, -5))],
+        ),
+        child: _buildSaveButton(),
       ),
     );
   }
@@ -530,10 +540,15 @@ class _EmployeeCreatePageState extends State<EmployeeCreatePage> {
   }
 
   Widget _buildSaveButton() {
-    return SizedBox(width: double.infinity, height: 60, child: ElevatedButton(
+    return SizedBox(width: double.infinity, height: 56, child: ElevatedButton(
       onPressed: _isSaving ? null : _save,
-      style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
-      child: Text(widget.employee == null ? "Confirm Onboarding" : "Update Profile", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white)),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      ),
+      child: Text(widget.employee == null ? "Create" : "Update", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
     ));
   }
 

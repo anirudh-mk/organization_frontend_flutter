@@ -82,7 +82,7 @@ class QuickMenuPage extends StatelessWidget {
                         ),
                         _QuickMenuIcon(
                           icon: Icons.groups_rounded,
-                          label: "Staff",
+                          label: "Employees",
                           onTap: () => onNavigateToTab(3),
                         ),
                         _QuickMenuIcon(
@@ -121,7 +121,7 @@ class QuickMenuPage extends StatelessWidget {
                 const SizedBox(height: 12),
                 _BentoShortcut(
                   icon: Icons.person_add_alt_1_rounded,
-                  title: "Onboard Staff",
+                  title: "Create Employee",
                   subtitle: "Add new employees",
                   color: Colors.teal.withValues(alpha: 0.05),
                   iconColor: Colors.teal,

@@ -84,7 +84,7 @@ class _EmployeeListPageState extends State<EmployeeListPage> {
         slivers: [
           SliverAppBar(
             pinned: true, toolbarHeight: 72, backgroundColor: AppColors.background, scrolledUnderElevation: 0,
-            title: Text("Workforce", style: theme.textTheme.headlineMedium?.copyWith(fontSize: 20, fontWeight: FontWeight.bold)),
+            title: Text("Employees", style: theme.textTheme.headlineMedium?.copyWith(fontSize: 20, fontWeight: FontWeight.bold)),
             actions: [
               IconButton(
                 icon: Icon(isGridView ? Icons.format_list_bulleted_rounded : Icons.grid_view_rounded, color: AppColors.textPrimary),
@@ -95,7 +95,7 @@ class _EmployeeListPageState extends State<EmployeeListPage> {
           ),
           SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.fromLTRB(24, 16, 24, 8), child: Column(children: [
             Row(children: [
-              _buildSummaryCard("Total Staff", _employees.length.toString(), AppColors.primary),
+              _buildSummaryCard("Total Employees", _employees.length.toString(), AppColors.primary),
               const SizedBox(width: 12),
               _buildSummaryCard("Active", _employees.where((e) => e.isActive).length.toString(), AppColors.success),
               const SizedBox(width: 12),
@@ -192,12 +192,12 @@ class _EmployeeListPageState extends State<EmployeeListPage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text("Filter Staff", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                  const Text("Filter Employees", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
                   IconButton(icon: const Icon(Icons.close_rounded), onPressed: () => Navigator.pop(context)),
                 ],
               ),
               const SizedBox(height: 16),
-              const Text("Employment Status", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textSecondary)),
+              const Text("Employee Status", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textSecondary)),
               const SizedBox(height: 12),
               Wrap(
                 spacing: 12,
