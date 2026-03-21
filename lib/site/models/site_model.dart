@@ -1,3 +1,8 @@
+import '../../shared/models/location_models.dart';
+import '../../employee/models/employee_model.dart';
+import '../../equipment/models/equipment_model.dart';
+import '../../client/models/client_model.dart';
+
 class SiteStatusModel {
   final String id;
   final String name;
@@ -57,6 +62,11 @@ class SiteModel {
   final List<SiteMediaModel> photos;
   final List<SiteMediaModel> attachments;
   final List<QuotationModel> quotations;
+  final List<SiteEmployeeModel> employees;
+  final List<SiteEquipmentModel> equipments;
+  final List<SiteProgressEntryModel> progressEntries;
+  final List<SiteNoteModel> siteNotes;
+  final List<AddressModel> addresses;
   final double? estimatedBudget;
   final String? notes;
   final DateTime? expectedStartDate;
@@ -74,6 +84,11 @@ class SiteModel {
     this.photos = const [],
     this.attachments = const [],
     this.quotations = const [],
+    this.employees = const [],
+    this.equipments = const [],
+    this.progressEntries = const [],
+    this.siteNotes = const [],
+    this.addresses = const [],
     this.estimatedBudget,
     this.notes,
     this.expectedStartDate,
@@ -103,6 +118,11 @@ class SiteModel {
       quotations: json['quotations'] != null
           ? (json['quotations'] as List).map((i) => QuotationModel.fromJson(i)).toList()
           : [],
+      employees: (json['employees'] as List?)?.map((e) => SiteEmployeeModel.fromJson(e)).toList() ?? [],
+      equipments: (json['equipments'] as List?)?.map((e) => SiteEquipmentModel.fromJson(e)).toList() ?? [],
+      progressEntries: (json['progress_entries'] as List?)?.map((p) => SiteProgressEntryModel.fromJson(p)).toList() ?? [],
+      siteNotes: (json['site_notes'] as List?)?.map((n) => SiteNoteModel.fromJson(n)).toList() ?? [],
+      addresses: (json['addresses'] as List?)?.map((a) => AddressModel.fromJson(a)).toList() ?? [],
       estimatedBudget: json['estimated_budget'] != null ? double.tryParse(json['estimated_budget'].toString()) : null,
       notes: json['notes'],
       expectedStartDate: json['expected_start_date'] != null ? DateTime.tryParse(json['expected_start_date']) : null,
@@ -133,18 +153,32 @@ class ClientLinkModel {
   final String id;
   final String clientId;
   final String? clientName;
+  final ClientModel? client;
 
   ClientLinkModel({
     required this.id,
     required this.clientId,
     this.clientName,
+    this.client,
   });
 
   factory ClientLinkModel.fromJson(Map<String, dynamic> json) {
+    String cId = '';
+    if (json['client'] != null) {
+      if (json['client'] is Map) {
+        cId = json['client']['id']?.toString() ?? '';
+      } else {
+        cId = json['client'].toString();
+      }
+    }
+
     return ClientLinkModel(
       id: json['id']?.toString() ?? '',
-      clientId: json['client']?.toString() ?? '',
-      clientName: json['client_name']?.toString(),
+      clientId: cId,
+      clientName: json['client_name']?.toString() ?? (json['client'] is Map ? json['client']['name'] : null),
+      client: json['client'] != null && json['client'] is Map 
+          ? ClientModel.fromJson(json['client'] as Map<String, dynamic>) 
+          : null,
     );
   }
 }
@@ -168,6 +202,86 @@ class QuotationModel {
       status: json['status']?.toString() ?? '',
       totalAmount: double.tryParse(json['total_amount'].toString()) ?? 0.0,
       sentAt: json['sent_at'] != null ? DateTime.tryParse(json['sent_at']) : null,
+    );
+  }
+}
+class SiteEmployeeModel {
+  final String id;
+  final EmployeeModel? employee;
+  final String? phaseId;
+
+  SiteEmployeeModel({required this.id, this.employee, this.phaseId});
+
+  factory SiteEmployeeModel.fromJson(Map<String, dynamic> json) {
+    return SiteEmployeeModel(
+      id: json['id']?.toString() ?? '',
+      employee: json['employee'] != null ? EmployeeModel.fromJson(json['employee']) : null,
+      phaseId: json['phase_id']?.toString(),
+    );
+  }
+}
+
+class SiteEquipmentModel {
+  final String id;
+  final EquipmentModel? equipment;
+  final String? phaseId;
+
+  SiteEquipmentModel({required this.id, this.equipment, this.phaseId});
+
+  factory SiteEquipmentModel.fromJson(Map<String, dynamic> json) {
+    return SiteEquipmentModel(
+      id: json['id']?.toString() ?? '',
+      equipment: json['equipment'] != null ? EquipmentModel.fromJson(json['equipment']) : null,
+      phaseId: json['phase_id']?.toString(),
+    );
+  }
+}
+
+class SiteProgressEntryModel {
+  final String id;
+  final String? siteId;
+  final double percentage;
+  final String? description;
+  final DateTime date;
+
+  SiteProgressEntryModel({
+    required this.id,
+    this.siteId,
+    required this.percentage,
+    this.description,
+    required this.date,
+  });
+
+  factory SiteProgressEntryModel.fromJson(Map<String, dynamic> json) {
+    return SiteProgressEntryModel(
+      id: json['id']?.toString() ?? '',
+      siteId: json['site']?.toString(),
+      percentage: double.tryParse(json['percentage']?.toString() ?? '0') ?? 0.0,
+      description: json['description'],
+      date: DateTime.parse(json['date'] ?? DateTime.now().toIso8601String()),
+    );
+  }
+}
+
+class SiteNoteModel {
+  final String id;
+  final String? siteId;
+  final String note;
+  final DateTime createdAt;
+
+  SiteNoteModel({
+    required this.id,
+    this.siteId,
+    required this.note,
+    required this.createdAt,
+  });
+
+  factory SiteNoteModel.fromJson(Map<String, dynamic> json) {
+    return SiteNoteModel(
+      id: json['id']?.toString() ?? '',
+      siteId: json['site']?.toString(),
+      note: json['note'] ?? '',
+      createdAt: DateTime.parse(json['created_at'] ?? DateTime.now().toIso8601String()),
     );
   }
 }

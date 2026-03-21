@@ -1,7 +1,8 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart';
 import 'package:http_parser/http_parser.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../auth/services/token_manager.dart';
 import '../models/organization_model.dart';
 import '../../shared/services/base_service.dart';
@@ -186,7 +187,7 @@ class OrganizationService extends BaseService {
     String name,
     String typeId, {
     List<Map<String, dynamic>>? addresses,
-    File? logo,
+    XFile? logo,
   }) async {
     try {
       final response = await performMultipartRequest((headers) async {
@@ -199,11 +200,21 @@ class OrganizationService extends BaseService {
           request.fields['addresses_json'] = jsonEncode(addresses);
         }
         if (logo != null) {
-          request.files.add(await http.MultipartFile.fromPath(
-            'logo',
-            logo.path,
-            contentType: MediaType('image', 'jpeg'),
-          ));
+          if (kIsWeb) {
+            final bytes = await logo.readAsBytes();
+            request.files.add(http.MultipartFile.fromBytes(
+              'logo',
+              bytes,
+              filename: logo.name,
+              contentType: MediaType('image', 'jpeg'),
+            ));
+          } else {
+            request.files.add(await http.MultipartFile.fromPath(
+              'logo',
+              logo.path,
+              contentType: MediaType('image', 'jpeg'),
+            ));
+          }
         }
         return request;
       });
@@ -245,7 +256,7 @@ class OrganizationService extends BaseService {
     String id, {
     String? name,
     String? typeId,
-    File? logo,
+    XFile? logo,
   }) async {
     try {
       final response = await performMultipartRequest((headers) async {
@@ -255,11 +266,21 @@ class OrganizationService extends BaseService {
         if (name != null) request.fields['name'] = name;
         if (typeId != null) request.fields['type'] = typeId;
         if (logo != null) {
-          request.files.add(await http.MultipartFile.fromPath(
-            'logo',
-            logo.path,
-            contentType: MediaType('image', 'jpeg'),
-          ));
+          if (kIsWeb) {
+            final bytes = await logo.readAsBytes();
+            request.files.add(http.MultipartFile.fromBytes(
+              'logo',
+              bytes,
+              filename: logo.name,
+              contentType: MediaType('image', 'jpeg'),
+            ));
+          } else {
+            request.files.add(await http.MultipartFile.fromPath(
+              'logo',
+              logo.path,
+              contentType: MediaType('image', 'jpeg'),
+            ));
+          }
         }
         return request;
       });

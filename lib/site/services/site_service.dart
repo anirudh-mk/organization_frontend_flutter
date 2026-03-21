@@ -1,8 +1,9 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart';
 import 'package:http_parser/http_parser.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:image_picker/image_picker.dart';
 import '../models/site_model.dart';
 import '../../shared/services/base_service.dart';
 
@@ -34,6 +35,37 @@ class SiteService extends BaseService {
     }
   }
 
+  Future<SiteModel> getSite(String id) async {
+    try {
+      final response = await performRequest((headers) => http.get(
+        Uri.parse('$baseUrl/$id/'),
+        headers: headers,
+      ));
+      if (response.statusCode == 200) {
+        return SiteModel.fromJson(jsonDecode(response.body));
+      } else {
+        throw Exception("Failed to load site detail: ${response.statusCode}");
+      }
+    } catch (e) {
+      throw Exception("Error fetching site detail: $e");
+    }
+  }
+
+  Future<String> getNextCode() async {
+    try {
+      final response = await performRequest((headers) => http.get(
+        Uri.parse('$baseUrl/get-next-code/'),
+        headers: headers,
+      ));
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body)['code'] ?? '';
+      }
+      return '';
+    } catch (e) {
+      return '';
+    }
+  }
+
   Future<SiteModel> onboardSite({
     required String name,
     required String organizationId,
@@ -43,7 +75,7 @@ class SiteService extends BaseService {
     DateTime? endDate,
     Map<String, dynamic>? clientData,
     List<Map<String, dynamic>>? addresses,
-    List<File>? images,
+    List<XFile>? images,
     List<PlatformFile>? attachments,
     String? notes,
   }) async {
@@ -68,17 +100,35 @@ class SiteService extends BaseService {
         
         if (images != null) {
           for (var i = 0; i < images.length; i++) {
-            request.files.add(await http.MultipartFile.fromPath(
-              'images',
-              images[i].path,
-              contentType: MediaType('image', 'jpeg'),
-            ));
+            if (kIsWeb) {
+              final bytes = await images[i].readAsBytes();
+              request.files.add(http.MultipartFile.fromBytes(
+                'images',
+                bytes,
+                filename: images[i].name,
+                contentType: MediaType('image', 'jpeg'),
+              ));
+            } else {
+              request.files.add(await http.MultipartFile.fromPath(
+                'images',
+                images[i].path,
+                contentType: MediaType('image', 'jpeg'),
+              ));
+            }
           }
         }
 
         if (attachments != null) {
           for (var file in attachments) {
-            if (file.path != null) {
+            if (kIsWeb) {
+              if (file.bytes != null) {
+                request.files.add(http.MultipartFile.fromBytes(
+                  'attachments',
+                  file.bytes!,
+                  filename: file.name,
+                ));
+              }
+            } else if (file.path != null) {
               request.files.add(await http.MultipartFile.fromPath(
                 'attachments',
                 file.path!,
@@ -90,22 +140,23 @@ class SiteService extends BaseService {
         return request;
       });
 
-      if (response.statusCode == 201) {
+      if (response.statusCode == 201 || response.statusCode == 200) {
         return SiteModel.fromJson(jsonDecode(response.body));
       } else {
-        throw Exception('Failed to onboard site: ${response.body}');
+        throw Exception('Failed to onboard site: ${response.statusCode} - ${response.body}');
       }
     } catch (e) {
       throw Exception('Error onboarding site: $e');
     }
   }
 
-  Future<SiteModel> updateSite(String id, Map<String, dynamic> data, {List<File>? images}) async {
+  Future<SiteModel> updateSite(String id, Map<String, dynamic> data, {List<XFile>? newImages, List<PlatformFile>? newAttachments}) async {
     try {
       final response = await performMultipartRequest((headers) async {
         final uri = Uri.parse('$baseUrl/$id/');
         final request = http.MultipartRequest('PATCH', uri);
         request.headers.addAll(headers);
+        
         data.forEach((key, value) {
           if (value != null) {
             if (value is Map || value is List) {
@@ -115,22 +166,52 @@ class SiteService extends BaseService {
             }
           }
         });
-        if (images != null) {
-          for (var image in images) {
-            request.files.add(await http.MultipartFile.fromPath(
-              'images',
-              image.path,
-              contentType: MediaType('image', 'jpeg'),
-            ));
+
+        if (newImages != null) {
+          for (var image in newImages) {
+            if (kIsWeb) {
+              final bytes = await image.readAsBytes();
+              request.files.add(http.MultipartFile.fromBytes(
+                'images',
+                bytes,
+                filename: image.name,
+                contentType: MediaType('image', 'jpeg'),
+              ));
+            } else {
+              request.files.add(await http.MultipartFile.fromPath(
+                'images',
+                image.path,
+                contentType: MediaType('image', 'jpeg'),
+              ));
+            }
+          }
+        }
+
+        if (newAttachments != null) {
+          for (var file in newAttachments) {
+            if (kIsWeb) {
+              if (file.bytes != null) {
+                request.files.add(http.MultipartFile.fromBytes(
+                  'attachments',
+                  file.bytes!,
+                  filename: file.name,
+                ));
+              }
+            } else if (file.path != null) {
+              request.files.add(await http.MultipartFile.fromPath(
+                'attachments',
+                file.path!,
+              ));
+            }
           }
         }
         return request;
       });
-      
+
       if (response.statusCode == 200) {
         return SiteModel.fromJson(jsonDecode(response.body));
       } else {
-        throw Exception("Failed to update site: ${response.body}");
+        throw Exception("Failed to update site: ${response.statusCode} - ${response.body}");
       }
     } catch (e) {
       throw Exception("Error updating site: $e");
@@ -202,19 +283,43 @@ class SiteService extends BaseService {
     }
   }
 
-  Future<String> getNextCode() async {
+  Future<void> recordProgress({
+    required String siteId,
+    required double percentage,
+    String? description,
+  }) async {
+    try {
+      final response = await performRequest((headers) => http.post(
+        Uri.parse('$baseUrl/$siteId/record-progress/'),
+        headers: headers,
+        body: jsonEncode({
+          'percentage': percentage,
+          'description': description,
+          'date': DateTime.now().toIso8601String().split('T')[0],
+        }),
+      ));
+
+      if (response.statusCode != 201 && response.statusCode != 200) {
+        throw Exception('Failed to record progress: ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('Error recording progress: $e');
+    }
+  }
+
+  Future<List<SiteStatusModel>> getSiteStatuses() async {
     try {
       final response = await performRequest((headers) => http.get(
-        Uri.parse('$baseUrl/get-next-code/'),
+        Uri.parse('$baseUrl/statuses/'),
         headers: headers,
       ));
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        return data['code'];
+        List<dynamic> body = jsonDecode(response.body);
+        return body.map((item) => SiteStatusModel.fromJson(item)).toList();
       }
-      return '';
+      return [];
     } catch (e) {
-      return '';
+      return [];
     }
   }
 }

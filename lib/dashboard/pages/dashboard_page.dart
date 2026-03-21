@@ -89,8 +89,8 @@ class _DashboardPageState extends State<DashboardPage> {
                     CircleAvatar(
                       radius: 20,
                       backgroundColor: colorScheme.primary.withValues(alpha: 0.1),
-                      backgroundImage: _orgLogo != null ? NetworkImage(_orgLogo!) : null,
-                      child: _orgLogo == null ? Icon(Icons.business_rounded, color: colorScheme.primary, size: 20) : null,
+                      backgroundImage: (_orgLogo != null && _orgLogo!.isNotEmpty) ? NetworkImage(_orgLogo!) : null,
+                      child: (_orgLogo == null || _orgLogo!.isEmpty) ? Icon(Icons.business_rounded, color: colorScheme.primary, size: 20) : null,
                     ),
                     const SizedBox(width: 12),
                     Flexible(

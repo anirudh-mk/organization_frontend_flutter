@@ -1,4 +1,5 @@
-import 'dart:io';
+import 'dart:io' show File;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../theme/app_theme.dart';
@@ -22,7 +23,7 @@ class _OrganizationEditPageState extends State<OrganizationEditPage> {
   final _nameController = TextEditingController();
   List<OrganizationTypeModel> _types = [];
   OrganizationTypeModel? _selectedType;
-  File? _newLogo;
+  XFile? _newLogo;
   final _picker = ImagePicker();
 
   // ── Address ──
@@ -170,7 +171,7 @@ class _OrganizationEditPageState extends State<OrganizationEditPage> {
 
   Future<void> _pickLogo() async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
-    if (image != null) setState(() => _newLogo = File(image.path));
+    if (image != null) setState(() => _newLogo = image);
   }
 
   void _showError(String msg) {
@@ -273,7 +274,7 @@ class _OrganizationEditPageState extends State<OrganizationEditPage> {
                               radius: 56,
                               backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
                               backgroundImage: _newLogo != null
-                                  ? FileImage(_newLogo!) as ImageProvider
+                                  ? (kIsWeb ? NetworkImage(_newLogo!.path) : FileImage(File(_newLogo!.path)) as ImageProvider)
                                   : (widget.organization.logo != null ? NetworkImage(widget.organization.logo!) : null),
                               child: (_newLogo == null && widget.organization.logo == null)
                                   ? Icon(Icons.add_a_photo_outlined, size: 36, color: theme.colorScheme.primary)

@@ -176,13 +176,17 @@ class AddressModel {
   final String line1;
   final String line2;
   final String districtId;
+  final String? districtName;
   final String city;
   final String postalCode;
   final double? latitude;
   final double? longitude;
   final String? addressTypeId;
+  final String? addressTypeName;
   final String? stateId;
+  final String? stateName;
   final String? countryId;
+  final String? countryName;
   final bool isPrimary;
 
   AddressModel({
@@ -190,13 +194,17 @@ class AddressModel {
     required this.line1,
     required this.line2,
     required this.districtId,
+    this.districtName,
     required this.city,
     required this.postalCode,
     this.latitude,
     this.longitude,
     this.addressTypeId,
+    this.addressTypeName,
     this.stateId,
+    this.stateName,
     this.countryId,
+    this.countryName,
     this.isPrimary = false,
   });
 
@@ -210,6 +218,7 @@ class AddressModel {
       line1: json['line_1'] ?? '',
       line2: json['line_2'] ?? '',
       districtId: districtMap?['id']?.toString() ?? json['district']?.toString() ?? '',
+      districtName: districtMap?['name']?.toString(),
       city: json['city'] ?? '',
       postalCode: json['postal_code'] ?? '',
       latitude: json['latitude'] != null ? double.tryParse(json['latitude'].toString()) : null,
@@ -217,8 +226,13 @@ class AddressModel {
       addressTypeId: (json['address_type'] is Map) 
           ? json['address_type']['id']?.toString() 
           : json['address_type']?.toString(),
+      addressTypeName: (json['address_type'] is Map)
+          ? json['address_type']['name']?.toString()
+          : null,
       stateId: stateMap?['id']?.toString() ?? json['state_id']?.toString(),
+      stateName: stateMap?['name']?.toString(),
       countryId: countryMap?['id']?.toString() ?? json['country_id']?.toString(),
+      countryName: countryMap?['name']?.toString(),
       isPrimary: json['is_primary'] ?? false,
     );
   }

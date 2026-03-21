@@ -1,4 +1,5 @@
-import 'dart:io';
+import 'dart:io' show File;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
@@ -48,7 +49,8 @@ class _SiteCreatePageState extends State<SiteCreatePage> {
   // Data
   DateTime? _expectedStartDate;
   DateTime? _expectedEndDate;
-  String _selectedStatus = 'planning';
+  List<SiteStatusModel> _statusModels = [];
+  String? _selectedStatusId;
   List<ClientModel> _clients = [];
   String? _selectedClientId;
   bool _isNewClient = false;
@@ -57,13 +59,6 @@ class _SiteCreatePageState extends State<SiteCreatePage> {
   // Media
   final List<XFile> _newPhotos = [];
   final List<PlatformFile> _newAttachments = [];
-
-  final List<String> _statusOptions = [
-    'planning',
-    'active',
-    'on_hold',
-    'completed'
-  ];
 
   bool get _isEditing => widget.site != null;
 
@@ -79,12 +74,21 @@ class _SiteCreatePageState extends State<SiteCreatePage> {
       _nameController.text = widget.site!.name;
       _codeController.text = widget.site!.code;
       _budgetController.text = widget.site!.estimatedBudget?.toString() ?? '';
-      _selectedStatus = widget.site!.status.isNotEmpty ? widget.site!.status : 'planning';
+      _selectedStatusId = widget.site!.status.isNotEmpty ? widget.site!.status : null;
       _notesController.text = widget.site!.notes ?? '';
       _expectedStartDate = widget.site!.expectedStartDate;
       _expectedEndDate = widget.site!.expectedEndDate;
       _selectedClientId = widget.site!.clientLink?.clientId;
-      // Handle site address pre-fill for editing if needed (omitted for brevity or assumed handled by backend/details)
+      
+      // Load site address if exists
+      if (widget.site!.addresses.isNotEmpty) {
+        final addr = widget.site!.addresses.first;
+        _siteAddress['line1'].text = addr.line1;
+        _siteAddress['line2'].text = addr.line2;
+        _siteAddress['city'].text = addr.city;
+        _siteAddress['postalCode'].text = addr.postalCode;
+        // Types and IDs will be matched in _loadInitialData
+      }
     } else {
       _fetchNextCode();
     }
@@ -109,6 +113,7 @@ class _SiteCreatePageState extends State<SiteCreatePage> {
         _locationService.getCountries(),
         _locationService.getAddressTypes(),
         _locationService.getContactTypes(),
+        _service.getSiteStatuses(),
       ]);
 
       setState(() {
@@ -116,6 +121,12 @@ class _SiteCreatePageState extends State<SiteCreatePage> {
         _countries = results[1] as List<CountryModel>;
         _addressTypes = results[2] as List<AddressTypeModel>;
         _contactTypes = results[3] as List<ContactTypeModel>;
+        _statusModels = results[4] as List<SiteStatusModel>;
+        
+        // Initial status if creating new
+        if (!_isEditing && _statusModels.isNotEmpty) {
+          _selectedStatusId = _statusModels.firstWhere((s) => s.code == 'planning', orElse: () => _statusModels.first).id;
+        }
         
         // Match contact types for existing fields
         for (var f in _clientEmailFields) {
@@ -126,6 +137,13 @@ class _SiteCreatePageState extends State<SiteCreatePage> {
         }
         
         _isLoading = false;
+        
+        // Match existing site address types/locations if editing
+        if (_isEditing && widget.site!.addresses.isNotEmpty) {
+          final addr = widget.site!.addresses.first;
+          _siteAddress['selectedType'] = _addressTypes.where((t) => t.id == addr.addressTypeId).firstOrNull;
+          _matchAddressLocations(_siteAddress, addr);
+        }
       });
     } catch (e) {
       setState(() => _isLoading = false);
@@ -169,6 +187,34 @@ class _SiteCreatePageState extends State<SiteCreatePage> {
     addr['selectedDistrict'] = null;
     addr['states'] = <StateModel>[];
     addr['districts'] = <DistrictModel>[];
+  }
+
+  Future<void> _matchAddressLocations(Map<String, dynamic> addr, AddressModel? details) async {
+    if (details == null) return;
+    
+    // Match Country
+    if (_countries.isNotEmpty) {
+      final country = _countries.where((c) => c.id == details.countryId).firstOrNull ?? _countries.first;
+      setState(() => addr['selectedCountry'] = country);
+      
+      // Load States
+      final states = await _locationService.getStates(country.id);
+      if (!mounted) return;
+      setState(() {
+        addr['states'] = states;
+        addr['selectedState'] = states.where((s) => s.id == details.stateId).firstOrNull ?? (states.isNotEmpty ? states.first : null);
+      });
+      
+      // Load Districts
+      if (addr['selectedState'] != null) {
+        final districts = await _locationService.getDistricts(addr['selectedState']!.id);
+        if (!mounted) return;
+        setState(() {
+          addr['districts'] = districts;
+          addr['selectedDistrict'] = districts.where((d) => d.id == details.districtId).firstOrNull ?? (districts.isNotEmpty ? districts.first : null);
+        });
+      }
+    }
   }
 
   Future<void> _onAddressCountryChanged(Map<String, dynamic> addr, CountryModel? country) async {
@@ -219,35 +265,33 @@ class _SiteCreatePageState extends State<SiteCreatePage> {
         });
       }
     } else if (_selectedClientId != null) {
-      final client = _clients.firstWhere((c) => c.id == _selectedClientId);
-      if (client.addresses.isNotEmpty) {
-        final details = client.addresses.first.addressDetails;
-        if (details != null) {
-          _siteAddress['line1'].text = details.line1;
-          _siteAddress['line2'].text = details.line2;
-          _siteAddress['city'].text = details.city;
-          _siteAddress['postalCode'].text = details.postalCode;
-          
-          setState(() {
-            _siteAddress['selectedType'] = _addressTypes.where((t) => t.id == details.addressTypeId).firstOrNull;
-            _siteAddress['selectedCountry'] = _countries.where((c) => c.id == details.countryId).firstOrNull;
-          });
+      final client = _clients.where((c) => c.id == _selectedClientId).firstOrNull;
+      if (client != null && client.addresses.isNotEmpty && client.addresses.first.addressDetails != null) {
+        final details = client.addresses.first.addressDetails!;
+        _siteAddress['line1'].text = details.line1;
+        _siteAddress['line2'].text = details.line2;
+        _siteAddress['city'].text = details.city;
+        _siteAddress['postalCode'].text = details.postalCode;
+        
+        setState(() {
+          _siteAddress['selectedType'] = _addressTypes.where((t) => t.id == details.addressTypeId).firstOrNull;
+          _siteAddress['selectedCountry'] = _countries.where((c) => c.id == details.countryId).firstOrNull;
+        });
 
-          if (_siteAddress['selectedCountry'] != null) {
-            final states = await _locationService.getStates(_siteAddress['selectedCountry'].id);
-            if (mounted) {
-              setState(() {
-                _siteAddress['states'] = states;
-                _siteAddress['selectedState'] = states.where((s) => s.id == details.stateId).firstOrNull;
-              });
-              if (_siteAddress['selectedState'] != null) {
-                final districts = await _locationService.getDistricts(_siteAddress['selectedState'].id);
-                if (mounted) {
-                  setState(() {
-                    _siteAddress['districts'] = districts;
-                    _siteAddress['selectedDistrict'] = districts.where((d) => d.id == details.districtId).firstOrNull;
-                  });
-                }
+        if (_siteAddress['selectedCountry'] != null) {
+          final states = await _locationService.getStates(_siteAddress['selectedCountry']!.id);
+          if (mounted) {
+            setState(() {
+              _siteAddress['states'] = states;
+              _siteAddress['selectedState'] = states.where((s) => s.id == details.stateId).firstOrNull;
+            });
+            if (_siteAddress['selectedState'] != null) {
+              final districts = await _locationService.getDistricts(_siteAddress['selectedState']!.id);
+              if (mounted) {
+                setState(() {
+                  _siteAddress['districts'] = districts;
+                  _siteAddress['selectedDistrict'] = districts.where((d) => d.id == details.districtId).firstOrNull;
+                });
               }
             }
           }
@@ -318,13 +362,20 @@ class _SiteCreatePageState extends State<SiteCreatePage> {
         final Map<String, dynamic> payload = {
           "name": _nameController.text.trim(),
           "code": _codeController.text.trim(),
-          "status": _selectedStatus,
+          "status": _selectedStatusId,
           "notes": _notesController.text.trim(),
           "estimated_budget": _budgetController.text.isNotEmpty ? double.tryParse(_budgetController.text) : null,
           "expected_start_date": _expectedStartDate?.toIso8601String().split('T')[0],
           "expected_end_date": _expectedEndDate?.toIso8601String().split('T')[0],
+          "addresses": addresses,
+          "client_data": clientData,
         };
-        await _service.updateSite(widget.site!.id, payload);
+        await _service.updateSite(
+          widget.site!.id, 
+          payload,
+          newImages: _newPhotos,
+          newAttachments: _newAttachments,
+        );
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Site updated successfully!"), backgroundColor: AppColors.success));
           Navigator.pop(context, true);
@@ -333,14 +384,14 @@ class _SiteCreatePageState extends State<SiteCreatePage> {
         await _service.onboardSite(
           name: _nameController.text.trim(),
           organizationId: orgId ?? "",
-          status: _selectedStatus,
+          status: _selectedStatusId,
           budget: double.tryParse(_budgetController.text),
           startDate: _expectedStartDate,
           endDate: _expectedEndDate,
           clientData: clientData,
           notes: _notesController.text.trim(),
           addresses: addresses,
-          images: _newPhotos.map((x) => File(x.path)).toList(),
+          images: _newPhotos,
           attachments: _newAttachments,
         );
         
@@ -464,7 +515,12 @@ class _SiteCreatePageState extends State<SiteCreatePage> {
       Row(children: [
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           _label("STATUS"),
-          _dropdown<String>(value: _selectedStatus, hint: "Select Status", items: _statusOptions.map((s) => DropdownMenuItem(value: s, child: Text(s.toUpperCase()))).toList(), onChanged: (v) => setState(() => _selectedStatus = v!)),
+          _dropdown<String>(
+            value: _selectedStatusId, 
+            hint: "Select Status", 
+            items: _statusModels.map((s) => DropdownMenuItem(value: s.id, child: Text(s.name.toUpperCase()))).toList(), 
+            onChanged: (v) => setState(() => _selectedStatusId = v)
+          ),
         ])),
         const SizedBox(width: 12),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -614,18 +670,32 @@ class _SiteCreatePageState extends State<SiteCreatePage> {
         child: Container(width: 100, height: 120, margin: const EdgeInsets.only(right: 12), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.12))), child: const Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.add_a_photo_outlined, color: AppColors.primary, size: 28), SizedBox(height: 4), Text("Add", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold))])),
       ),
       ..._newPhotos.map((file) => _mediaThumbnail(file.path, () => setState(() => _newPhotos.remove(file)))),
+      if (_isEditing)
+        ...widget.site!.photos.map((photo) => _mediaThumbnail(photo.image, null)),
     ]));
   }
 
-  Widget _mediaThumbnail(String path, VoidCallback onDelete) {
+  Widget _mediaThumbnail(String path, VoidCallback? onDelete) {
     return Container(width: 100, margin: const EdgeInsets.only(right: 12), child: Stack(children: [
-      ClipRRect(borderRadius: BorderRadius.circular(16), child: Image.file(File(path), width: 100, height: 120, fit: BoxFit.cover)),
-      Positioned(right: 4, top: 4, child: InkWell(onTap: onDelete, child: Container(padding: const EdgeInsets.all(4), decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle), child: const Icon(Icons.close, size: 12, color: Colors.white)))),
+      ClipRRect(
+        borderRadius: BorderRadius.circular(16), 
+        child: (kIsWeb || path.startsWith('http'))
+          ? Image.network(path, width: 100, height: 120, fit: BoxFit.cover)
+          : Image.file(File(path), width: 100, height: 120, fit: BoxFit.cover)
+      ),
+      if (onDelete != null)
+        Positioned(right: 4, top: 4, child: InkWell(onTap: onDelete, child: Container(padding: const EdgeInsets.all(4), decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle), child: const Icon(Icons.close, size: 12, color: Colors.white)))),
     ]));
   }
 
   Widget _buildAttachmentSection() {
     return Container(decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.1))), child: Column(children: [
+      if (_isEditing)
+        ...widget.site!.attachments.map((att) => ListTile(
+          leading: const Icon(Icons.description, color: AppColors.accent),
+          title: Text(att.caption, style: const TextStyle(fontSize: 13)),
+          trailing: const Icon(Icons.check_circle, color: AppColors.success, size: 16),
+        )),
       ..._newAttachments.map((f) => ListTile(leading: const Icon(Icons.upload_file, color: Colors.blue), title: Text(f.name, style: const TextStyle(fontSize: 13)), trailing: IconButton(icon: const Icon(Icons.close, color: Colors.red), onPressed: () => setState(() => _newAttachments.remove(f))))),
       const Divider(height: 1),
       InkWell(onTap: () async {

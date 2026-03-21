@@ -3,6 +3,7 @@ import '../../theme/app_theme.dart';
 import '../models/site_model.dart';
 import '../services/site_service.dart';
 import 'site_create_page.dart';
+import 'site_details_page.dart';
 
 class SiteListPage extends StatefulWidget {
   const SiteListPage({super.key});
@@ -100,157 +101,6 @@ class _SiteListPageState extends State<SiteListPage> {
     }
   }
 
-  void _showSiteDetails(SiteModel site) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(24),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.textMuted.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(2)))),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
-                  child: const Icon(Icons.architecture_rounded, color: AppColors.primary, size: 32),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(site.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis, maxLines: 1),
-                      Text("Code: ${site.code}", style: const TextStyle(color: AppColors.textSecondary), overflow: TextOverflow.ellipsis, maxLines: 1),
-                    ],
-                  ),
-                ),
-                Flexible(child: _statusDot(site.status)),
-              ],
-            ),
-            const SizedBox(height: 32),
-            _detailItem(Icons.info_outline, "Status", (site.statusDetails?.name ?? site.status).toUpperCase()),
-            if (site.estimatedBudget != null) _detailItem(Icons.payments_outlined, "Budget", "₹${site.estimatedBudget}"),
-            
-            if (site.photos.isNotEmpty) ...[
-              const SizedBox(height: 24),
-              const Text("Site Images", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              const SizedBox(height: 12),
-              SizedBox(
-                height: 120,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: site.photos.length,
-                  itemBuilder: (context, idx) {
-                    final img = site.photos[idx];
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 12),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
-                        child: Image.network(
-                          img.image.startsWith('http') ? img.image : "http://127.0.0.1:8000${img.image}",
-                          width: 160,
-                          height: 120,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => Container(
-                            width: 160,
-                            color: AppColors.surface,
-                            child: const Icon(Icons.image_not_supported_outlined, color: AppColors.textMuted),
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-
-            if (site.expectedStartDate != null) _detailItem(Icons.calendar_today_outlined, "Start Date", "${site.expectedStartDate!.day}/${site.expectedStartDate!.month}/${site.expectedStartDate!.year}"),
-            if (site.expectedEndDate != null) _detailItem(Icons.event_outlined, "End Date", "${site.expectedEndDate!.day}/${site.expectedEndDate!.month}/${site.expectedEndDate!.year}"),
-
-            const SizedBox(height: 32),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => _showAssignResourceDialog(site),
-                    icon: const Icon(Icons.person_add_alt_1_outlined),
-                    label: const Text("Assign", style: TextStyle(fontSize: 12)),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => _showCreateQuotationDialog(site),
-                    icon: const Icon(Icons.request_quote_outlined),
-                    label: const Text("Quotation", style: TextStyle(fontSize: 12)),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () async {
-                      Navigator.pop(context);
-                      final result = await Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => SiteCreatePage(site: site))
-                      );
-                      if (result == true) _loadSites();
-                    },
-                    icon: const Icon(Icons.edit_outlined),
-                    label: const Text("Edit"),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      _deleteSite(site);
-                    },
-                    icon: const Icon(Icons.delete_outline),
-                    label: const Text("Delete"),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.error,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-          ],
-        ),
-      ),
-    );
-  }
 
   void _showAssignResourceDialog(SiteModel site) {
     showDialog(
@@ -518,7 +368,7 @@ class _SiteListPageState extends State<SiteListPage> {
             (context, index) {
           final site = sites[index];
           return GestureDetector(
-            onTap: () => _showSiteDetails(site),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => SiteDetailsPage(site: site))),
             child: Container(
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -602,7 +452,7 @@ class _SiteListPageState extends State<SiteListPage> {
                 child: const Icon(Icons.delete, color: Colors.white),
               ),
               child: GestureDetector(
-                onTap: () => _showSiteDetails(site),
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => SiteDetailsPage(site: site))),
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(

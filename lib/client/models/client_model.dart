@@ -17,12 +17,17 @@ class ClientEmailModel {
   });
 
   factory ClientEmailModel.fromJson(Map<String, dynamic> json) {
+    String? contactTypeName = json['contact_type_name']?.toString();
+    if (contactTypeName == null && json['contact_type_details'] is Map) {
+      contactTypeName = (json['contact_type_details'] as Map)['name']?.toString();
+    }
+    
     return ClientEmailModel(
       id: json['id']?.toString() ?? '',
       emailId: json['email']?.toString() ?? '',
-      email: json['email_str']?.toString() ?? '',
+      email: json['email']?.toString() ?? '',
       contactTypeId: json['contact_type']?.toString(),
-      contactTypeName: json['contact_type_name']?.toString(),
+      contactTypeName: contactTypeName,
     );
   }
 }
@@ -43,12 +48,17 @@ class ClientMobileModel {
   });
 
   factory ClientMobileModel.fromJson(Map<String, dynamic> json) {
+    String? contactTypeName = json['contact_type_name']?.toString();
+    if (contactTypeName == null && json['contact_type_details'] is Map) {
+      contactTypeName = (json['contact_type_details'] as Map)['name']?.toString();
+    }
+
     return ClientMobileModel(
       id: json['id']?.toString() ?? '',
       mobileId: json['mobile']?.toString() ?? '',
       number: json['number']?.toString() ?? '',
       contactTypeId: json['contact_type']?.toString(),
-      contactTypeName: json['contact_type_name']?.toString(),
+      contactTypeName: contactTypeName,
     );
   }
 }
@@ -65,6 +75,13 @@ class ClientAddressModel {
   });
 
   factory ClientAddressModel.fromJson(Map<String, dynamic> json) {
+    if (json.containsKey('line1')) {
+      return ClientAddressModel(
+        id: json['id']?.toString() ?? '',
+        addressId: json['id']?.toString() ?? '',
+        addressDetails: AddressModel.fromJson(json),
+      );
+    }
     return ClientAddressModel(
       id: json['id']?.toString() ?? '',
       addressId: json['address']?.toString() ?? '',
