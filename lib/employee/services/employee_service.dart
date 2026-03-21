@@ -10,6 +10,18 @@ import 'package:http_parser/http_parser.dart';
 class EmployeeService extends BaseService {
   static const String baseUrl = 'http://127.0.0.1:8000/api/v1/employee/';
 
+  Future<EmployeeModel> getEmployee(String id) async {
+    try {
+      final response = await performRequest((headers) => http.get(Uri.parse('$baseUrl$id/'), headers: headers));
+      if (response.statusCode == 200) {
+        return EmployeeModel.fromJson(jsonDecode(response.body));
+      }
+      throw Exception("Failed to load employee details");
+    } catch (e) {
+      throw Exception("Error fetching employee: $e");
+    }
+  }
+
   Future<List<EmployeeModel>> getEmployees({Map<String, String>? filters}) async {
     try {
       Uri url = Uri.parse(baseUrl);

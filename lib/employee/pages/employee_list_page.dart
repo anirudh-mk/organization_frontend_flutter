@@ -3,6 +3,7 @@ import '../../theme/app_theme.dart';
 import '../models/employee_model.dart';
 import '../services/employee_service.dart';
 import 'employee_create_page.dart';
+import 'employee_details_page.dart';
 
 class EmployeeListPage extends StatefulWidget {
   const EmployeeListPage({super.key});
@@ -131,53 +132,12 @@ class _EmployeeListPageState extends State<EmployeeListPage> {
   Widget _statusDot(bool active) => Container(width: 8, height: 8, decoration: BoxDecoration(color: active ? AppColors.success : AppColors.error, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 1.5)));
 
   void _showEmployeeDetails(EmployeeModel emp) {
-    showModalBottomSheet(context: context, isScrollControlled: true, backgroundColor: Colors.transparent, builder: (context) => Container(
-      height: MediaQuery.of(context).size.height * 0.75,
-      decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(30))),
-      child: Column(children: [
-        const SizedBox(height: 12),
-        Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.textMuted.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(2))),
-        Expanded(child: SingleChildScrollView(padding: const EdgeInsets.all(24), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            CircleAvatar(radius: 40, backgroundColor: AppColors.background, backgroundImage: emp.photos.isNotEmpty ? NetworkImage(emp.photos.first.imageUrl) : null, child: emp.photos.isEmpty ? const Icon(Icons.person_rounded, size: 40, color: AppColors.textMuted) : null),
-            const SizedBox(width: 20),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(emp.displayName, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-              Text(emp.jobRoleName ?? 'General Staff', style: const TextStyle(color: AppColors.textSecondary, fontSize: 14)),
-              const SizedBox(height: 8),
-              Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: (emp.isActive ? AppColors.success : AppColors.error).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)), child: Text(emp.isActive ? "ACTIVE" : "INACTIVE", style: TextStyle(color: emp.isActive ? AppColors.success : AppColors.error, fontSize: 10, fontWeight: FontWeight.bold))),
-            ])),
-          ]),
-          const SizedBox(height: 32),
-          _detailSection("Identities", [
-            _detailRow(Icons.badge_outlined, "Employee Code", emp.employeeCode ?? 'N/A'),
-            _detailRow(Icons.payments_outlined, "Salary", "₹ ${emp.expectedSalary}"),
-          ]),
-          const SizedBox(height: 24),
-          _detailSection("Contacts", [
-            ...emp.mobiles.map((m) => _detailRow(Icons.phone_android_rounded, "Mobile", m.number)),
-            ...emp.emails.map((e) => _detailRow(Icons.email_outlined, "Email", e.email)),
-            if (emp.mobiles.isEmpty && emp.emails.isEmpty) const Text("No contact info provided", style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
-          ]),
-          const SizedBox(height: 24),
-          _detailSection("Addresses", [
-            ...emp.addresses.map((a) => _detailRow(Icons.location_on_outlined, "Address", "${a.line1}, ${a.city}")),
-            if (emp.addresses.isEmpty) const Text("No addresses saved", style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
-          ]),
-          const SizedBox(height: 40),
-          Row(children: [
-            Expanded(child: OutlinedButton(onPressed: () { 
-                      Navigator.pop(context); 
-                      Navigator.push(context, MaterialPageRoute(builder: (ctx) => EmployeeCreatePage(employee: emp))).then((v) {
-                        if (v == true) _loadEmployees();
-                      }); 
-                    }, style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))), child: const Text("Edit Profile"))),
-            const SizedBox(width: 16),
-            Expanded(child: ElevatedButton(onPressed: () => Navigator.pop(context), style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))), child: const Text("Close", style: TextStyle(color: Colors.white)))),
-          ]),
-        ]))),
-      ]),
-    ));
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EmployeeDetailPage(employee: emp),
+      ),
+    ).then((_) => _loadEmployees());
   }
 
   Widget _detailSection(String title, List<Widget> children) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

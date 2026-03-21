@@ -135,18 +135,25 @@ class EmailModel {
   final String id;
   final String email;
   final String? contactTypeId;
+  final String? contactTypeName;
 
   EmailModel({
     required this.id,
     required this.email,
     this.contactTypeId,
+    this.contactTypeName,
   });
 
   factory EmailModel.fromJson(Map<String, dynamic> json) {
     return EmailModel(
       id: json['id']?.toString() ?? '',
       email: json['email'] ?? '',
-      contactTypeId: json['contact_type']?.toString(),
+      contactTypeId: (json['contact_type'] is Map) 
+          ? json['contact_type']['id']?.toString() 
+          : json['contact_type']?.toString(),
+      contactTypeName: (json['contact_type'] is Map)
+          ? json['contact_type']['name']?.toString()
+          : null,
     );
   }
 }
@@ -155,18 +162,25 @@ class MobileModel {
   final String id;
   final String number;
   final String? contactTypeId;
+  final String? contactTypeName;
 
   MobileModel({
     required this.id,
     required this.number,
     this.contactTypeId,
+    this.contactTypeName,
   });
 
   factory MobileModel.fromJson(Map<String, dynamic> json) {
     return MobileModel(
       id: json['id']?.toString() ?? '',
       number: json['number'] ?? '',
-      contactTypeId: json['contact_type']?.toString(),
+      contactTypeId: (json['contact_type'] is Map) 
+          ? json['contact_type']['id']?.toString() 
+          : json['contact_type']?.toString(),
+      contactTypeName: (json['contact_type'] is Map)
+          ? json['contact_type']['name']?.toString()
+          : null,
     );
   }
 }

@@ -32,11 +32,8 @@ class _EmployeeCreatePageState extends State<EmployeeCreatePage> {
   late TextEditingController _codeController;
   late TextEditingController _salaryController;
 
-  // Multiple contacts (Vendor-style)
   final List<Map<String, dynamic>> _emailFields = [];
   final List<Map<String, dynamic>> _mobileFields = [];
-
-  // Multiple addresses (Vendor-style, in-line)
   final List<Map<String, dynamic>> _addressFields = [];
   
   String? _selectedRoleId;
@@ -117,7 +114,6 @@ class _EmployeeCreatePageState extends State<EmployeeCreatePage> {
           } catch (_) {}
         }
 
-        // Match contact types
         for (var f in _emailFields) {
           f['type'] = _contactTypes.where((t) => t.id == f['typeId']).firstOrNull ?? (_contactTypes.isNotEmpty ? _contactTypes.first : null);
         }
@@ -128,7 +124,6 @@ class _EmployeeCreatePageState extends State<EmployeeCreatePage> {
         _isLoading = false;
       });
 
-      // Match address details (async because of nested lookups)
       for (var f in _addressFields) {
         f['selectedType'] = _addressTypes.where((t) => t.id == f['typeId']).firstOrNull;
         f['selectedCountry'] = _countries.where((c) => c.id == f['countryId']).firstOrNull;
@@ -292,9 +287,9 @@ class _EmployeeCreatePageState extends State<EmployeeCreatePage> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: Colors.white, elevation: 0,
+        backgroundColor: AppColors.background, elevation: 0, scrolledUnderElevation: 0,
         title: Text(widget.employee == null ? "Onboard Staff" : "Edit Profile", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-        centerTitle: true,
+        centerTitle: false,
         leading: IconButton(icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20), onPressed: () => Navigator.pop(context)),
       ),
       body: _isSaving ? const Center(child: CircularProgressIndicator()) : Form(
@@ -304,36 +299,37 @@ class _EmployeeCreatePageState extends State<EmployeeCreatePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _sectionHeader("Profile Photos", null),
-              const SizedBox(height: 16),
-              _buildPhotoPicker(),
+              _sectionTitle("Profile Photos"),
+              _card([_buildPhotoPicker()]),
 
               const SizedBox(height: 32),
-              _sectionHeader("Identity & Role", null),
-              const SizedBox(height: 16),
-              _buildIdentityFields(),
+              _sectionTitle("Identity & Role"),
+              _card([_buildIdentityFields()]),
               
               const SizedBox(height: 32),
-              _sectionHeader("Contact Info", null),
-              const SizedBox(height: 16),
-              _emailSection(),
-              const SizedBox(height: 16),
-              _mobileSection(),
+              _sectionTitle("Contact Info"),
+              _card([
+                _emailSection(),
+                const SizedBox(height: 24),
+                _mobileSection(),
+              ]),
 
               const SizedBox(height: 32),
-              _sectionHeader("Addresses", TextButton.icon(onPressed: () => _addAddressField(), icon: const Icon(Icons.add_location_alt_rounded, size: 16), label: const Text("Add Address", style: TextStyle(fontSize: 12)))),
-              const SizedBox(height: 16),
+              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                _sectionTitle("Addresses"),
+                TextButton.icon(onPressed: () => _addAddressField(), icon: const Icon(Icons.add_location_alt_rounded, size: 16), label: const Text("Add Address", style: TextStyle(fontSize: 12))),
+              ]),
               _addressSection(),
 
               const SizedBox(height: 32),
-              _sectionHeader("Financials", null),
-              const SizedBox(height: 16),
-              _label("EXPECTED SALARY (PER MONTH)"),
-              _field(_salaryController, "0.00", keyboardType: TextInputType.number),
+              _sectionTitle("Financials"),
+              _card([
+                _label("EXPECTED SALARY (PER MONTH)"),
+                _field(_salaryController, "0.00", keyboardType: TextInputType.number),
+              ]),
 
               const SizedBox(height: 32),
-              _sectionHeader("KYC & Documents", null),
-              const SizedBox(height: 16),
+              _sectionTitle("KYC & Documents"),
               _buildAttachmentSection(),
 
               const SizedBox(height: 48),
@@ -346,9 +342,17 @@ class _EmployeeCreatePageState extends State<EmployeeCreatePage> {
     );
   }
 
+  Widget _sectionTitle(String title) => Padding(padding: const EdgeInsets.only(bottom: 12, left: 4), child: Text(title.toUpperCase(), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: AppColors.textSecondary, letterSpacing: 1.2)));
+
+  Widget _card(List<Widget> children) => Container(
+    padding: const EdgeInsets.all(24),
+    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))]),
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: children),
+  );
+
   Widget _emailSection() {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [_label("EMAILS"), TextButton.icon(onPressed: () => _addEmailField(), icon: const Icon(Icons.add, size: 16), label: const Text("Add Email", style: TextStyle(fontSize: 12)))]),
+      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [_label("EMAILS"), TextButton.icon(onPressed: () => _addEmailField(), icon: const Icon(Icons.add, size: 16), label: const Text("Add", style: TextStyle(fontSize: 12)))]),
       ..._emailFields.asMap().entries.map((entry) {
         int idx = entry.key;
         var field = entry.value;
@@ -356,7 +360,7 @@ class _EmployeeCreatePageState extends State<EmployeeCreatePage> {
           Expanded(flex: 2, child: _dropdown<ContactTypeModel>(value: field['type'], hint: "Type", items: _contactTypes.map((t) => DropdownMenuItem(value: t, child: Text(t.name))).toList(), onChanged: (v) => setState(() => _emailFields[idx]['type'] = v))),
           const SizedBox(width: 8),
           Expanded(flex: 4, child: _field(field['controller'], "email@example.com", keyboardType: TextInputType.emailAddress)),
-          if (_emailFields.length > 1) IconButton(icon: const Icon(Icons.remove_circle_outline, color: Colors.red), onPressed: () => setState(() => _emailFields.removeAt(idx))),
+          if (_emailFields.length > 1) IconButton(icon: const Icon(Icons.remove_circle_outline, color: Colors.red, size: 20), onPressed: () => setState(() => _emailFields.removeAt(idx))),
         ]));
       }),
     ]);
@@ -364,7 +368,7 @@ class _EmployeeCreatePageState extends State<EmployeeCreatePage> {
 
   Widget _mobileSection() {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [_label("MOBILES"), TextButton.icon(onPressed: () => _addMobileField(), icon: const Icon(Icons.add, size: 16), label: const Text("Add Mobile", style: TextStyle(fontSize: 12)))]),
+      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [_label("MOBILES"), TextButton.icon(onPressed: () => _addMobileField(), icon: const Icon(Icons.add, size: 16), label: const Text("Add", style: TextStyle(fontSize: 12)))]),
       ..._mobileFields.asMap().entries.map((entry) {
         int idx = entry.key;
         var field = entry.value;
@@ -372,7 +376,7 @@ class _EmployeeCreatePageState extends State<EmployeeCreatePage> {
           Expanded(flex: 2, child: _dropdown<ContactTypeModel>(value: field['type'], hint: "Type", items: _contactTypes.map((t) => DropdownMenuItem(value: t, child: Text(t.name))).toList(), onChanged: (v) => setState(() => _mobileFields[idx]['type'] = v))),
           const SizedBox(width: 8),
           Expanded(flex: 4, child: _field(field['controller'], "+91 ...", keyboardType: TextInputType.phone)),
-          if (_mobileFields.length > 1) IconButton(icon: const Icon(Icons.remove_circle_outline, color: Colors.red), onPressed: () => setState(() => _mobileFields.removeAt(idx))),
+          if (_mobileFields.length > 1) IconButton(icon: const Icon(Icons.remove_circle_outline, color: Colors.red, size: 20), onPressed: () => setState(() => _mobileFields.removeAt(idx))),
         ]));
       }),
     ]);
@@ -383,9 +387,9 @@ class _EmployeeCreatePageState extends State<EmployeeCreatePage> {
       int idx = entry.key;
       var f = entry.value;
       return Container(
-        margin: const EdgeInsets.only(bottom: 24),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.1))),
+        margin: const EdgeInsets.only(bottom: 20),
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))]),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
             _label("ADDRESS #${idx + 1}"),
@@ -422,7 +426,7 @@ class _EmployeeCreatePageState extends State<EmployeeCreatePage> {
 
   Widget _buildPhotoPicker() {
     return SizedBox(
-      height: 140,
+      height: 120,
       child: ListView(
         scrollDirection: Axis.horizontal,
         children: [
@@ -433,12 +437,12 @@ class _EmployeeCreatePageState extends State<EmployeeCreatePage> {
               if (selection.isNotEmpty) setState(() => _newPhotos.addAll(selection));
             },
             child: Container(
-              width: 120, height: 140, margin: const EdgeInsets.only(right: 12),
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.12), width: 1.5)),
-              child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                Icon(Icons.add_a_photo_outlined, color: AppColors.primary.withValues(alpha: 0.6), size: 32),
-                const SizedBox(height: 8),
-                const Text("Add Photo", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textSecondary))
+              width: 110, height: 120, margin: const EdgeInsets.only(right: 12),
+              decoration: BoxDecoration(color: AppColors.background.withValues(alpha: 0.5), borderRadius: BorderRadius.circular(20), border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.1), width: 1.5)),
+              child: const Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                Icon(Icons.add_a_photo_outlined, color: AppColors.accent, size: 28),
+                SizedBox(height: 8),
+                Text("Add Photo", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.textSecondary))
               ]),
             ),
           ),
@@ -455,15 +459,15 @@ class _EmployeeCreatePageState extends State<EmployeeCreatePage> {
   Widget _mediaThumbnail(String path, VoidCallback onDelete) {
     var image;
     if (path.startsWith('http')) {
-      image = Image.network(path, width: 120, height: 140, fit: BoxFit.cover);
+      image = Image.network(path, width: 110, height: 120, fit: BoxFit.cover);
     } else {
-      image = Image.file(File(path), width: 120, height: 140, fit: BoxFit.cover);
+      image = Image.file(File(path), width: 110, height: 120, fit: BoxFit.cover);
     }
     return Container(
-      width: 120, margin: const EdgeInsets.only(right: 12),
+      width: 110, margin: const EdgeInsets.only(right: 12),
       child: Stack(children: [
         ClipRRect(borderRadius: BorderRadius.circular(20), child: image),
-        Positioned(right: 8, top: 8, child: InkWell(onTap: onDelete, child: Container(padding: const EdgeInsets.all(6), decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle), child: const Icon(Icons.close, size: 14, color: Colors.white)))),
+        Positioned(right: 6, top: 6, child: InkWell(onTap: onDelete, child: Container(padding: const EdgeInsets.all(4), decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle), child: const Icon(Icons.close, size: 12, color: Colors.white)))),
       ]),
     );
   }
@@ -484,7 +488,7 @@ class _EmployeeCreatePageState extends State<EmployeeCreatePage> {
         const SizedBox(width: 12),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           _label("STATUS"),
-          Container(height: 56, padding: const EdgeInsets.symmetric(horizontal: 16), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.1))), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          Container(height: 56, padding: const EdgeInsets.symmetric(horizontal: 16), decoration: BoxDecoration(color: AppColors.background.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.1))), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
             Text(_isActive ? "Active" : "Inactive", style: TextStyle(color: _isActive ? AppColors.success : AppColors.error, fontWeight: FontWeight.bold)),
             Switch(value: _isActive, onChanged: (v) => setState(() => _isActive = v), activeColor: AppColors.success),
           ])),
@@ -495,21 +499,23 @@ class _EmployeeCreatePageState extends State<EmployeeCreatePage> {
 
   Widget _buildAttachmentSection() {
     return Container(
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.1))),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))]),
       child: Column(children: [
+        if (_existingAttachments.isEmpty && _newAttachments.isEmpty)
+          const Padding(padding: EdgeInsets.all(24), child: Text("No documents uploaded yet.", style: TextStyle(color: AppColors.textMuted, fontSize: 13))),
         ..._existingAttachments.map((att) => ListTile(
           onTap: () async => await launchUrl(Uri.parse(att.fileUrl)),
-          leading: const Icon(Icons.description_outlined, color: AppColors.primary),
+          leading: const Icon(Icons.description_outlined, color: AppColors.accent),
           title: Text(att.fileName, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-          trailing: IconButton(icon: const Icon(Icons.delete_outline, color: Colors.red), onPressed: () async {
+          trailing: IconButton(icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20), onPressed: () async {
             await _service.deleteAttachment(att.id);
             setState(() => _existingAttachments.remove(att));
           }),
         )),
         ..._newAttachments.map((f) => ListTile(
-          leading: const Icon(Icons.upload_file, color: Colors.blue),
+          leading: const Icon(Icons.upload_file, color: AppColors.accent),
           title: Text(f.name, style: const TextStyle(fontSize: 13)),
-          trailing: IconButton(icon: const Icon(Icons.close, color: Colors.red), onPressed: () => setState(() => _newAttachments.remove(f))),
+          trailing: IconButton(icon: const Icon(Icons.close, color: Colors.red, size: 20), onPressed: () => setState(() => _newAttachments.remove(f))),
         )),
         const Divider(height: 1),
         InkWell(
@@ -517,27 +523,23 @@ class _EmployeeCreatePageState extends State<EmployeeCreatePage> {
             final res = await FilePicker.platform.pickFiles(allowMultiple: true);
             if (res != null) setState(() => _newAttachments.addAll(res.files));
           },
-          child: const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.add_circle_outline, color: AppColors.primary, size: 20), SizedBox(width: 8), Text("Upload Documents", style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold))])),
+          child: const Padding(padding: EdgeInsets.symmetric(vertical: 20), child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.add_circle_outline, color: AppColors.accent, size: 20), SizedBox(width: 8), Text("Upload Documents", style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.bold))])),
         ),
       ]),
     );
   }
 
   Widget _buildSaveButton() {
-    return SizedBox(width: double.infinity, height: 58, child: ElevatedButton(
+    return SizedBox(width: double.infinity, height: 60, child: ElevatedButton(
       onPressed: _isSaving ? null : _save,
       style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
       child: Text(widget.employee == null ? "Confirm Onboarding" : "Update Profile", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white)),
     ));
   }
 
-  Widget _sectionHeader(String title, Widget? action) {
-    return Row(children: [Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)), const SizedBox(width: 12), const Expanded(child: Divider()), if (action != null) action]);
-  }
+  Widget _label(String text) => Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(text, style: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.textSecondary, fontSize: 10, letterSpacing: 1.2)));
 
-  Widget _label(String text) => Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(text, style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.textSecondary, fontSize: 10, letterSpacing: 1.2)));
+  Widget _field(TextEditingController ctrl, String hint, {TextInputType? keyboardType, String? Function(String?)? validator}) => TextFormField(controller: ctrl, keyboardType: keyboardType, validator: validator, decoration: InputDecoration(hintText: hint, filled: true, fillColor: AppColors.background.withValues(alpha: 0.3), enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: AppColors.textMuted.withValues(alpha: 0.1))), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: AppColors.accent)), errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Colors.red))));
 
-  Widget _field(TextEditingController ctrl, String hint, {TextInputType? keyboardType, String? Function(String?)? validator}) => TextFormField(controller: ctrl, keyboardType: keyboardType, validator: validator, decoration: InputDecoration(hintText: hint, filled: true, fillColor: Colors.white, enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: AppColors.textMuted.withValues(alpha: 0.12))), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: AppColors.primary)), errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Colors.red))));
-
-  Widget _dropdown<T>({required T? value, required String hint, required List<DropdownMenuItem<T>> items, required ValueChanged<T?>? onChanged, bool enabled = true}) => Container(padding: const EdgeInsets.symmetric(horizontal: 14), decoration: BoxDecoration(color: enabled ? Colors.white : AppColors.background, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.12))), child: DropdownButtonHideUnderline(child: DropdownButton<T>(value: value, isExpanded: true, hint: Text(hint, style: const TextStyle(fontSize: 13, color: AppColors.textMuted)), items: enabled ? items : null, onChanged: enabled ? onChanged : null, icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.textSecondary))));
+  Widget _dropdown<T>({required T? value, required String hint, required List<DropdownMenuItem<T>> items, required ValueChanged<T?>? onChanged, bool enabled = true}) => Container(padding: const EdgeInsets.symmetric(horizontal: 14), decoration: BoxDecoration(color: enabled ? AppColors.background.withValues(alpha: 0.3) : AppColors.background.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.1))), child: DropdownButtonHideUnderline(child: DropdownButton<T>(value: value, isExpanded: true, hint: Text(hint, style: const TextStyle(fontSize: 13, color: AppColors.textMuted)), items: enabled ? items : null, onChanged: enabled ? onChanged : null, icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.textSecondary))));
 }
