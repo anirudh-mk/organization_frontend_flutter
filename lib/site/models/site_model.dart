@@ -1,11 +1,13 @@
 class SiteStatusModel {
   final String id;
   final String name;
+  final String code;
   final String description;
 
   SiteStatusModel({
     required this.id,
     required this.name,
+    required this.code,
     required this.description,
   });
 
@@ -13,6 +15,7 @@ class SiteStatusModel {
     return SiteStatusModel(
       id: json['id']?.toString() ?? '',
       name: json['name'] ?? '',
+      code: json['code'] ?? '',
       description: json['description'] ?? '',
     );
   }
@@ -135,13 +138,11 @@ class ClientLinkModel {
   final String id;
   final String clientId;
   final String? clientName;
-  final double contractValue;
 
   ClientLinkModel({
     required this.id,
     required this.clientId,
     this.clientName,
-    required this.contractValue,
   });
 
   factory ClientLinkModel.fromJson(Map<String, dynamic> json) {
@@ -149,7 +150,6 @@ class ClientLinkModel {
       id: json['id']?.toString() ?? '',
       clientId: json['client']?.toString() ?? '',
       clientName: json['client_name']?.toString(),
-      contractValue: double.tryParse(json['contract_value'].toString()) ?? 0.0,
     );
   }
 }

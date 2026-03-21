@@ -29,8 +29,6 @@ class _SiteCreatePageState extends State<SiteCreatePage> {
   final _codeController = TextEditingController();
   final _budgetController = TextEditingController();
   final _notesController = TextEditingController();
-  final _contractValueController = TextEditingController();
-  final _contractRemarksController = TextEditingController();
   final _newClientNameController = TextEditingController();
   
   // Address State
@@ -79,6 +77,19 @@ class _SiteCreatePageState extends State<SiteCreatePage> {
       _expectedEndDate = widget.site!.expectedEndDate;
       _selectedClientId = widget.site!.clientLink?.clientId;
       // Handle site address pre-fill for editing if needed (omitted for brevity or assumed handled by backend/details)
+    } else {
+      _fetchNextCode();
+    }
+  }
+
+  Future<void> _fetchNextCode() async {
+    try {
+      final code = await _service.getNextCode();
+      if (mounted && code.isNotEmpty) {
+        setState(() => _codeController.text = code);
+      }
+    } catch (e) {
+      debugPrint("Error fetching next code: $e");
     }
   }
 
@@ -208,8 +219,6 @@ class _SiteCreatePageState extends State<SiteCreatePage> {
       if (_isNewClient) {
         clientData = {
           "name": _newClientNameController.text.trim(),
-          "contract_value": double.tryParse(_contractValueController.text) ?? 0,
-          "contract_remarks": _contractRemarksController.text.trim(),
           "address": _clientAddress['line1'].text.isNotEmpty ? {
             'line_1': _clientAddress['line1'].text.trim(),
             'line_2': _clientAddress['line2'].text.trim(),
@@ -222,8 +231,6 @@ class _SiteCreatePageState extends State<SiteCreatePage> {
       } else if (_selectedClientId != null) {
         clientData = {
           "client_id": _selectedClientId,
-          "contract_value": double.tryParse(_contractValueController.text) ?? 0,
-          "contract_remarks": _contractRemarksController.text.trim(),
         };
       }
 
@@ -496,12 +503,8 @@ class _SiteCreatePageState extends State<SiteCreatePage> {
           activeColor: AppColors.primary,
         ),
         const SizedBox(height: 16),
-        _label("CONTRACT VALUE"),
-        _field(_contractValueController, "0.00", keyboardType: TextInputType.number),
-        const SizedBox(height: 16),
-        _label("CONTRACT REMARKS"),
-        _field(_contractRemarksController, "Specific terms...", maxLines: 2),
-    ]);
+      ],
+    );
   }
 
   Widget _buildPhotoPicker() {

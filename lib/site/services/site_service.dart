@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
-import 'package:path/path.dart' as path;
 import 'package:file_picker/file_picker.dart';
 import '../models/site_model.dart';
 import '../../shared/services/base_service.dart';
@@ -200,6 +199,22 @@ class SiteService extends BaseService {
       }
     } catch (e) {
       throw Exception("Error deleting site: $e");
+    }
+  }
+
+  Future<String> getNextCode() async {
+    try {
+      final response = await performRequest((headers) => http.get(
+        Uri.parse('$baseUrl/get-next-code/'),
+        headers: headers,
+      ));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['code'];
+      }
+      return '';
+    } catch (e) {
+      return '';
     }
   }
 }
