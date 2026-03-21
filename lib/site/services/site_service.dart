@@ -221,7 +221,8 @@ class SiteService extends BaseService {
   Future<void> assignResource({
     required String siteId,
     required String type, // 'employee' or 'equipment'
-    required String id,
+    String? id,
+    List<String>? ids,
     String? phaseId,
   }) async {
     try {
@@ -231,6 +232,7 @@ class SiteService extends BaseService {
         body: jsonEncode({
           'type': type,
           'id': id,
+          'ids': ids,
           'phase_id': phaseId,
         }),
       ));
@@ -286,6 +288,7 @@ class SiteService extends BaseService {
   Future<void> recordProgress({
     required String siteId,
     required double percentage,
+    required String templateId,
     String? description,
   }) async {
     try {
@@ -295,6 +298,7 @@ class SiteService extends BaseService {
         body: jsonEncode({
           'percentage': percentage,
           'description': description,
+          'template_id': templateId,
           'date': DateTime.now().toIso8601String().split('T')[0],
         }),
       ));
@@ -304,6 +308,80 @@ class SiteService extends BaseService {
       }
     } catch (e) {
       throw Exception('Error recording progress: $e');
+    }
+  }
+
+  Future<List<SiteProgressTemplateModel>> getProgressTemplates() async {
+    try {
+      final response = await performRequest((headers) => http.get(
+        Uri.parse('http://127.0.0.1:8000/api/v1/site/progress-templates/'),
+        headers: headers,
+      ));
+      if (response.statusCode == 200) {
+        List<dynamic> body = jsonDecode(response.body);
+        return body.map((item) => SiteProgressTemplateModel.fromJson(item)).toList();
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<SiteProgressEntryModel> createProgressEntry({
+    required String siteId,
+    required String templateId,
+    required double overallPercentage,
+    String? remarks,
+    List<Map<String, dynamic>>? itemStatuses,
+  }) async {
+    try {
+      final response = await performRequest((headers) => http.post(
+        Uri.parse('http://127.0.0.1:8000/api/v1/site/progress-entries/'),
+        headers: headers,
+        body: jsonEncode({
+          'site': siteId,
+          'template': templateId,
+          'overall_completion_percentage': overallPercentage,
+          'remarks': remarks,
+          'date': DateTime.now().toIso8601String().split('T')[0],
+          'item_statuses': itemStatuses ?? [],
+        }),
+      ));
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        return SiteProgressEntryModel.fromJson(jsonDecode(response.body));
+      } else {
+        throw Exception('Failed to create progress entry: ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('Error creating progress entry: $e');
+    }
+  }
+
+  Future<void> updateProgressItemStatus({
+    required String entryId,
+    required String checklistItemId,
+    required bool isCompleted,
+    double completionPercentage = 0,
+    String? notes,
+  }) async {
+    try {
+      final response = await performRequest((headers) => http.post(
+        Uri.parse('http://127.0.0.1:8000/api/v1/site/progress-entries/$entryId/update-item-status/'),
+        headers: headers,
+        body: jsonEncode({
+          'checklist_item_id': checklistItemId,
+          'is_completed': isCompleted,
+          'completion_percentage': completionPercentage,
+          'notes': notes,
+        }),
+      ));
+
+      if (response.statusCode != 200) {
+        throw Exception('Failed to update item status: ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('Error updating item status: $e');
     }
   }
 

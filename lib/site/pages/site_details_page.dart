@@ -7,6 +7,7 @@ import '../../employee/models/employee_model.dart';
 import '../../equipment/models/equipment_model.dart';
 import '../services/site_service.dart';
 import '../../shared/models/location_models.dart';
+import '../../employee/widgets/employee_selector.dart';
 import 'site_create_page.dart';
 
 class SiteDetailsPage extends StatefulWidget {
@@ -23,6 +24,7 @@ class _SiteDetailsPageState extends State<SiteDetailsPage> with SingleTickerProv
   late SiteModel _site;
   final SiteService _siteService = SiteService();
   bool _isLoading = false;
+  List<SiteProgressTemplateModel> _templates = [];
 
   int _currentPhotoIndex = 0;
   final ImagePicker _picker = ImagePicker();
@@ -39,6 +41,7 @@ class _SiteDetailsPageState extends State<SiteDetailsPage> with SingleTickerProv
     _tabController = TabController(length: 6, vsync: this);
     _site = widget.site;
     _refreshSite();
+    _fetchTemplates();
     
     // Original app theme colors
     _bgColor = AppColors.background;
@@ -88,6 +91,19 @@ class _SiteDetailsPageState extends State<SiteDetailsPage> with SingleTickerProv
           SnackBar(content: Text("Error refreshing site: $e")),
         );
       }
+    }
+  }
+
+  Future<void> _fetchTemplates() async {
+    try {
+      final templates = await _siteService.getProgressTemplates();
+      if (mounted) {
+        setState(() {
+          _templates = templates;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error fetching templates: $e");
     }
   }
 
@@ -523,12 +539,50 @@ class _SiteDetailsPageState extends State<SiteDetailsPage> with SingleTickerProv
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text("${entry.percentage.toInt()}% Complete", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                        Text(DateFormat('MMM dd').format(entry.date), style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text("${entry.overallCompletionPercentage.toInt()}% Complete", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                              if (entry.templateDetails != null)
+                                Text("Phase: ${entry.templateDetails!.name}", style: TextStyle(color: AppColors.accent, fontSize: 12, fontWeight: FontWeight.w600)),
+                            ],
+                          ),
+                        ),
+                        Text(DateFormat('MMM dd, yyyy').format(entry.date), style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
                       ],
                     ),
-                    const SizedBox(height: 4),
-                    Text(entry.description ?? "Regular progress update", style: TextStyle(color: AppColors.textSecondary)),
+                    const SizedBox(height: 8),
+                    if (entry.remarks != null && entry.remarks!.isNotEmpty)
+                      Text(entry.remarks!, style: TextStyle(color: AppColors.textSecondary)),
+                    if (entry.itemStatuses.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.background.withOpacity(0.5),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Column(
+                          children: entry.itemStatuses.take(3).map((s) => Padding(
+                            padding: const EdgeInsets.only(bottom: 4),
+                            child: Row(
+                              children: [
+                                Icon(s.isCompleted ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded, 
+                                     size: 14, color: s.isCompleted ? AppColors.success : AppColors.textMuted),
+                                const SizedBox(width: 8),
+                                Expanded(child: Text(s.checklistItemDetails?.title ?? "Item", style: TextStyle(fontSize: 12, color: AppColors.textPrimary))),
+                              ],
+                            ),
+                          )).toList(),
+                        ),
+                      ),
+                      if (entry.itemStatuses.length > 3)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4, left: 4),
+                          child: Text("+ ${entry.itemStatuses.length - 3} more items", style: TextStyle(fontSize: 10, color: AppColors.accent)),
+                        ),
+                    ],
                     const SizedBox(height: 24),
                   ],
                 ),
@@ -776,55 +830,49 @@ class _SiteDetailsPageState extends State<SiteDetailsPage> with SingleTickerProv
   }
 
   void _showAddProgressDialog() {
-    final percentageController = TextEditingController(text: _site.progressEntries.isNotEmpty ? _site.progressEntries.first.percentage.toString() : "0");
-    final descriptionController = TextEditingController();
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Record Progress"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: percentageController,
-              decoration: const InputDecoration(labelText: "Percentage (%)", hintText: "0-100"),
-              keyboardType: TextInputType.number,
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: descriptionController,
-              decoration: const InputDecoration(labelText: "Description", hintText: "Work done..."),
-              maxLines: 2,
-            ),
-          ],
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: SiteProgressEntryForm(
+          siteId: _site.id,
+          templates: _templates,
+          onSubmit: () {
+            _refreshSite();
+          },
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
-          TextButton(
-            onPressed: () async {
-              final percentage = double.tryParse(percentageController.text);
-              if (percentage == null) return;
-              Navigator.pop(context);
-              try {
-                await _siteService.recordProgress(
-                  siteId: _site.id,
-                  percentage: percentage,
-                  description: descriptionController.text,
-                );
-                _refreshSite();
-                if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Progress recorded!"), backgroundColor: AppColors.success));
-              } catch (e) {
-                if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error));
-              }
-            },
-            child: const Text("Record"),
-          ),
-        ],
       ),
     );
   }
 
   void _showAssignDialog(String type) async {
+    if (type == 'employee') {
+      final List<String>? selectedIds = await showDialog<List<String>>(
+        context: context,
+        builder: (context) => const EmployeeMultiSelectDialog(),
+      );
+
+      if (selectedIds != null && selectedIds.isNotEmpty) {
+        try {
+          await _siteService.assignResource(siteId: _site.id, type: type, ids: selectedIds);
+          _refreshSite();
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text("${selectedIds.length} employees assigned!"), backgroundColor: AppColors.success),
+            );
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error),
+            );
+          }
+        }
+      }
+      return;
+    }
+
+    // Default simple ID dialog for other types (like equipment)
     final idController = TextEditingController();
     final result = await showDialog<String>(
       context: context,
@@ -887,5 +935,185 @@ class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
   @override
   bool shouldRebuild(_SliverAppBarDelegate oldDelegate) {
     return false;
+  }
+}
+
+class SiteProgressEntryForm extends StatefulWidget {
+  final String siteId;
+  final List<SiteProgressTemplateModel> templates;
+  final VoidCallback onSubmit;
+
+  const SiteProgressEntryForm({
+    super.key,
+    required this.siteId,
+    required this.templates,
+    required this.onSubmit,
+  });
+
+  @override
+  State<SiteProgressEntryForm> createState() => _SiteProgressEntryFormState();
+}
+
+class _SiteProgressEntryFormState extends State<SiteProgressEntryForm> {
+  final SiteService _siteService = SiteService();
+  SiteProgressTemplateModel? _selectedTemplate;
+  final TextEditingController _remarksController = TextEditingController();
+  final Map<String, bool> _itemCompletions = {};
+  bool _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.templates.isNotEmpty) {
+      _selectedTemplate = widget.templates.first;
+      _initializeItems();
+    }
+  }
+
+  void _initializeItems() {
+    _itemCompletions.clear();
+    if (_selectedTemplate != null) {
+      for (var item in _selectedTemplate!.items) {
+        _itemCompletions[item.id] = false;
+      }
+    }
+  }
+
+  double get _calculatePercentage {
+    if (_selectedTemplate == null || _selectedTemplate!.items.isEmpty) return 0;
+    int completedCount = _itemCompletions.values.where((v) => v).length;
+    return (completedCount / _selectedTemplate!.items.length) * 100;
+  }
+
+  Future<void> _submit() async {
+    if (_selectedTemplate == null) return;
+
+    setState(() => _isSubmitting = true);
+    try {
+      final List<Map<String, dynamic>> itemStatuses = [];
+      _itemCompletions.forEach((itemId, isCompleted) {
+        itemStatuses.add({
+          'checklist_item': itemId,
+          'is_completed': isCompleted,
+          'completion_percentage': isCompleted ? 100.0 : 0.0,
+        });
+      });
+
+      await _siteService.createProgressEntry(
+        siteId: widget.siteId,
+        templateId: _selectedTemplate!.id,
+        overallPercentage: _calculatePercentage,
+        remarks: _remarksController.text,
+        itemStatuses: itemStatuses,
+      );
+
+      widget.onSubmit();
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error saving progress: $e"), backgroundColor: AppColors.error),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.8),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text("Record Progress", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+              IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close_rounded)),
+            ],
+          ),
+          const Divider(),
+          Flexible(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 16),
+                  const Text("Select Phase / Template", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<SiteProgressTemplateModel>(
+                    value: _selectedTemplate,
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: AppColors.background,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    ),
+                    items: widget.templates.map((t) => DropdownMenuItem(value: t, child: Text(t.name))).toList(),
+                    onChanged: (val) {
+                      setState(() {
+                        _selectedTemplate = val;
+                        _initializeItems();
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 24),
+                  if (_selectedTemplate != null && _selectedTemplate!.items.isNotEmpty) ...[
+                    Text("Checklist (${_calculatePercentage.toInt()}%)", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                    const SizedBox(height: 12),
+                    ..._selectedTemplate!.items.map((item) => CheckboxListTile(
+                      value: _itemCompletions[item.id] ?? false,
+                      title: Text(item.title, style: const TextStyle(fontSize: 14)),
+                      subtitle: item.isMandatory ? const Text("Mandatory", style: TextStyle(fontSize: 10, color: AppColors.error)) : null,
+                      activeColor: AppColors.success,
+                      dense: true,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      onChanged: (val) {
+                        setState(() {
+                          _itemCompletions[item.id] = val ?? false;
+                        });
+                      },
+                    )),
+                    const SizedBox(height: 24),
+                  ],
+                  const Text("Remarks", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _remarksController,
+                    maxLines: 3,
+                    decoration: InputDecoration(
+                      hintText: "Enter progress notes...",
+                      filled: true,
+                      fillColor: AppColors.background,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                ],
+              ),
+            ),
+          ),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _isSubmitting ? null : _submit,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              ),
+              child: _isSubmitting 
+                ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                : const Text("Save Progress", style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

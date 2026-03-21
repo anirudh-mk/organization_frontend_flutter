@@ -237,28 +237,131 @@ class SiteEquipmentModel {
   }
 }
 
+class SiteProgressTemplateModel {
+  final String id;
+  final String name;
+  final String? description;
+  final bool isActive;
+  final List<SiteProgressChecklistItemModel> items;
+
+  SiteProgressTemplateModel({
+    required this.id,
+    required this.name,
+    this.description,
+    this.isActive = true,
+    this.items = const [],
+  });
+
+  factory SiteProgressTemplateModel.fromJson(Map<String, dynamic> json) {
+    return SiteProgressTemplateModel(
+      id: json['id']?.toString() ?? '',
+      name: json['name'] ?? '',
+      description: json['description'],
+      isActive: json['is_active'] ?? true,
+      items: (json['items'] as List?)
+              ?.map((i) => SiteProgressChecklistItemModel.fromJson(i))
+              .toList() ??
+          [],
+    );
+  }
+}
+
+class SiteProgressChecklistItemModel {
+  final String id;
+  final String templateId;
+  final String title;
+  final int order;
+  final bool isMandatory;
+
+  SiteProgressChecklistItemModel({
+    required this.id,
+    required this.templateId,
+    required this.title,
+    this.order = 0,
+    this.isMandatory = true,
+  });
+
+  factory SiteProgressChecklistItemModel.fromJson(Map<String, dynamic> json) {
+    return SiteProgressChecklistItemModel(
+      id: json['id']?.toString() ?? '',
+      templateId: json['template']?.toString() ?? '',
+      title: json['title'] ?? '',
+      order: json['order'] ?? 0,
+      isMandatory: json['is_mandatory'] ?? true,
+    );
+  }
+}
+
+class SiteProgressItemStatusModel {
+  final String id;
+  final String progressEntryId;
+  final String checklistItemId;
+  final SiteProgressChecklistItemModel? checklistItemDetails;
+  final bool isCompleted;
+  final double completionPercentage;
+  final String? notes;
+
+  SiteProgressItemStatusModel({
+    required this.id,
+    required this.progressEntryId,
+    required this.checklistItemId,
+    this.checklistItemDetails,
+    this.isCompleted = false,
+    this.completionPercentage = 0,
+    this.notes,
+  });
+
+  factory SiteProgressItemStatusModel.fromJson(Map<String, dynamic> json) {
+    return SiteProgressItemStatusModel(
+      id: json['id']?.toString() ?? '',
+      progressEntryId: json['progress_entry']?.toString() ?? '',
+      checklistItemId: json['checklist_item']?.toString() ?? '',
+      checklistItemDetails: json['checklist_item_details'] != null
+          ? SiteProgressChecklistItemModel.fromJson(json['checklist_item_details'])
+          : null,
+      isCompleted: json['is_completed'] ?? false,
+      completionPercentage: double.tryParse(json['completion_percentage']?.toString() ?? '0') ?? 0.0,
+      notes: json['notes'],
+    );
+  }
+}
+
 class SiteProgressEntryModel {
   final String id;
   final String? siteId;
-  final double percentage;
-  final String? description;
+  final String? templateId;
+  final SiteProgressTemplateModel? templateDetails;
+  final double overallCompletionPercentage;
+  final String? remarks;
   final DateTime date;
+  final List<SiteProgressItemStatusModel> itemStatuses;
 
   SiteProgressEntryModel({
     required this.id,
     this.siteId,
-    required this.percentage,
-    this.description,
+    this.templateId,
+    this.templateDetails,
+    required this.overallCompletionPercentage,
+    this.remarks,
     required this.date,
+    this.itemStatuses = const [],
   });
 
   factory SiteProgressEntryModel.fromJson(Map<String, dynamic> json) {
     return SiteProgressEntryModel(
       id: json['id']?.toString() ?? '',
       siteId: json['site']?.toString(),
-      percentage: double.tryParse(json['percentage']?.toString() ?? '0') ?? 0.0,
-      description: json['description'],
+      templateId: json['template']?.toString(),
+      templateDetails: json['template_details'] != null
+          ? SiteProgressTemplateModel.fromJson(json['template_details'])
+          : null,
+      overallCompletionPercentage: double.tryParse(json['overall_completion_percentage']?.toString() ?? '0') ?? 0.0,
+      remarks: json['remarks'] ?? json['description'],
       date: DateTime.parse(json['date'] ?? DateTime.now().toIso8601String()),
+      itemStatuses: (json['item_statuses'] as List?)
+              ?.map((i) => SiteProgressItemStatusModel.fromJson(i))
+              .toList() ??
+          [],
     );
   }
 }

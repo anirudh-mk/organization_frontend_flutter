@@ -75,7 +75,7 @@ class ClientAddressModel {
   });
 
   factory ClientAddressModel.fromJson(Map<String, dynamic> json) {
-    if (json.containsKey('line1')) {
+    if (json.containsKey('line_1')) {
       return ClientAddressModel(
         id: json['id']?.toString() ?? '',
         addressId: json['id']?.toString() ?? '',
