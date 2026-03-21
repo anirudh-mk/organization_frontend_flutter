@@ -223,7 +223,7 @@ class SiteService extends BaseService {
     required String type, // 'employee' or 'equipment'
     String? id,
     List<String>? ids,
-    String? phaseId,
+    String? taskId,
   }) async {
     try {
       final response = await performRequest((headers) => http.post(
@@ -233,7 +233,7 @@ class SiteService extends BaseService {
           'type': type,
           'id': id,
           'ids': ids,
-          'phase_id': phaseId,
+          'task_id': taskId,
         }),
       ));
 
@@ -285,41 +285,15 @@ class SiteService extends BaseService {
     }
   }
 
-  Future<void> recordProgress({
-    required String siteId,
-    required double percentage,
-    required String templateId,
-    String? description,
-  }) async {
-    try {
-      final response = await performRequest((headers) => http.post(
-        Uri.parse('$baseUrl/$siteId/record-progress/'),
-        headers: headers,
-        body: jsonEncode({
-          'percentage': percentage,
-          'description': description,
-          'template_id': templateId,
-          'date': DateTime.now().toIso8601String().split('T')[0],
-        }),
-      ));
-
-      if (response.statusCode != 201 && response.statusCode != 200) {
-        throw Exception('Failed to record progress: ${response.body}');
-      }
-    } catch (e) {
-      throw Exception('Error recording progress: $e');
-    }
-  }
-
-  Future<List<SiteProgressTemplateModel>> getProgressTemplates() async {
+  Future<List<SiteTaskModel>> getTasks(String siteId) async {
     try {
       final response = await performRequest((headers) => http.get(
-        Uri.parse('http://127.0.0.1:8000/api/v1/site/progress-templates/'),
+        Uri.parse('http://127.0.0.1:8000/api/v1/site/tasks/?site=$siteId'),
         headers: headers,
       ));
       if (response.statusCode == 200) {
         List<dynamic> body = jsonDecode(response.body);
-        return body.map((item) => SiteProgressTemplateModel.fromJson(item)).toList();
+        return body.map((item) => SiteTaskModel.fromJson(item)).toList();
       }
       return [];
     } catch (e) {
@@ -327,61 +301,51 @@ class SiteService extends BaseService {
     }
   }
 
-  Future<SiteProgressEntryModel> createProgressEntry({
-    required String siteId,
-    required String templateId,
-    required double overallPercentage,
-    String? remarks,
-    List<Map<String, dynamic>>? itemStatuses,
-  }) async {
+  Future<SiteTaskModel> createTask(Map<String, dynamic> data) async {
     try {
       final response = await performRequest((headers) => http.post(
-        Uri.parse('http://127.0.0.1:8000/api/v1/site/progress-entries/'),
+        Uri.parse('http://127.0.0.1:8000/api/v1/site/tasks/'),
         headers: headers,
-        body: jsonEncode({
-          'site': siteId,
-          'template': templateId,
-          'overall_completion_percentage': overallPercentage,
-          'remarks': remarks,
-          'date': DateTime.now().toIso8601String().split('T')[0],
-          'item_statuses': itemStatuses ?? [],
-        }),
+        body: jsonEncode(data),
       ));
 
       if (response.statusCode == 201 || response.statusCode == 200) {
-        return SiteProgressEntryModel.fromJson(jsonDecode(response.body));
+        return SiteTaskModel.fromJson(jsonDecode(response.body));
       } else {
-        throw Exception('Failed to create progress entry: ${response.body}');
+        throw Exception('Failed to create task: ${response.body}');
       }
     } catch (e) {
-      throw Exception('Error creating progress entry: $e');
+      throw Exception('Error creating task: $e');
     }
   }
 
-  Future<void> updateProgressItemStatus({
-    required String entryId,
-    required String checklistItemId,
-    required bool isCompleted,
-    double completionPercentage = 0,
-    String? notes,
-  }) async {
+  Future<void> toggleTaskItem(String itemId) async {
     try {
       final response = await performRequest((headers) => http.post(
-        Uri.parse('http://127.0.0.1:8000/api/v1/site/progress-entries/$entryId/update-item-status/'),
+        Uri.parse('http://127.0.0.1:8000/api/v1/site/task-items/$itemId/toggle-completion/'),
         headers: headers,
-        body: jsonEncode({
-          'checklist_item_id': checklistItemId,
-          'is_completed': isCompleted,
-          'completion_percentage': completionPercentage,
-          'notes': notes,
-        }),
       ));
 
       if (response.statusCode != 200) {
-        throw Exception('Failed to update item status: ${response.body}');
+        throw Exception('Failed to toggle task item: ${response.body}');
       }
     } catch (e) {
-      throw Exception('Error updating item status: $e');
+      throw Exception('Error toggling task item: $e');
+    }
+  }
+
+  Future<void> deleteTask(String id) async {
+    try {
+      final response = await performRequest((headers) => http.delete(
+        Uri.parse('http://127.0.0.1:8000/api/v1/site/tasks/$id/'),
+        headers: headers,
+      ));
+      
+      if (response.statusCode != 204) {
+        throw Exception("Failed to delete task: ${response.body}");
+      }
+    } catch (e) {
+      throw Exception("Error deleting task: $e");
     }
   }
 

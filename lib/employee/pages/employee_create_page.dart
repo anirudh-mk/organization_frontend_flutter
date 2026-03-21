@@ -255,10 +255,10 @@ class _EmployeeCreatePageState extends State<EmployeeCreatePage> {
       final data = {
         'first_name': _firstNameController.text,
         'last_name': _lastNameController.text,
-        'employee_code': _codeController.text,
+        'employee_code_input': _codeController.text,
         'job_role': _selectedRoleId,
         'expected_salary': _salaryController.text.isEmpty ? null : _salaryController.text,
-        'is_active': _isActive,
+        'is_active_input': _isActive,
         'email_input': emails,
         'mobile_input': mobiles,
         'address_input': addresses,

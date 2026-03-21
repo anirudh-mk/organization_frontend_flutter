@@ -64,7 +64,7 @@ class SiteModel {
   final List<QuotationModel> quotations;
   final List<SiteEmployeeModel> employees;
   final List<SiteEquipmentModel> equipments;
-  final List<SiteProgressEntryModel> progressEntries;
+  final List<SiteTaskModel> tasks;
   final List<SiteNoteModel> siteNotes;
   final List<AddressModel> addresses;
   final double? estimatedBudget;
@@ -86,7 +86,7 @@ class SiteModel {
     this.quotations = const [],
     this.employees = const [],
     this.equipments = const [],
-    this.progressEntries = const [],
+    this.tasks = const [],
     this.siteNotes = const [],
     this.addresses = const [],
     this.estimatedBudget,
@@ -120,7 +120,7 @@ class SiteModel {
           : [],
       employees: (json['employees'] as List?)?.map((e) => SiteEmployeeModel.fromJson(e)).toList() ?? [],
       equipments: (json['equipments'] as List?)?.map((e) => SiteEquipmentModel.fromJson(e)).toList() ?? [],
-      progressEntries: (json['progress_entries'] as List?)?.map((p) => SiteProgressEntryModel.fromJson(p)).toList() ?? [],
+      tasks: (json['tasks'] as List?)?.map((p) => SiteTaskModel.fromJson(p)).toList() ?? [],
       siteNotes: (json['site_notes'] as List?)?.map((n) => SiteNoteModel.fromJson(n)).toList() ?? [],
       addresses: (json['addresses'] as List?)?.map((a) => AddressModel.fromJson(a)).toList() ?? [],
       estimatedBudget: json['estimated_budget'] != null ? double.tryParse(json['estimated_budget'].toString()) : null,
@@ -208,15 +208,15 @@ class QuotationModel {
 class SiteEmployeeModel {
   final String id;
   final EmployeeModel? employee;
-  final String? phaseId;
+  final String? taskId;
 
-  SiteEmployeeModel({required this.id, this.employee, this.phaseId});
+  SiteEmployeeModel({required this.id, this.employee, this.taskId});
 
   factory SiteEmployeeModel.fromJson(Map<String, dynamic> json) {
     return SiteEmployeeModel(
       id: json['id']?.toString() ?? '',
       employee: json['employee'] != null ? EmployeeModel.fromJson(json['employee']) : null,
-      phaseId: json['phase_id']?.toString(),
+      taskId: json['task']?.toString() ?? json['task_id']?.toString() ?? json['phase_id']?.toString(),
     );
   }
 }
@@ -224,144 +224,88 @@ class SiteEmployeeModel {
 class SiteEquipmentModel {
   final String id;
   final EquipmentModel? equipment;
-  final String? phaseId;
+  final String? taskId;
 
-  SiteEquipmentModel({required this.id, this.equipment, this.phaseId});
+  SiteEquipmentModel({required this.id, this.equipment, this.taskId});
 
   factory SiteEquipmentModel.fromJson(Map<String, dynamic> json) {
     return SiteEquipmentModel(
       id: json['id']?.toString() ?? '',
       equipment: json['equipment'] != null ? EquipmentModel.fromJson(json['equipment']) : null,
-      phaseId: json['phase_id']?.toString(),
+      taskId: json['task']?.toString() ?? json['task_id']?.toString() ?? json['phase_id']?.toString(),
     );
   }
 }
 
-class SiteProgressTemplateModel {
+class SiteTaskModel {
   final String id;
+  final String siteId;
   final String name;
   final String? description;
+  final DateTime? startDate;
+  final DateTime? endDate;
+  final String? notes;
   final bool isActive;
-  final List<SiteProgressChecklistItemModel> items;
+  final double completionPercentage;
+  final List<SiteTaskChecklistItemModel> items;
 
-  SiteProgressTemplateModel({
+  SiteTaskModel({
     required this.id,
+    required this.siteId,
     required this.name,
     this.description,
+    this.startDate,
+    this.endDate,
+    this.notes,
     this.isActive = true,
+    this.completionPercentage = 0,
     this.items = const [],
   });
 
-  factory SiteProgressTemplateModel.fromJson(Map<String, dynamic> json) {
-    return SiteProgressTemplateModel(
+  factory SiteTaskModel.fromJson(Map<String, dynamic> json) {
+    return SiteTaskModel(
       id: json['id']?.toString() ?? '',
+      siteId: json['site']?.toString() ?? '',
       name: json['name'] ?? '',
       description: json['description'],
+      startDate: json['start_date'] != null ? DateTime.tryParse(json['start_date']) : null,
+      endDate: json['end_date'] != null ? DateTime.tryParse(json['end_date']) : null,
+      notes: json['notes'],
       isActive: json['is_active'] ?? true,
+      completionPercentage: double.tryParse(json['completion_percentage']?.toString() ?? '0') ?? 0.0,
       items: (json['items'] as List?)
-              ?.map((i) => SiteProgressChecklistItemModel.fromJson(i))
+              ?.map((i) => SiteTaskChecklistItemModel.fromJson(i))
               .toList() ??
           [],
     );
   }
 }
 
-class SiteProgressChecklistItemModel {
+class SiteTaskChecklistItemModel {
   final String id;
-  final String templateId;
+  final String taskId;
   final String title;
   final int order;
   final bool isMandatory;
+  final bool isCompleted;
 
-  SiteProgressChecklistItemModel({
+  SiteTaskChecklistItemModel({
     required this.id,
-    required this.templateId,
+    required this.taskId,
     required this.title,
     this.order = 0,
     this.isMandatory = true,
+    this.isCompleted = false,
   });
 
-  factory SiteProgressChecklistItemModel.fromJson(Map<String, dynamic> json) {
-    return SiteProgressChecklistItemModel(
+  factory SiteTaskChecklistItemModel.fromJson(Map<String, dynamic> json) {
+    return SiteTaskChecklistItemModel(
       id: json['id']?.toString() ?? '',
-      templateId: json['template']?.toString() ?? '',
+      taskId: json['task']?.toString() ?? '',
       title: json['title'] ?? '',
       order: json['order'] ?? 0,
       isMandatory: json['is_mandatory'] ?? true,
-    );
-  }
-}
-
-class SiteProgressItemStatusModel {
-  final String id;
-  final String progressEntryId;
-  final String checklistItemId;
-  final SiteProgressChecklistItemModel? checklistItemDetails;
-  final bool isCompleted;
-  final double completionPercentage;
-  final String? notes;
-
-  SiteProgressItemStatusModel({
-    required this.id,
-    required this.progressEntryId,
-    required this.checklistItemId,
-    this.checklistItemDetails,
-    this.isCompleted = false,
-    this.completionPercentage = 0,
-    this.notes,
-  });
-
-  factory SiteProgressItemStatusModel.fromJson(Map<String, dynamic> json) {
-    return SiteProgressItemStatusModel(
-      id: json['id']?.toString() ?? '',
-      progressEntryId: json['progress_entry']?.toString() ?? '',
-      checklistItemId: json['checklist_item']?.toString() ?? '',
-      checklistItemDetails: json['checklist_item_details'] != null
-          ? SiteProgressChecklistItemModel.fromJson(json['checklist_item_details'])
-          : null,
       isCompleted: json['is_completed'] ?? false,
-      completionPercentage: double.tryParse(json['completion_percentage']?.toString() ?? '0') ?? 0.0,
-      notes: json['notes'],
-    );
-  }
-}
-
-class SiteProgressEntryModel {
-  final String id;
-  final String? siteId;
-  final String? templateId;
-  final SiteProgressTemplateModel? templateDetails;
-  final double overallCompletionPercentage;
-  final String? remarks;
-  final DateTime date;
-  final List<SiteProgressItemStatusModel> itemStatuses;
-
-  SiteProgressEntryModel({
-    required this.id,
-    this.siteId,
-    this.templateId,
-    this.templateDetails,
-    required this.overallCompletionPercentage,
-    this.remarks,
-    required this.date,
-    this.itemStatuses = const [],
-  });
-
-  factory SiteProgressEntryModel.fromJson(Map<String, dynamic> json) {
-    return SiteProgressEntryModel(
-      id: json['id']?.toString() ?? '',
-      siteId: json['site']?.toString(),
-      templateId: json['template']?.toString(),
-      templateDetails: json['template_details'] != null
-          ? SiteProgressTemplateModel.fromJson(json['template_details'])
-          : null,
-      overallCompletionPercentage: double.tryParse(json['overall_completion_percentage']?.toString() ?? '0') ?? 0.0,
-      remarks: json['remarks'] ?? json['description'],
-      date: DateTime.parse(json['date'] ?? DateTime.now().toIso8601String()),
-      itemStatuses: (json['item_statuses'] as List?)
-              ?.map((i) => SiteProgressItemStatusModel.fromJson(i))
-              .toList() ??
-          [],
     );
   }
 }

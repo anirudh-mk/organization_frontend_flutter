@@ -8,6 +8,7 @@ import '../../equipment/models/equipment_model.dart';
 import '../services/site_service.dart';
 import '../../shared/models/location_models.dart';
 import '../../employee/widgets/employee_selector.dart';
+import '../../equipment/widgets/equipment_selector.dart';
 import 'site_create_page.dart';
 
 class SiteDetailsPage extends StatefulWidget {
@@ -24,7 +25,7 @@ class _SiteDetailsPageState extends State<SiteDetailsPage> with SingleTickerProv
   late SiteModel _site;
   final SiteService _siteService = SiteService();
   bool _isLoading = false;
-  List<SiteProgressTemplateModel> _templates = [];
+  List<SiteTaskModel> _tasks = [];
 
   int _currentPhotoIndex = 0;
   final ImagePicker _picker = ImagePicker();
@@ -38,10 +39,10 @@ class _SiteDetailsPageState extends State<SiteDetailsPage> with SingleTickerProv
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 6, vsync: this);
+    _tabController = TabController(length: 7, vsync: this);
     _site = widget.site;
     _refreshSite();
-    _fetchTemplates();
+    _fetchTasks();
     
     // Original app theme colors
     _bgColor = AppColors.background;
@@ -94,16 +95,16 @@ class _SiteDetailsPageState extends State<SiteDetailsPage> with SingleTickerProv
     }
   }
 
-  Future<void> _fetchTemplates() async {
+  Future<void> _fetchTasks() async {
     try {
-      final templates = await _siteService.getProgressTemplates();
+      final tasks = await _siteService.getTasks(_site.id);
       if (mounted) {
         setState(() {
-          _templates = templates;
+          _tasks = tasks;
         });
       }
     } catch (e) {
-      debugPrint("Error fetching templates: $e");
+      debugPrint("Error fetching tasks: $e");
     }
   }
 
@@ -283,8 +284,9 @@ class _SiteDetailsPageState extends State<SiteDetailsPage> with SingleTickerProv
                 tabs: const [
                   Tab(text: "Overview"),
                   Tab(text: "Client"),
-                  Tab(text: "Team"),
+                   Tab(text: "Team"),
                   Tab(text: "Equipment"),
+                  Tab(text: "Tasks"),
                   Tab(text: "Documents"),
                   Tab(text: "Timeline"),
                 ],
@@ -299,8 +301,9 @@ class _SiteDetailsPageState extends State<SiteDetailsPage> with SingleTickerProv
               children: [
                 _buildOverviewTab(),
                 _buildClientTab(),
-                _buildTeamTab(),
+                 _buildTeamTab(),
                 _buildEquipmentTab(),
+                _buildTasksTab(),
                 _buildDocumentsTab(),
                 _buildTimelineTab(),
               ],
@@ -327,7 +330,7 @@ class _SiteDetailsPageState extends State<SiteDetailsPage> with SingleTickerProv
         children: [
           Expanded(
             child: OutlinedButton(
-              onPressed: _showAddProgressDialog,
+              onPressed: _showAddTaskDialog,
               style: OutlinedButton.styleFrom(
                 side: const BorderSide(color: Colors.white24),
                 padding: const EdgeInsets.symmetric(vertical: 16),
@@ -470,7 +473,7 @@ class _SiteDetailsPageState extends State<SiteDetailsPage> with SingleTickerProv
             ),
             title: Text(emp?.displayName ?? "Unknown Employee", style: const TextStyle(fontWeight: FontWeight.bold)),
             subtitle: Text(emp?.jobRoleName ?? "No Role"),
-            trailing: link.phaseId != null ? Chip(label: Text("Phase ${link.phaseId}"), backgroundColor: AppColors.background) : null,
+            trailing: link.taskId != null ? Chip(label: Text("Task ID: ${link.taskId}"), backgroundColor: AppColors.background) : null,
           ),
         );
       },
@@ -501,22 +504,108 @@ class _SiteDetailsPageState extends State<SiteDetailsPage> with SingleTickerProv
             ),
             title: Text(eq?.name ?? "Unknown Equipment", style: const TextStyle(fontWeight: FontWeight.bold)),
             subtitle: Text("Code: ${eq?.code}"),
-            trailing: link.phaseId != null ? Chip(label: Text("Phase ${link.phaseId}"), backgroundColor: AppColors.background) : null,
+            trailing: link.taskId != null ? Chip(label: Text("Task ID: ${link.taskId}"), backgroundColor: AppColors.background) : null,
           ),
         );
       },
     );
   }
 
-  Widget _buildTimelineTab() {
-    if (_site.progressEntries.isEmpty) {
-      return _buildEmptyState(Icons.timeline_rounded, "No progress entries recorded.");
+  Widget _buildTasksTab() {
+    if (_tasks.isEmpty) {
+      return _buildEmptyState(Icons.task_alt_rounded, "No tasks created yet.");
     }
     return ListView.builder(
-      padding: const EdgeInsets.all(24),
-      itemCount: _site.progressEntries.length,
+      padding: const EdgeInsets.all(16),
+      itemCount: _tasks.length,
       itemBuilder: (context, index) {
-        final entry = _site.progressEntries[index];
+        final task = _tasks[index];
+        return Card(
+          elevation: 0,
+          color: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: AppColors.background)),
+          margin: const EdgeInsets.only(bottom: 12),
+          child: ExpansionTile(
+            tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            leading: CircleAvatar(
+              backgroundColor: AppColors.background,
+              child: Text("${index + 1}", style: const TextStyle(color: AppColors.accent, fontWeight: FontWeight.bold)),
+            ),
+            title: Text(task.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (task.startDate != null || task.endDate != null)
+                  Text("${task.startDate != null ? DateFormat('MMM dd').format(task.startDate!) : ''} - ${task.endDate != null ? DateFormat('MMM dd').format(task.endDate!) : ''}", style: const TextStyle(fontSize: 12)),
+                Text("${task.items.length} Checklist Items", style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+              ],
+            ),
+            trailing: IconButton(
+              icon: const Icon(Icons.delete_outline_rounded, color: AppColors.error, size: 20),
+              onPressed: () => _deleteTask(task.id),
+            ),
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (task.description?.isNotEmpty ?? false) ...[
+                      const Text("Description", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                      const SizedBox(height: 4),
+                      Text(task.description!, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                      const SizedBox(height: 16),
+                    ],
+                    if (task.notes?.isNotEmpty ?? false) ...[
+                      const Text("Notes", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                      const SizedBox(height: 4),
+                      Text(task.notes!, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                      const SizedBox(height: 16),
+                    ],
+                    const Text("Checklist", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    const SizedBox(height: 8),
+                    ...task.items.map((item) => Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Row(
+                        children: [
+                          Checkbox(
+                            value: item.isCompleted,
+                            activeColor: AppColors.success,
+                            onChanged: (_) => _toggleTaskItem(item.id),
+                          ),
+                          Expanded(child: Text(item.title, style: TextStyle(fontSize: 13, decoration: item.isCompleted ? TextDecoration.lineThrough : null))),
+                        ],
+                      ),
+                    )),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _toggleTaskItem(String itemId) async {
+    try {
+      await _siteService.toggleTaskItem(itemId);
+      _fetchTasks();
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error toggling item: $e")));
+    }
+  }
+
+  Widget _buildTimelineTab() {
+    if (_site.tasks.isEmpty && _tasks.isEmpty) {
+      return _buildEmptyState(Icons.timeline_rounded, "No progress data available.");
+    }
+    final displayTasks = _tasks.isNotEmpty ? _tasks : _site.tasks;
+    return ListView.builder(
+      padding: const EdgeInsets.all(24),
+      itemCount: displayTasks.length,
+      itemBuilder: (context, index) {
+        final task = displayTasks[index];
         return IntrinsicHeight(
           child: Row(
             children: [
@@ -525,9 +614,12 @@ class _SiteDetailsPageState extends State<SiteDetailsPage> with SingleTickerProv
                   Container(
                     width: 12,
                     height: 12,
-                    decoration: const BoxDecoration(color: AppColors.success, shape: BoxShape.circle),
+                    decoration: BoxDecoration(
+                      color: task.items.every((item) => item.isCompleted) ? AppColors.success : AppColors.accent,
+                      shape: BoxShape.circle,
+                    ),
                   ),
-                  if (index != _site.progressEntries.length - 1)
+                  if (index != displayTasks.length - 1)
                     Expanded(child: Container(width: 2, color: Colors.white12)),
                 ],
               ),
@@ -543,19 +635,29 @@ class _SiteDetailsPageState extends State<SiteDetailsPage> with SingleTickerProv
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text("${entry.overallCompletionPercentage.toInt()}% Complete", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                              if (entry.templateDetails != null)
-                                Text("Phase: ${entry.templateDetails!.name}", style: TextStyle(color: AppColors.accent, fontSize: 12, fontWeight: FontWeight.w600)),
+                              Text(task.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                              if (task.startDate != null)
+                                Text(DateFormat('MMM dd, yyyy').format(task.startDate!), style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
                             ],
                           ),
                         ),
-                        Text(DateFormat('MMM dd, yyyy').format(entry.date), style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppColors.accent.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            "${(task.items.where((i) => i.isCompleted).length / (task.items.isEmpty ? 1 : task.items.length) * 100).toInt()}%",
+                            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.accent),
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 8),
-                    if (entry.remarks != null && entry.remarks!.isNotEmpty)
-                      Text(entry.remarks!, style: TextStyle(color: AppColors.textSecondary)),
-                    if (entry.itemStatuses.isNotEmpty) ...[
+                    if (task.description?.isNotEmpty ?? false)
+                      Text(task.description!, style: TextStyle(color: AppColors.textSecondary)),
+                    if (task.items.isNotEmpty) ...[
                       const SizedBox(height: 12),
                       Container(
                         padding: const EdgeInsets.all(12),
@@ -564,23 +666,23 @@ class _SiteDetailsPageState extends State<SiteDetailsPage> with SingleTickerProv
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Column(
-                          children: entry.itemStatuses.take(3).map((s) => Padding(
+                          children: task.items.take(3).map((s) => Padding(
                             padding: const EdgeInsets.only(bottom: 4),
                             child: Row(
                               children: [
                                 Icon(s.isCompleted ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded, 
                                      size: 14, color: s.isCompleted ? AppColors.success : AppColors.textMuted),
                                 const SizedBox(width: 8),
-                                Expanded(child: Text(s.checklistItemDetails?.title ?? "Item", style: TextStyle(fontSize: 12, color: AppColors.textPrimary))),
+                                Expanded(child: Text(s.title, style: TextStyle(fontSize: 12, color: AppColors.textPrimary))),
                               ],
                             ),
                           )).toList(),
                         ),
                       ),
-                      if (entry.itemStatuses.length > 3)
+                      if (task.items.length > 3)
                         Padding(
                           padding: const EdgeInsets.only(top: 4, left: 4),
-                          child: Text("+ ${entry.itemStatuses.length - 3} more items", style: TextStyle(fontSize: 10, color: AppColors.accent)),
+                          child: Text("+ ${task.items.length - 3} more items", style: TextStyle(fontSize: 10, color: AppColors.accent)),
                         ),
                     ],
                     const SizedBox(height: 24),
@@ -592,6 +694,29 @@ class _SiteDetailsPageState extends State<SiteDetailsPage> with SingleTickerProv
         );
       },
     );
+  }
+
+  Future<void> _deleteTask(String taskId) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Delete Task"),
+        content: const Text("Are you sure you want to delete this task?"),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("Delete", style: TextStyle(color: AppColors.error))),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await _siteService.deleteTask(taskId);
+        _fetchTasks();
+      } catch (e) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error deleting task: $e")));
+      }
+    }
   }
 
   Widget _buildQuickAction(IconData icon, String label, {bool isPrimary = false}) {
@@ -662,7 +787,7 @@ class _SiteDetailsPageState extends State<SiteDetailsPage> with SingleTickerProv
           const SizedBox(width: 12),
           Text(label, style: TextStyle(color: AppColors.textSecondary, fontSize: 14)),
           const Spacer(),
-          Text(value, style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 14)),
+          Text(value, style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600, fontSize: 14)),
         ],
       ),
     );
@@ -773,21 +898,44 @@ class _SiteDetailsPageState extends State<SiteDetailsPage> with SingleTickerProv
         children: [
           Icon(icon, size: 40, color: AppColors.textMuted.withOpacity(0.3)),
           const SizedBox(height: 12),
-          Text(message, style: TextStyle(color: AppColors.textMuted)),
+          Text(message, style: const TextStyle(color: AppColors.textMuted)),
         ],
       ),
     );
   }
 
-  Widget _buildEmptyState(IconData icon, String message) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 64, color: AppColors.textMuted.withOpacity(0.3)),
-          const SizedBox(height: 16),
-          Text(message, style: TextStyle(color: AppColors.textMuted)),
-        ],
+  void _showAddTaskDialog() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: SiteTaskForm(
+          siteId: _site.id,
+          onSubmit: (taskData, employeeIds, equipmentIds) async {
+            try {
+              final task = await _siteService.createTask(taskData);
+              if (employeeIds.isNotEmpty) {
+                await _siteService.assignResource(siteId: _site.id, type: 'employee', ids: employeeIds, taskId: task.id);
+              }
+              if (equipmentIds.isNotEmpty) {
+                await _siteService.assignResource(siteId: _site.id, type: 'equipment', ids: equipmentIds, taskId: task.id);
+              }
+              _fetchTasks();
+              _refreshSite();
+              if (mounted) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Task created successfully!"), backgroundColor: AppColors.success));
+              }
+            } catch (e) {
+              if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e"), backgroundColor: AppColors.error));
+            }
+          },
+        ),
       ),
     );
   }
@@ -811,9 +959,9 @@ class _SiteDetailsPageState extends State<SiteDetailsPage> with SingleTickerProv
               Navigator.pop(context);
               _showAssignDialog('equipment');
             }),
-            _buildActionItem(Icons.trending_up_rounded, "Add Progress", () {
+            _buildActionItem(Icons.trending_up_rounded, "Add Task", () {
               Navigator.pop(context);
-              _showAddProgressDialog();
+              _showAddTaskDialog();
             }),
           ],
         ),
@@ -829,72 +977,46 @@ class _SiteDetailsPageState extends State<SiteDetailsPage> with SingleTickerProv
     );
   }
 
-  void _showAddProgressDialog() {
-    showDialog(
+  Future<void> _showAssignDialog(String type) async {
+    final List<String>? selectedIds = await showDialog<List<String>>(
       context: context,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        child: SiteProgressEntryForm(
-          siteId: _site.id,
-          templates: _templates,
-          onSubmit: () {
-            _refreshSite();
-          },
-        ),
-      ),
+      builder: (context) {
+        if (type == 'employee') return const EmployeeMultiSelectDialog();
+        if (type == 'equipment') return const EquipmentMultiSelectDialog();
+        return const SizedBox();
+      },
     );
-  }
 
-  void _showAssignDialog(String type) async {
-    if (type == 'employee') {
-      final List<String>? selectedIds = await showDialog<List<String>>(
-        context: context,
-        builder: (context) => const EmployeeMultiSelectDialog(),
-      );
-
-      if (selectedIds != null && selectedIds.isNotEmpty) {
-        try {
-          await _siteService.assignResource(siteId: _site.id, type: type, ids: selectedIds);
-          _refreshSite();
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text("${selectedIds.length} employees assigned!"), backgroundColor: AppColors.success),
-            );
-          }
-        } catch (e) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error),
-            );
-          }
+    if (selectedIds != null && selectedIds.isNotEmpty) {
+      try {
+        await _siteService.assignResource(siteId: _site.id, type: type, ids: selectedIds);
+        _refreshSite();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("${selectedIds.length} ${type}(s) assigned!"), backgroundColor: AppColors.success),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Error: $e"), backgroundColor: AppColors.error),
+          );
         }
       }
-      return;
     }
+  }
 
-    // Default simple ID dialog for other types (like equipment)
-    final idController = TextEditingController();
-    final result = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text("Assign ${type.toUpperCase()}"),
-        content: TextField(controller: idController, decoration: const InputDecoration(hintText: "Enter ID")),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
-          TextButton(onPressed: () => Navigator.pop(context, idController.text), child: const Text("Assign")),
+  Widget _buildEmptyState(IconData icon, String message) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 60, color: AppColors.textMuted.withOpacity(0.3)),
+          const SizedBox(height: 16),
+          Text(message, style: const TextStyle(color: AppColors.textMuted)),
         ],
       ),
     );
-
-    if (result != null && result.isNotEmpty) {
-      try {
-        await _siteService.assignResource(siteId: _site.id, type: type, id: result);
-        _refreshSite();
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("$type assigned!"), backgroundColor: AppColors.success));
-      } catch (e) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error));
-      }
-    }
   }
 
   Widget _buildPlaceholder() {
@@ -938,81 +1060,90 @@ class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
   }
 }
 
-class SiteProgressEntryForm extends StatefulWidget {
+class SiteTaskForm extends StatefulWidget {
   final String siteId;
-  final List<SiteProgressTemplateModel> templates;
-  final VoidCallback onSubmit;
+  final Function(Map<String, dynamic> data, List<String> employeeIds, List<String> equipmentIds) onSubmit;
 
-  const SiteProgressEntryForm({
+  const SiteTaskForm({
     super.key,
     required this.siteId,
-    required this.templates,
     required this.onSubmit,
   });
 
   @override
-  State<SiteProgressEntryForm> createState() => _SiteProgressEntryFormState();
+  State<SiteTaskForm> createState() => _SiteTaskFormState();
 }
 
-class _SiteProgressEntryFormState extends State<SiteProgressEntryForm> {
+class _SiteTaskFormState extends State<SiteTaskForm> {
   final SiteService _siteService = SiteService();
-  SiteProgressTemplateModel? _selectedTemplate;
-  final TextEditingController _remarksController = TextEditingController();
-  final Map<String, bool> _itemCompletions = {};
+  final _formKey = GlobalKey<FormState>();
+  
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _descController = TextEditingController();
+  final TextEditingController _notesController = TextEditingController();
+  DateTime? _startDate;
+  DateTime? _endDate;
+  
+  final List<String> _checklistItems = [];
+  final TextEditingController _newItemController = TextEditingController();
+  
+  List<String> _selectedEmployeeIds = [];
+  List<String> _selectedEquipmentIds = [];
   bool _isSubmitting = false;
 
-  @override
-  void initState() {
-    super.initState();
-    if (widget.templates.isNotEmpty) {
-      _selectedTemplate = widget.templates.first;
-      _initializeItems();
+  void _addChecklistItem() {
+    if (_newItemController.text.isNotEmpty) {
+      setState(() {
+        _checklistItems.add(_newItemController.text);
+        _newItemController.clear();
+      });
     }
   }
 
-  void _initializeItems() {
-    _itemCompletions.clear();
-    if (_selectedTemplate != null) {
-      for (var item in _selectedTemplate!.items) {
-        _itemCompletions[item.id] = false;
-      }
-    }
+  void _removeChecklistItem(int index) {
+    setState(() {
+      _checklistItems.removeAt(index);
+    });
   }
 
-  double get _calculatePercentage {
-    if (_selectedTemplate == null || _selectedTemplate!.items.isEmpty) return 0;
-    int completedCount = _itemCompletions.values.where((v) => v).length;
-    return (completedCount / _selectedTemplate!.items.length) * 100;
+  Future<void> _selectDate(BuildContext context, bool isStart) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2101),
+    );
+    if (picked != null) {
+      setState(() {
+        if (isStart) _startDate = picked;
+        else _endDate = picked;
+      });
+    }
   }
 
   Future<void> _submit() async {
-    if (_selectedTemplate == null) return;
+    if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isSubmitting = true);
     try {
-      final List<Map<String, dynamic>> itemStatuses = [];
-      _itemCompletions.forEach((itemId, isCompleted) {
-        itemStatuses.add({
-          'checklist_item': itemId,
-          'is_completed': isCompleted,
-          'completion_percentage': isCompleted ? 100.0 : 0.0,
-        });
-      });
+      final taskData = {
+        'site': widget.siteId,
+        'name': _nameController.text,
+        'description': _descController.text,
+        'notes': _notesController.text,
+        'start_date': _startDate?.toIso8601String().split('T')[0],
+        'end_date': _endDate?.toIso8601String().split('T')[0],
+        'items': _checklistItems.map((title) => {'title': title}).toList(),
+      };
 
-      await _siteService.createProgressEntry(
-        siteId: widget.siteId,
-        templateId: _selectedTemplate!.id,
-        overallPercentage: _calculatePercentage,
-        remarks: _remarksController.text,
-        itemStatuses: itemStatuses,
-      );
-
-      widget.onSubmit();
-      if (mounted) Navigator.pop(context);
+      widget.onSubmit(taskData, _selectedEmployeeIds, _selectedEquipmentIds);
+      // The parent will handle navigation pop and snackbar for success/error
     } catch (e) {
+      // This catch block might not be reached if onSubmit is async and handles its own errors
+      // but it's good practice to keep for immediate errors before onSubmit is called.
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error saving progress: $e"), backgroundColor: AppColors.error),
+          SnackBar(content: Text("Error preparing task: $e"), backgroundColor: AppColors.error),
         );
       }
     } finally {
@@ -1024,95 +1155,111 @@ class _SiteProgressEntryFormState extends State<SiteProgressEntryForm> {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(24),
-      constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.8),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text("Record Progress", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
-              IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close_rounded)),
-            ],
-          ),
-          const Divider(),
-          Flexible(
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 16),
-                  const Text("Select Phase / Template", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<SiteProgressTemplateModel>(
-                    value: _selectedTemplate,
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: AppColors.background,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.9),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text("Create Site Task", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close_rounded)),
+              ],
+            ),
+            const Divider(),
+            Flexible(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _nameController,
+                      decoration: const InputDecoration(labelText: "Task Name*", border: OutlineInputBorder()),
+                      validator: (v) => v == null || v.isEmpty ? "Required" : null,
                     ),
-                    items: widget.templates.map((t) => DropdownMenuItem(value: t, child: Text(t.name))).toList(),
-                    onChanged: (val) {
-                      setState(() {
-                        _selectedTemplate = val;
-                        _initializeItems();
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 24),
-                  if (_selectedTemplate != null && _selectedTemplate!.items.isNotEmpty) ...[
-                    Text("Checklist (${_calculatePercentage.toInt()}%)", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                    const SizedBox(height: 12),
-                    ..._selectedTemplate!.items.map((item) => CheckboxListTile(
-                      value: _itemCompletions[item.id] ?? false,
-                      title: Text(item.title, style: const TextStyle(fontSize: 14)),
-                      subtitle: item.isMandatory ? const Text("Mandatory", style: TextStyle(fontSize: 10, color: AppColors.error)) : null,
-                      activeColor: AppColors.success,
-                      dense: true,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      onChanged: (val) {
-                        setState(() {
-                          _itemCompletions[item.id] = val ?? false;
-                        });
-                      },
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _descController,
+                      decoration: const InputDecoration(labelText: "Description", border: OutlineInputBorder()),
+                      maxLines: 2,
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(child: ListTile(
+                          title: const Text("Start Date", style: TextStyle(fontSize: 12)),
+                          subtitle: Text(_startDate == null ? "Select" : DateFormat('MMM dd, yyyy').format(_startDate!)),
+                          onTap: () => _selectDate(context, true),
+                        )),
+                        Expanded(child: ListTile(
+                          title: const Text("End Date", style: TextStyle(fontSize: 12)),
+                          subtitle: Text(_endDate == null ? "Select" : DateFormat('MMM dd, yyyy').format(_endDate!)),
+                          onTap: () => _selectDate(context, false),
+                        )),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    const Text("Assignments", style: TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(child: OutlinedButton.icon(
+                          onPressed: () async {
+                            final List<String>? result = await showDialog(context: context, builder: (c) => const EmployeeMultiSelectDialog());
+                            if (result != null) setState(() => _selectedEmployeeIds = result);
+                          },
+                          icon: const Icon(Icons.person_add),
+                          label: Text(_selectedEmployeeIds.isEmpty ? "Employees" : "${_selectedEmployeeIds.length} Selected"),
+                        )),
+                        const SizedBox(width: 8),
+                        Expanded(child: OutlinedButton.icon(
+                          onPressed: () async {
+                            final List<String>? result = await showDialog(context: context, builder: (c) => const EquipmentMultiSelectDialog());
+                            if (result != null) setState(() => _selectedEquipmentIds = result);
+                          },
+                          icon: const Icon(Icons.construction),
+                          label: Text(_selectedEquipmentIds.isEmpty ? "Equipment" : "${_selectedEquipmentIds.length} Selected"),
+                        )),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    const Text("Checklist Items", style: TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(child: TextField(controller: _newItemController, decoration: const InputDecoration(hintText: "Add Item"))),
+                        IconButton(onPressed: _addChecklistItem, icon: const Icon(Icons.add_circle, color: AppColors.accent)),
+                      ],
+                    ),
+                    ..._checklistItems.asMap().entries.map((entry) => ListTile(
+                      title: Text(entry.value, style: const TextStyle(fontSize: 14)),
+                      trailing: IconButton(icon: const Icon(Icons.remove_circle_outline, size: 18), onPressed: () => _removeChecklistItem(entry.key)),
                     )),
                     const SizedBox(height: 24),
-                  ],
-                  const Text("Remarks", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _remarksController,
-                    maxLines: 3,
-                    decoration: InputDecoration(
-                      hintText: "Enter progress notes...",
-                      filled: true,
-                      fillColor: AppColors.background,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                    TextFormField(
+                      controller: _notesController,
+                      decoration: const InputDecoration(labelText: "Notes", border: OutlineInputBorder()),
+                      maxLines: 2,
                     ),
-                  ),
-                  const SizedBox(height: 24),
-                ],
+                    const SizedBox(height: 24),
+                  ],
+                ),
               ),
             ),
-          ),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _isSubmitting ? null : _submit,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _isSubmitting ? null : _submit,
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 16)),
+                child: _isSubmitting ? const CircularProgressIndicator(color: Colors.white) : const Text("Create Task"),
               ),
-              child: _isSubmitting 
-                ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                : const Text("Save Progress", style: TextStyle(fontWeight: FontWeight.bold)),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
