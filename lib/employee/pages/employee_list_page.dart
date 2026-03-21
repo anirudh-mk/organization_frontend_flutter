@@ -111,7 +111,7 @@ class _EmployeeListPageState extends State<EmployeeListPage> {
                   hintStyle: TextStyle(color: AppColors.textMuted.withValues(alpha: 0.6), fontSize: 14),
                   prefixIcon: const Icon(Icons.search_rounded, color: AppColors.textSecondary),
                   suffixIcon: IconButton(
-                    icon: const Icon(Icons.filter_list_rounded, color: AppColors.textSecondary),
+                    icon: const Icon(Icons.tune_rounded, color: AppColors.textSecondary),
                     onPressed: _showFiltersBottomSheet,
                   ),
                   border: InputBorder.none,
