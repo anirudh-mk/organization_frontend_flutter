@@ -30,14 +30,20 @@ class _SiteCreatePageState extends State<SiteCreatePage> {
   final _budgetController = TextEditingController();
   final _notesController = TextEditingController();
   final _newClientNameController = TextEditingController();
+  final _newClientCodeController = TextEditingController();
   
-  // Address State
+  // Client Contact & Multiple Addresses
+  final List<Map<String, dynamic>> _clientEmailFields = [];
+  final List<Map<String, dynamic>> _clientMobileFields = [];
+  final List<Map<String, dynamic>> _clientAddressFields = [];
+  
+  // Address State (Site)
   final Map<String, dynamic> _siteAddress = {};
-  final Map<String, dynamic> _clientAddress = {};
   bool _sameAsClientAddress = false;
   
   List<CountryModel> _countries = [];
   List<AddressTypeModel> _addressTypes = [];
+  List<ContactTypeModel> _contactTypes = [];
 
   // Data
   DateTime? _expectedStartDate;
@@ -65,7 +71,9 @@ class _SiteCreatePageState extends State<SiteCreatePage> {
   void initState() {
     super.initState();
     _initAddressField(_siteAddress);
-    _initAddressField(_clientAddress);
+    if (_clientEmailFields.isEmpty) _addClientEmailField();
+    if (_clientMobileFields.isEmpty) _addClientMobileField();
+    if (_clientAddressFields.isEmpty) _addClientAddressField();
     _loadInitialData();
     if (widget.site != null) {
       _nameController.text = widget.site!.name;
@@ -100,17 +108,54 @@ class _SiteCreatePageState extends State<SiteCreatePage> {
         _clientService.getClients(),
         _locationService.getCountries(),
         _locationService.getAddressTypes(),
+        _locationService.getContactTypes(),
       ]);
 
       setState(() {
         _clients = results[0] as List<ClientModel>;
         _countries = results[1] as List<CountryModel>;
         _addressTypes = results[2] as List<AddressTypeModel>;
+        _contactTypes = results[3] as List<ContactTypeModel>;
+        
+        // Match contact types for existing fields
+        for (var f in _clientEmailFields) {
+          f['type'] = _contactTypes.firstOrNull;
+        }
+        for (var f in _clientMobileFields) {
+          f['type'] = _contactTypes.firstOrNull;
+        }
+        
         _isLoading = false;
       });
     } catch (e) {
       setState(() => _isLoading = false);
     }
+  }
+
+  void _addClientEmailField() {
+    setState(() {
+      _clientEmailFields.add({
+        'controller': TextEditingController(),
+        'type': _contactTypes.firstOrNull,
+      });
+    });
+  }
+
+  void _addClientMobileField() {
+    setState(() {
+      _clientMobileFields.add({
+        'controller': TextEditingController(),
+        'type': _contactTypes.firstOrNull,
+      });
+    });
+  }
+
+  void _addClientAddressField() {
+    setState(() {
+      final addr = <String, dynamic>{};
+      _initAddressField(addr);
+      _clientAddressFields.add(addr);
+    });
   }
 
   void _initAddressField(Map<String, dynamic> addr) {
@@ -138,7 +183,7 @@ class _SiteCreatePageState extends State<SiteCreatePage> {
       final states = await _locationService.getStates(country.id);
       if (mounted) setState(() => addr['states'] = states);
     }
-    if (_sameAsClientAddress && addr == _clientAddress) _syncSiteWithClient();
+    if (_sameAsClientAddress && _clientAddressFields.isNotEmpty && addr == _clientAddressFields.first) _syncSiteWithClient();
   }
 
   Future<void> _onAddressStateChanged(Map<String, dynamic> addr, StateModel? state) async {
@@ -151,25 +196,28 @@ class _SiteCreatePageState extends State<SiteCreatePage> {
       final districts = await _locationService.getDistricts(state.id);
       if (mounted) setState(() => addr['districts'] = districts);
     }
-    if (_sameAsClientAddress && addr == _clientAddress) _syncSiteWithClient();
+    if (_sameAsClientAddress && _clientAddressFields.isNotEmpty && addr == _clientAddressFields.first) _syncSiteWithClient();
   }
 
   void _syncSiteWithClient() async {
     if (!_sameAsClientAddress) return;
 
     if (_isNewClient) {
-      setState(() {
-        _siteAddress['line1'].text = _clientAddress['line1'].text;
-        _siteAddress['line2'].text = _clientAddress['line2'].text;
-        _siteAddress['city'].text = _clientAddress['city'].text;
-        _siteAddress['postalCode'].text = _clientAddress['postalCode'].text;
-        _siteAddress['selectedType'] = _clientAddress['selectedType'];
-        _siteAddress['selectedCountry'] = _clientAddress['selectedCountry'];
-        _siteAddress['states'] = _clientAddress['states'];
-        _siteAddress['selectedState'] = _clientAddress['selectedState'];
-        _siteAddress['districts'] = _clientAddress['districts'];
-        _siteAddress['selectedDistrict'] = _clientAddress['selectedDistrict'];
-      });
+      if (_clientAddressFields.isNotEmpty) {
+        final firstClientAddr = _clientAddressFields.first;
+        setState(() {
+          _siteAddress['line1'].text = firstClientAddr['line1'].text;
+          _siteAddress['line2'].text = firstClientAddr['line2'].text;
+          _siteAddress['city'].text = firstClientAddr['city'].text;
+          _siteAddress['postalCode'].text = firstClientAddr['postalCode'].text;
+          _siteAddress['selectedType'] = firstClientAddr['selectedType'];
+          _siteAddress['selectedCountry'] = firstClientAddr['selectedCountry'];
+          _siteAddress['states'] = firstClientAddr['states'];
+          _siteAddress['selectedState'] = firstClientAddr['selectedState'];
+          _siteAddress['districts'] = firstClientAddr['districts'];
+          _siteAddress['selectedDistrict'] = firstClientAddr['selectedDistrict'];
+        });
+      }
     } else if (_selectedClientId != null) {
       final client = _clients.firstWhere((c) => c.id == _selectedClientId);
       if (client.addresses.isNotEmpty) {
@@ -219,14 +267,33 @@ class _SiteCreatePageState extends State<SiteCreatePage> {
       if (_isNewClient) {
         clientData = {
           "name": _newClientNameController.text.trim(),
-          "address": _clientAddress['line1'].text.isNotEmpty ? {
-            'line_1': _clientAddress['line1'].text.trim(),
-            'line_2': _clientAddress['line2'].text.trim(),
-            'city': _clientAddress['city'].text.trim(),
-            'postal_code': _clientAddress['postalCode'].text.trim(),
-            'district': (_clientAddress['selectedDistrict'] as DistrictModel?)?.id,
-            'address_type': (_clientAddress['selectedType'] as AddressTypeModel?)?.id,
-          } : null,
+          "code": _newClientCodeController.text.trim(),
+          "email_input": _clientEmailFields
+              .where((f) => f['controller'].text.isNotEmpty)
+              .map((f) => {
+                    'email': f['controller'].text.trim(),
+                    'contact_type': (f['type'] as ContactTypeModel?)?.id,
+                  })
+              .toList(),
+          "mobile_input": _clientMobileFields
+              .where((f) => f['controller'].text.isNotEmpty)
+              .map((f) => {
+                    'number': f['controller'].text.trim(),
+                    'contact_type': (f['type'] as ContactTypeModel?)?.id,
+                  })
+              .toList(),
+          "address_input": _clientAddressFields
+              .where((f) => f['line1'].text.isNotEmpty && f['selectedDistrict'] != null)
+              .map((f) => {
+                    'line_1': f['line1'].text.trim(),
+                    'line_2': f['line2'].text.trim(),
+                    'city': f['city'].text.trim(),
+                    'postal_code': f['postalCode'].text.trim(),
+                    'district': (f['selectedDistrict'] as DistrictModel).id,
+                    'address_type': (f['selectedType'] as AddressTypeModel?)?.id,
+                    'is_primary': _clientAddressFields.indexOf(f) == 0,
+                  })
+              .toList(),
         };
       } else if (_selectedClientId != null) {
         clientData = {
@@ -296,8 +363,19 @@ class _SiteCreatePageState extends State<SiteCreatePage> {
     _nameController.dispose();
     _codeController.dispose();
     _budgetController.dispose();
+    _notesController.dispose();
+    _newClientNameController.dispose();
+    _newClientCodeController.dispose();
     _disposeAddressField(_siteAddress);
-    _disposeAddressField(_clientAddress);
+    for (var f in _clientEmailFields) {
+      f['controller']?.dispose();
+    }
+    for (var f in _clientMobileFields) {
+      f['controller']?.dispose();
+    }
+    for (var f in _clientAddressFields) {
+      _disposeAddressField(f);
+    }
     super.dispose();
   }
 
@@ -430,7 +508,7 @@ class _SiteCreatePageState extends State<SiteCreatePage> {
           items: _addressTypes.map((t) => DropdownMenuItem(value: t, child: Text(t.name))).toList(),
           onChanged: isReadOnly ? null : (v) {
             setState(() => addr['selectedType'] = v);
-            if (_sameAsClientAddress && addr == _clientAddress) _syncSiteWithClient();
+            if (_sameAsClientAddress && _clientAddressFields.isNotEmpty && addr == _clientAddressFields.first) _syncSiteWithClient();
           },
           enabled: !isReadOnly,
         ),
@@ -444,26 +522,26 @@ class _SiteCreatePageState extends State<SiteCreatePage> {
         _label("DISTRICT"),
         _dropdown<DistrictModel>(value: addr['selectedDistrict'], hint: "District", items: (addr['districts'] as List<DistrictModel>).map((d) => DropdownMenuItem(value: d, child: Text(d.name))).toList(), onChanged: (isReadOnly || addr['selectedState'] == null) ? null : (v) {
           setState(() => addr['selectedDistrict'] = v);
-          if (_sameAsClientAddress && addr == _clientAddress) _syncSiteWithClient();
+          if (_sameAsClientAddress && _clientAddressFields.isNotEmpty && addr == _clientAddressFields.first) _syncSiteWithClient();
         }, enabled: !isReadOnly && addr['selectedState'] != null),
         const SizedBox(height: 16),
         _label("STREET ADDRESS (LINE 1)"),
         _field(addr['line1'], "Building No., Street Name", enabled: !isReadOnly, onChanged: (v) {
-          if (_sameAsClientAddress && addr == _clientAddress) _syncSiteWithClient();
+          if (_sameAsClientAddress && _clientAddressFields.isNotEmpty && addr == _clientAddressFields.first) _syncSiteWithClient();
         }),
         const SizedBox(height: 16),
         _label("ADDRESS LINE 2"),
         _field(addr['line2'], "Suite, Floor, Landmark", enabled: !isReadOnly, onChanged: (v) {
-          if (_sameAsClientAddress && addr == _clientAddress) _syncSiteWithClient();
+          if (_sameAsClientAddress && _clientAddressFields.isNotEmpty && addr == _clientAddressFields.first) _syncSiteWithClient();
         }),
         const SizedBox(height: 16),
         Row(children: [
           Expanded(flex: 2, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_label("CITY"), _field(addr['city'], "City", enabled: !isReadOnly, onChanged: (v) {
-            if (_sameAsClientAddress && addr == _clientAddress) _syncSiteWithClient();
+            if (_sameAsClientAddress && _clientAddressFields.isNotEmpty && addr == _clientAddressFields.first) _syncSiteWithClient();
           })])),
           const SizedBox(width: 12),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_label("POSTAL CODE"), _field(addr['postalCode'], "Zip", enabled: !isReadOnly, onChanged: (v) {
-            if (_sameAsClientAddress && addr == _clientAddress) _syncSiteWithClient();
+            if (_sameAsClientAddress && _clientAddressFields.isNotEmpty && addr == _clientAddressFields.first) _syncSiteWithClient();
           })])),
         ]),
       ]),
@@ -488,7 +566,25 @@ class _SiteCreatePageState extends State<SiteCreatePage> {
           _label("CLIENT NAME"),
           _field(_newClientNameController, "e.g. Acme Corp", validator: (v) => _isNewClient && (v == null || v.isEmpty) ? "Required" : null),
           const SizedBox(height: 16),
-          _addressForm(_clientAddress, "CLIENT"),
+          _label("CLIENT CODE"),
+          _field(_newClientCodeController, "e.g. CL-001"),
+          const SizedBox(height: 24),
+          _clientEmailSection(),
+          const SizedBox(height: 24),
+          _clientMobileSection(),
+          const SizedBox(height: 32),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _label("CLIENT ADDRESSES"),
+              TextButton.icon(
+                onPressed: _addClientAddressField,
+                icon: const Icon(Icons.add_location_alt_rounded, size: 16),
+                label: const Text("Add Address", style: TextStyle(fontSize: 12)),
+              ),
+            ],
+          ),
+          _clientAddressSection(),
         ],
         const SizedBox(height: 16),
         CheckboxListTile(
@@ -661,4 +757,85 @@ class _SiteCreatePageState extends State<SiteCreatePage> {
       ),
     );
   }
+
+  Widget _clientEmailSection() {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+        _label("EMAILS"),
+        TextButton.icon(onPressed: _addClientEmailField, icon: const Icon(Icons.add, size: 16), label: const Text("Add Email", style: TextStyle(fontSize: 12)))
+      ]),
+      ..._clientEmailFields.asMap().entries.map((entry) {
+        int idx = entry.key;
+        var field = entry.value;
+        return Padding(padding: const EdgeInsets.only(bottom: 12), child: Row(children: [
+          Expanded(flex: 2, child: _dropdown<ContactTypeModel>(value: field['type'], hint: "Type", items: _contactTypes.map((t) => DropdownMenuItem(value: t, child: Text(t.name))).toList(), onChanged: (v) => setState(() => _clientEmailFields[idx]['type'] = v))),
+          const SizedBox(width: 8),
+          Expanded(flex: 4, child: _field(field['controller'], "email@example.com", keyboardType: TextInputType.emailAddress)),
+          if (_clientEmailFields.length > 1) IconButton(icon: const Icon(Icons.remove_circle_outline, color: Colors.red), onPressed: () => setState(() => _clientEmailFields.removeAt(idx))),
+        ]));
+      }),
+    ]);
+  }
+
+  Widget _clientMobileSection() {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+        _label("MOBILES"),
+        TextButton.icon(onPressed: _addClientMobileField, icon: const Icon(Icons.add, size: 16), label: const Text("Add Mobile", style: TextStyle(fontSize: 12)))
+      ]),
+      ..._clientMobileFields.asMap().entries.map((entry) {
+        int idx = entry.key;
+        var field = entry.value;
+        return Padding(padding: const EdgeInsets.only(bottom: 12), child: Row(children: [
+          Expanded(flex: 2, child: _dropdown<ContactTypeModel>(value: field['type'], hint: "Type", items: _contactTypes.map((t) => DropdownMenuItem(value: t, child: Text(t.name))).toList(), onChanged: (v) => setState(() => _clientMobileFields[idx]['type'] = v))),
+          const SizedBox(width: 8),
+          Expanded(flex: 4, child: _field(field['controller'], "+91 ...", keyboardType: TextInputType.phone)),
+          if (_clientMobileFields.length > 1) IconButton(icon: const Icon(Icons.remove_circle_outline, color: Colors.red), onPressed: () => setState(() => _clientMobileFields.removeAt(idx))),
+        ]));
+      }),
+    ]);
+  }
+
+  Widget _clientAddressSection() {
+    return Column(children: _clientAddressFields.asMap().entries.map((entry) {
+      int idx = entry.key;
+      var f = entry.value;
+      return Container(
+        margin: const EdgeInsets.only(bottom: 24),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.1))),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+            _label("ADDRESS #${idx + 1}"),
+            if (_clientAddressFields.length > 1) IconButton(icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20), onPressed: () => setState(() => _clientAddressFields.removeAt(idx))),
+          ]),
+          const SizedBox(height: 8),
+          _label("ADDRESS TYPE"),
+          _dropdown<AddressTypeModel>(value: f['selectedType'], hint: "Select Type", items: _addressTypes.map((t) => DropdownMenuItem(value: t, child: Text(t.name))).toList(), onChanged: (v) => setState(() => f['selectedType'] = v)),
+          const SizedBox(height: 16),
+          Row(children: [
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_label("COUNTRY"), _dropdown<CountryModel>(value: f['selectedCountry'], hint: "Country", items: _countries.map((c) => DropdownMenuItem(value: c, child: Text(c.name))).toList(), onChanged: (v) => _onAddressCountryChanged(f, v))])),
+            const SizedBox(width: 12),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_label("STATE"), _dropdown<StateModel>(value: f['selectedState'], hint: "State", items: (f['states'] as List<StateModel>).map((s) => DropdownMenuItem(value: s, child: Text(s.name))).toList(), onChanged: f['selectedCountry'] != null ? (v) => _onAddressStateChanged(f, v) : null, enabled: f['selectedCountry'] != null)]))
+          ]),
+          const SizedBox(height: 16),
+          _label("DISTRICT"),
+          _dropdown<DistrictModel>(value: f['selectedDistrict'], hint: "District", items: (f['districts'] as List<DistrictModel>).map((d) => DropdownMenuItem(value: d, child: Text(d.name))).toList(), onChanged: f['selectedState'] != null ? (v) => setState(() => f['selectedDistrict'] = v) : null, enabled: f['selectedState'] != null),
+          const SizedBox(height: 16),
+          _label("STREET ADDRESS (LINE 1)"),
+          _field(f['line1'], "Building No., Street Name"),
+          const SizedBox(height: 16),
+          _label("ADDRESS LINE 2"),
+          _field(f['line2'], "Suite, Floor, Landmark"),
+          const SizedBox(height: 16),
+          Row(children: [
+            Expanded(flex: 2, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_label("CITY"), _field(f['city'], "City")])),
+            const SizedBox(width: 12),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_label("POSTAL CODE"), _field(f['postalCode'], "Zip")])),
+          ]),
+        ]),
+      );
+    }).toList());
+  }
+
 }

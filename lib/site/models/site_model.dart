@@ -21,24 +21,24 @@ class SiteStatusModel {
   }
 }
 
-class SiteImageModel {
+class SiteMediaModel {
   final String id;
   final String image;
   final String caption;
   final DateTime createdAt;
 
-  SiteImageModel({
+  SiteMediaModel({
     required this.id,
     required this.image,
     required this.caption,
     required this.createdAt,
   });
 
-  factory SiteImageModel.fromJson(Map<String, dynamic> json) {
-    return SiteImageModel(
+  factory SiteMediaModel.fromJson(Map<String, dynamic> json) {
+    return SiteMediaModel(
       id: json['id']?.toString() ?? '',
-      image: json['image'] ?? '',
-      caption: json['caption'] ?? '',
+      image: json['image'] ?? json['file'] ?? '',
+      caption: json['caption'] ?? json['description'] ?? '',
       createdAt: json['created_at'] != null 
           ? DateTime.tryParse(json['created_at']) ?? DateTime.now()
           : DateTime.now(),
@@ -54,9 +54,8 @@ class SiteModel {
   final SiteStatusModel? statusDetails;
   final String? organizationId;
   final ClientLinkModel? clientLink;
-  final List<SiteImageModel> images;
-  final List<SiteImageModel> photos;
-  final List<SiteImageModel> attachments;
+  final List<SiteMediaModel> photos;
+  final List<SiteMediaModel> attachments;
   final List<QuotationModel> quotations;
   final double? estimatedBudget;
   final String? notes;
@@ -72,7 +71,6 @@ class SiteModel {
     this.statusDetails,
     this.organizationId,
     this.clientLink,
-    this.images = const [],
     this.photos = const [],
     this.attachments = const [],
     this.quotations = const [],
@@ -96,14 +94,11 @@ class SiteModel {
       clientLink: json['client_link'] != null
           ? ClientLinkModel.fromJson(json['client_link'])
           : null,
-      images: json['images'] != null 
-          ? (json['images'] as List).map((i) => SiteImageModel.fromJson(i)).toList()
-          : [],
       photos: json['photos'] != null 
-          ? (json['photos'] as List).map((i) => SiteImageModel.fromJson(i)).toList()
+          ? (json['photos'] as List).map((i) => SiteMediaModel.fromJson(i)).toList()
           : [],
       attachments: json['attachments'] != null 
-          ? (json['attachments'] as List).map((i) => SiteImageModel.fromJson(i)).toList()
+          ? (json['attachments'] as List).map((i) => SiteMediaModel.fromJson(i)).toList()
           : [],
       quotations: json['quotations'] != null
           ? (json['quotations'] as List).map((i) => QuotationModel.fromJson(i)).toList()

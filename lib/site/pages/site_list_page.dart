@@ -141,7 +141,7 @@ class _SiteListPageState extends State<SiteListPage> {
             _detailItem(Icons.info_outline, "Status", (site.statusDetails?.name ?? site.status).toUpperCase()),
             if (site.estimatedBudget != null) _detailItem(Icons.payments_outlined, "Budget", "₹${site.estimatedBudget}"),
             
-            if (site.images.isNotEmpty) ...[
+            if (site.photos.isNotEmpty) ...[
               const SizedBox(height: 24),
               const Text("Site Images", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
               const SizedBox(height: 12),
@@ -149,9 +149,9 @@ class _SiteListPageState extends State<SiteListPage> {
                 height: 120,
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
-                  itemCount: site.images.length,
+                  itemCount: site.photos.length,
                   itemBuilder: (context, idx) {
-                    final img = site.images[idx];
+                    final img = site.photos[idx];
                     return Padding(
                       padding: const EdgeInsets.only(right: 12),
                       child: ClipRRect(
@@ -300,11 +300,13 @@ class _SiteListPageState extends State<SiteListPage> {
     );
 
     if (result != null && result.isNotEmpty) {
+      if (!mounted) return;
+      final messenger = ScaffoldMessenger.of(context);
       try {
         await _service.assignResource(siteId: site.id, type: type, id: result);
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("$type assigned successfully!"), backgroundColor: AppColors.success));
+        if (mounted) messenger.showSnackBar(SnackBar(content: Text("$type assigned successfully!"), backgroundColor: AppColors.success));
       } catch (e) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error));
+        if (mounted) messenger.showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error));
       }
     }
   }
@@ -326,12 +328,13 @@ class _SiteListPageState extends State<SiteListPage> {
             onPressed: () async {
               final amount = double.tryParse(amountController.text);
               if (amount == null) return;
+              final messenger = ScaffoldMessenger.of(context);
               Navigator.pop(context);
               try {
                 await _service.createQuotation(siteId: site.id, amount: amount);
-                if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Quotation created successfully!"), backgroundColor: AppColors.success));
+                if (mounted) messenger.showSnackBar(const SnackBar(content: Text("Quotation created successfully!"), backgroundColor: AppColors.success));
               } catch (e) {
-                if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error));
+                if (mounted) messenger.showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error));
               }
             },
             child: const Text("Create"),
