@@ -336,18 +336,48 @@ class _EmployeeCreatePageState extends State<EmployeeCreatePage> {
               _sectionTitle("KYC & Documents"),
               _buildAttachmentSection(),
 
-              const SizedBox(height: 100),
+              const SizedBox(height: 32),
             ],
           ),
         ),
       ),
       bottomNavigationBar: Container(
-        padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+        height: 90,
         decoration: BoxDecoration(
-          color: AppColors.background,
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, -5))],
+          color: Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 20, offset: const Offset(0, -5))],
         ),
-        child: _buildSaveButton(),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: TextButton.styleFrom(foregroundColor: AppColors.textSecondary),
+                    child: const Text("Cancel", style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  flex: 2,
+                  child: ElevatedButton(
+                    onPressed: _isSaving ? null : _save,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                    ),
+                    child: Text(widget.employee == null ? "Create" : "Update", style: const TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -539,18 +569,7 @@ class _EmployeeCreatePageState extends State<EmployeeCreatePage> {
     );
   }
 
-  Widget _buildSaveButton() {
-    return SizedBox(width: double.infinity, height: 56, child: ElevatedButton(
-      onPressed: _isSaving ? null : _save,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      ),
-      child: Text(widget.employee == null ? "Create" : "Update", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-    ));
-  }
+
 
   Widget _label(String text) => Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(text, style: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.textSecondary, fontSize: 10, letterSpacing: 1.2)));
 

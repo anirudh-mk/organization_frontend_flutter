@@ -122,12 +122,12 @@ class _EmployeeListPageState extends State<EmployeeListPage> {
             const SizedBox(height: 8),
           ]))),
           if (_isLoading) const SliverFillRemaining(child: Center(child: CircularProgressIndicator()))
-          else if (_filteredEmployees.isEmpty) SliverFillRemaining(child: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.people_alt_rounded, size: 64, color: AppColors.textMuted.withValues(alpha: 0.3)), const SizedBox(height: 16), Text("No workforce staff found", style: TextStyle(color: AppColors.textMuted, fontSize: 16))])))
+          else if (_filteredEmployees.isEmpty) SliverFillRemaining(child: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.people_alt_rounded, size: 64, color: AppColors.textMuted.withValues(alpha: 0.3)), const SizedBox(height: 16), Text("No employees found", style: TextStyle(color: AppColors.textMuted, fontSize: 16))])))
           else SliverPadding(padding: const EdgeInsets.symmetric(horizontal: 24), sliver: isGridView ? _buildEmployeeGrid() : _buildEmployeeList()),
           const SliverToBoxAdapter(child: SizedBox(height: 120)),
         ],
       ),
-      floatingActionButton: Padding(padding: const EdgeInsets.only(bottom: 20), child: FloatingActionButton.extended(heroTag: 'employee_list_fab', onPressed: () async { final res = await Navigator.push(context, MaterialPageRoute(builder: (context) => const EmployeeCreatePage())); if (res == true) _loadEmployees(); }, backgroundColor: AppColors.primary, foregroundColor: Colors.white, elevation: 4, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)), icon: const Icon(Icons.add_rounded), label: const Text("Onboard Staff", style: TextStyle(fontWeight: FontWeight.w800)))),
+      floatingActionButton: Padding(padding: const EdgeInsets.only(bottom: 20), child: FloatingActionButton.extended(heroTag: 'employee_list_fab', onPressed: () async { final res = await Navigator.push(context, MaterialPageRoute(builder: (context) => const EmployeeCreatePage())); if (res == true) _loadEmployees(); }, backgroundColor: AppColors.primary, foregroundColor: Colors.white, elevation: 4, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)), icon: const Icon(Icons.add_rounded), label: const Text("Create", style: TextStyle(fontWeight: FontWeight.w800)))),
     );
   }
 
