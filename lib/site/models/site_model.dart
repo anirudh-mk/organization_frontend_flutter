@@ -52,8 +52,11 @@ class SiteModel {
   final String? organizationId;
   final ClientLinkModel? clientLink;
   final List<SiteImageModel> images;
+  final List<SiteImageModel> photos;
+  final List<SiteImageModel> attachments;
   final List<QuotationModel> quotations;
   final double? estimatedBudget;
+  final String? notes;
   final DateTime? expectedStartDate;
   final DateTime? expectedEndDate;
   final DateTime createdAt;
@@ -67,8 +70,11 @@ class SiteModel {
     this.organizationId,
     this.clientLink,
     this.images = const [],
+    this.photos = const [],
+    this.attachments = const [],
     this.quotations = const [],
     this.estimatedBudget,
+    this.notes,
     this.expectedStartDate,
     this.expectedEndDate,
     required this.createdAt,
@@ -90,10 +96,17 @@ class SiteModel {
       images: json['images'] != null 
           ? (json['images'] as List).map((i) => SiteImageModel.fromJson(i)).toList()
           : [],
+      photos: json['photos'] != null 
+          ? (json['photos'] as List).map((i) => SiteImageModel.fromJson(i)).toList()
+          : [],
+      attachments: json['attachments'] != null 
+          ? (json['attachments'] as List).map((i) => SiteImageModel.fromJson(i)).toList()
+          : [],
       quotations: json['quotations'] != null
           ? (json['quotations'] as List).map((i) => QuotationModel.fromJson(i)).toList()
           : [],
       estimatedBudget: json['estimated_budget'] != null ? double.tryParse(json['estimated_budget'].toString()) : null,
+      notes: json['notes'],
       expectedStartDate: json['expected_start_date'] != null ? DateTime.tryParse(json['expected_start_date']) : null,
       expectedEndDate: json['expected_end_date'] != null ? DateTime.tryParse(json['expected_end_date']) : null,
       createdAt: json['created_at'] != null 
@@ -110,6 +123,7 @@ class SiteModel {
       'status': status,
       'organization': organizationId,
       'estimated_budget': estimatedBudget,
+      'notes': notes,
       'expected_start_date': expectedStartDate?.toIso8601String().split('T')[0],
       'expected_end_date': expectedEndDate?.toIso8601String().split('T')[0],
       'created_at': createdAt.toIso8601String(),

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:path/path.dart' as path;
+import 'package:file_picker/file_picker.dart';
 import '../models/site_model.dart';
 import '../../shared/services/base_service.dart';
 
@@ -44,6 +45,8 @@ class SiteService extends BaseService {
     Map<String, dynamic>? clientData,
     List<Map<String, dynamic>>? addresses,
     List<File>? images,
+    List<PlatformFile>? attachments,
+    String? notes,
   }) async {
     try {
       final response = await performMultipartRequest((headers) async {
@@ -52,6 +55,7 @@ class SiteService extends BaseService {
         request.headers.addAll(headers);
         request.fields['name'] = name;
         request.fields['organization'] = organizationId;
+        if (notes != null) request.fields['notes'] = notes;
         if (status != null) request.fields['status'] = status;
         if (budget != null) request.fields['estimated_budget'] = budget.toString();
         if (startDate != null) {
@@ -62,19 +66,28 @@ class SiteService extends BaseService {
         }
         if (clientData != null) request.fields['client_data'] = jsonEncode(clientData);
         if (addresses != null) request.fields['addresses'] = jsonEncode(addresses);
+        
         if (images != null) {
           for (var i = 0; i < images.length; i++) {
-            final stream = http.ByteStream(images[i].openRead());
-            final length = await images[i].length();
-            final multipartFile = http.MultipartFile(
+            request.files.add(await http.MultipartFile.fromPath(
               'images',
-              stream,
-              length,
-              filename: path.basename(images[i].path),
-            );
-            request.files.add(multipartFile);
+              images[i].path,
+              contentType: MediaType('image', 'jpeg'),
+            ));
           }
         }
+
+        if (attachments != null) {
+          for (var file in attachments) {
+            if (file.path != null) {
+              request.files.add(await http.MultipartFile.fromPath(
+                'attachments',
+                file.path!,
+              ));
+            }
+          }
+        }
+        
         return request;
       });
 

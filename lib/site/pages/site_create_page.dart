@@ -1,13 +1,15 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
 import '../../theme/app_theme.dart';
 import '../../auth/services/token_manager.dart';
 import '../models/site_model.dart';
 import '../services/site_service.dart';
 import '../../client/services/client_service.dart';
 import '../../client/models/client_model.dart';
-import 'dart:convert';
+import '../../shared/models/location_models.dart';
+import '../../shared/services/location_service.dart';
 
 class SiteCreatePage extends StatefulWidget {
   final SiteModel? site;
@@ -19,28 +21,38 @@ class SiteCreatePage extends StatefulWidget {
 
 class _SiteCreatePageState extends State<SiteCreatePage> {
   final _formKey = GlobalKey<FormState>();
+  final SiteService _service = SiteService();
+  final LocationService _locationService = LocationService();
+  final ClientService _clientService = ClientService();
+
   final _nameController = TextEditingController();
   final _codeController = TextEditingController();
-  final _locationController = TextEditingController();
   final _budgetController = TextEditingController();
+  final _notesController = TextEditingController();
   final _contractValueController = TextEditingController();
   final _contractRemarksController = TextEditingController();
   final _newClientNameController = TextEditingController();
   
+  // Address State
+  final Map<String, dynamic> _siteAddress = {};
+  final Map<String, dynamic> _clientAddress = {};
+  bool _sameAsClientAddress = false;
+  
+  List<CountryModel> _countries = [];
+  List<AddressTypeModel> _addressTypes = [];
+
+  // Data
   DateTime? _expectedStartDate;
   DateTime? _expectedEndDate;
   String _selectedStatus = 'planning';
-  
-  // Client selection
-  final ClientService _clientService = ClientService();
   List<ClientModel> _clients = [];
   String? _selectedClientId;
   bool _isNewClient = false;
-
-  final SiteService _service = SiteService();
   bool _isLoading = false;
-  final List<File> _images = [];
-  final _picker = ImagePicker();
+  
+  // Media
+  final List<XFile> _newPhotos = [];
+  final List<PlatformFile> _newAttachments = [];
 
   final List<String> _statusOptions = [
     'planning',
@@ -54,25 +66,35 @@ class _SiteCreatePageState extends State<SiteCreatePage> {
   @override
   void initState() {
     super.initState();
+    _initAddressField(_siteAddress);
+    _initAddressField(_clientAddress);
     _loadInitialData();
     if (widget.site != null) {
       _nameController.text = widget.site!.name;
-      _codeController.text = widget.site!.code ?? '';
+      _codeController.text = widget.site!.code;
       _budgetController.text = widget.site!.estimatedBudget?.toString() ?? '';
       _selectedStatus = widget.site!.status.isNotEmpty ? widget.site!.status : 'planning';
-      // _selectedStatus = widget.site!.statusDetails?.name ?? 'planning'; // Adjust if status model is used
+      _notesController.text = widget.site!.notes ?? '';
       _expectedStartDate = widget.site!.expectedStartDate;
       _expectedEndDate = widget.site!.expectedEndDate;
       _selectedClientId = widget.site!.clientLink?.clientId;
+      // Handle site address pre-fill for editing if needed (omitted for brevity or assumed handled by backend/details)
     }
   }
 
   Future<void> _loadInitialData() async {
     setState(() => _isLoading = true);
     try {
-      final clients = await _clientService.getClients();
+      final results = await Future.wait([
+        _clientService.getClients(),
+        _locationService.getCountries(),
+        _locationService.getAddressTypes(),
+      ]);
+
       setState(() {
-        _clients = clients;
+        _clients = results[0] as List<ClientModel>;
+        _countries = results[1] as List<CountryModel>;
+        _addressTypes = results[2] as List<AddressTypeModel>;
         _isLoading = false;
       });
     } catch (e) {
@@ -80,15 +102,99 @@ class _SiteCreatePageState extends State<SiteCreatePage> {
     }
   }
 
-  Future<void> _pickImage() async {
-    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-    if (image != null) {
-      setState(() => _images.add(File(image.path)));
-    }
+  void _initAddressField(Map<String, dynamic> addr) {
+    addr['line1'] = TextEditingController();
+    addr['line2'] = TextEditingController();
+    addr['city'] = TextEditingController();
+    addr['postalCode'] = TextEditingController();
+    addr['selectedType'] = null;
+    addr['selectedCountry'] = null;
+    addr['selectedState'] = null;
+    addr['selectedDistrict'] = null;
+    addr['states'] = <StateModel>[];
+    addr['districts'] = <DistrictModel>[];
   }
 
-  void _removeImage(int index) {
-    setState(() => _images.removeAt(index));
+  Future<void> _onAddressCountryChanged(Map<String, dynamic> addr, CountryModel? country) async {
+    setState(() {
+      addr['selectedCountry'] = country;
+      addr['selectedState'] = null;
+      addr['selectedDistrict'] = null;
+      addr['states'] = <StateModel>[];
+      addr['districts'] = <DistrictModel>[];
+    });
+    if (country != null) {
+      final states = await _locationService.getStates(country.id);
+      if (mounted) setState(() => addr['states'] = states);
+    }
+    if (_sameAsClientAddress && addr == _clientAddress) _syncSiteWithClient();
+  }
+
+  Future<void> _onAddressStateChanged(Map<String, dynamic> addr, StateModel? state) async {
+    setState(() {
+      addr['selectedState'] = state;
+      addr['selectedDistrict'] = null;
+      addr['districts'] = <DistrictModel>[];
+    });
+    if (state != null) {
+      final districts = await _locationService.getDistricts(state.id);
+      if (mounted) setState(() => addr['districts'] = districts);
+    }
+    if (_sameAsClientAddress && addr == _clientAddress) _syncSiteWithClient();
+  }
+
+  void _syncSiteWithClient() async {
+    if (!_sameAsClientAddress) return;
+
+    if (_isNewClient) {
+      setState(() {
+        _siteAddress['line1'].text = _clientAddress['line1'].text;
+        _siteAddress['line2'].text = _clientAddress['line2'].text;
+        _siteAddress['city'].text = _clientAddress['city'].text;
+        _siteAddress['postalCode'].text = _clientAddress['postalCode'].text;
+        _siteAddress['selectedType'] = _clientAddress['selectedType'];
+        _siteAddress['selectedCountry'] = _clientAddress['selectedCountry'];
+        _siteAddress['states'] = _clientAddress['states'];
+        _siteAddress['selectedState'] = _clientAddress['selectedState'];
+        _siteAddress['districts'] = _clientAddress['districts'];
+        _siteAddress['selectedDistrict'] = _clientAddress['selectedDistrict'];
+      });
+    } else if (_selectedClientId != null) {
+      final client = _clients.firstWhere((c) => c.id == _selectedClientId);
+      if (client.addresses.isNotEmpty) {
+        final details = client.addresses.first.addressDetails;
+        if (details != null) {
+          _siteAddress['line1'].text = details.line1;
+          _siteAddress['line2'].text = details.line2;
+          _siteAddress['city'].text = details.city;
+          _siteAddress['postalCode'].text = details.postalCode;
+          
+          setState(() {
+            _siteAddress['selectedType'] = _addressTypes.where((t) => t.id == details.addressTypeId).firstOrNull;
+            _siteAddress['selectedCountry'] = _countries.where((c) => c.id == details.countryId).firstOrNull;
+          });
+
+          if (_siteAddress['selectedCountry'] != null) {
+            final states = await _locationService.getStates(_siteAddress['selectedCountry'].id);
+            if (mounted) {
+              setState(() {
+                _siteAddress['states'] = states;
+                _siteAddress['selectedState'] = states.where((s) => s.id == details.stateId).firstOrNull;
+              });
+              if (_siteAddress['selectedState'] != null) {
+                final districts = await _locationService.getDistricts(_siteAddress['selectedState'].id);
+                if (mounted) {
+                  setState(() {
+                    _siteAddress['districts'] = districts;
+                    _siteAddress['selectedDistrict'] = districts.where((d) => d.id == details.districtId).firstOrNull;
+                  });
+                }
+              }
+            }
+          }
+        }
+      }
+    }
   }
 
   Future<void> _submit() async {
@@ -104,6 +210,14 @@ class _SiteCreatePageState extends State<SiteCreatePage> {
           "name": _newClientNameController.text.trim(),
           "contract_value": double.tryParse(_contractValueController.text) ?? 0,
           "contract_remarks": _contractRemarksController.text.trim(),
+          "address": _clientAddress['line1'].text.isNotEmpty ? {
+            'line_1': _clientAddress['line1'].text.trim(),
+            'line_2': _clientAddress['line2'].text.trim(),
+            'city': _clientAddress['city'].text.trim(),
+            'postal_code': _clientAddress['postalCode'].text.trim(),
+            'district': (_clientAddress['selectedDistrict'] as DistrictModel?)?.id,
+            'address_type': (_clientAddress['selectedType'] as AddressTypeModel?)?.id,
+          } : null,
         };
       } else if (_selectedClientId != null) {
         clientData = {
@@ -113,18 +227,30 @@ class _SiteCreatePageState extends State<SiteCreatePage> {
         };
       }
 
+      final List<Map<String, dynamic>> addresses = [];
+      if (_siteAddress['line1'].text.isNotEmpty && _siteAddress['selectedDistrict'] != null) {
+        addresses.add({
+          'line_1': _siteAddress['line1'].text.trim(),
+          'line_2': _siteAddress['line2'].text.trim(),
+          'city': _siteAddress['city'].text.trim(),
+          'postal_code': _siteAddress['postalCode'].text.trim(),
+          'district': (_siteAddress['selectedDistrict'] as DistrictModel).id,
+          'address_type': (_siteAddress['selectedType'] as AddressTypeModel?)?.id,
+          'is_primary': true,
+        });
+      }
+
       if (_isEditing) {
-        // Handle update
-        // (Simplified for now as user requested onboarding focus)
         final Map<String, dynamic> payload = {
           "name": _nameController.text.trim(),
           "code": _codeController.text.trim(),
           "status": _selectedStatus,
+          "notes": _notesController.text.trim(),
           "estimated_budget": _budgetController.text.isNotEmpty ? double.tryParse(_budgetController.text) : null,
           "expected_start_date": _expectedStartDate?.toIso8601String().split('T')[0],
           "expected_end_date": _expectedEndDate?.toIso8601String().split('T')[0],
         };
-        await _service.updateSite(widget.site!.id, payload, images: _images);
+        await _service.updateSite(widget.site!.id, payload);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Site updated successfully!"), backgroundColor: AppColors.success));
           Navigator.pop(context, true);
@@ -138,14 +264,14 @@ class _SiteCreatePageState extends State<SiteCreatePage> {
           startDate: _expectedStartDate,
           endDate: _expectedEndDate,
           clientData: clientData,
-          addresses: [
-            {"line_1": _locationController.text.trim(), "is_primary": true}
-          ],
-          images: _images,
+          notes: _notesController.text.trim(),
+          addresses: addresses,
+          images: _newPhotos.map((x) => File(x.path)).toList(),
+          attachments: _newAttachments,
         );
         
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Site initialized successfully!"), backgroundColor: AppColors.success));
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Site onboarding completed!"), backgroundColor: AppColors.success));
           Navigator.pop(context, true);
         }
       }
@@ -162,9 +288,17 @@ class _SiteCreatePageState extends State<SiteCreatePage> {
   void dispose() {
     _nameController.dispose();
     _codeController.dispose();
-    _locationController.dispose();
     _budgetController.dispose();
+    _disposeAddressField(_siteAddress);
+    _disposeAddressField(_clientAddress);
     super.dispose();
+  }
+
+  void _disposeAddressField(Map<String, dynamic> addr) {
+    addr['line1']?.dispose();
+    addr['line2']?.dispose();
+    addr['city']?.dispose();
+    addr['postalCode']?.dispose();
   }
 
   @override
@@ -189,188 +323,39 @@ class _SiteCreatePageState extends State<SiteCreatePage> {
                   children: [
                     _sectionHeader("Site Information"),
                     const SizedBox(height: 16),
-                    _label("SITE NAME *"),
-                    _field(_nameController, "e.g. Skyline Tower A",
-                        validator: (v) =>
-                            v == null || v.isEmpty ? "Required" : null),
-                    const SizedBox(height: 16),
-                    _label("SITE CODE"),
-                    _field(_codeController, "e.g. ST-001 (Optional)"),
-                    const SizedBox(height: 16),
-                    _label("SITE LOCATION"),
-                    _field(_locationController,
-                        "e.g. 123 Construction St, Downtown"),
+                    _buildIdentityFields(),
+
                     const SizedBox(height: 32),
                     _sectionHeader("Project Details"),
                     const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _label("STATUS"),
-                              _dropdown<String>(
-                                value: _selectedStatus,
-                                hint: "Select Status",
-                                items: _statusOptions
-                                    .map((s) => DropdownMenuItem(
-                                        value: s, child: Text(s.toUpperCase())))
-                                    .toList(),
-                                onChanged: (val) {
-                                  if (val != null) {
-                                    setState(() => _selectedStatus = val);
-                                  }
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _label("ESTIMATED BUDGET"),
-                              _field(_budgetController, "e.g. 500000",
-                                  keyboardType: TextInputType.number),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _label("START DATE"),
-                              _datePicker(
-                                selectedDate: _expectedStartDate,
-                                onSelect: (date) =>
-                                    setState(() => _expectedStartDate = date),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _label("END DATE"),
-                              _datePicker(
-                                selectedDate: _expectedEndDate,
-                                onSelect: (date) =>
-                                    setState(() => _expectedEndDate = date),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
+                    _buildProjectDetails(),
+
                     const SizedBox(height: 32),
                     _sectionHeader("Client & Contract"),
                     const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ChoiceChip(
-                            label: const Text("EXISTING CLIENT"),
-                            selected: !_isNewClient,
-                            onSelected: (val) =>
-                                setState(() => _isNewClient = !val),
-                            selectedColor:
-                                AppColors.primary.withValues(alpha: 0.1),
-                            labelStyle: TextStyle(
-                                color: !_isNewClient
-                                    ? AppColors.primary
-                                    : AppColors.textSecondary,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 10),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: ChoiceChip(
-                            label: const Text("NEW CLIENT"),
-                            selected: _isNewClient,
-                            onSelected: (val) =>
-                                setState(() => _isNewClient = val),
-                            selectedColor:
-                                AppColors.primary.withValues(alpha: 0.1),
-                            labelStyle: TextStyle(
-                                color: _isNewClient
-                                    ? AppColors.primary
-                                    : AppColors.textSecondary,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 10),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    if (!_isNewClient) ...[
-                      _label("SELECT CLIENT"),
-                      _dropdown<String>(
-                        value: _selectedClientId,
-                        hint: "Choose an existing client",
-                        items: _clients
-                            .map((c) => DropdownMenuItem(
-                                value: c.id, child: Text(c.name)))
-                            .toList(),
-                        onChanged: (val) =>
-                            setState(() => _selectedClientId = val),
-                      ),
-                    ] else ...[
-                      _label("CLIENT NAME"),
-                      _field(_newClientNameController, "e.g. Acme Corp",
-                          validator: (v) => _isNewClient && (v == null || v.isEmpty)
-                              ? "Required for new client"
-                              : null),
-                    ],
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _label("CONTRACT VALUE"),
-                              _field(_contractValueController, "e.g. 100000",
-                                  keyboardType: TextInputType.number),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    _label("CONTRACT REMARKS"),
-                    _field(_contractRemarksController,
-                        "Any specific terms or notes",
-                        maxLines: 2),
+                    _buildClientSection(),
+
                     const SizedBox(height: 32),
-                    _sectionHeader("Site Images"),
+                    _sectionHeader("Site Address"),
                     const SizedBox(height: 16),
-                    _imagePickerSection(),
+                    _addressSection(),
+                    
+                    const SizedBox(height: 32),
+                    _sectionHeader("Site Notes"),
+                    const SizedBox(height: 16),
+                    _field(_notesController, "General notes about the site", maxLines: 3),
+
+                    const SizedBox(height: 32),
+                    _sectionHeader("Media & Documents"),
+                    const SizedBox(height: 16),
+                    _label("PHOTOS"),
+                    _buildPhotoPicker(),
+                    const SizedBox(height: 24),
+                    _label("ATTACHMENTS"),
+                    _buildAttachmentSection(),
+
                     const SizedBox(height: 48),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 56,
-                      child: ElevatedButton(
-                        onPressed: _isLoading ? null : _submit,
-                        child: _isLoading
-                            ? const CircularProgressIndicator(color: Colors.white)
-                            : Text(
-                                _isEditing
-                                    ? "Update Site Details"
-                                    : "Create Site & Project",
-                                style: const TextStyle(
-                                    fontSize: 16, fontWeight: FontWeight.bold)),
-                      ),
-                    ),
+                    _buildSaveButton(),
                     const SizedBox(height: 40),
                   ],
                 ),
@@ -379,62 +364,192 @@ class _SiteCreatePageState extends State<SiteCreatePage> {
     );
   }
 
-  Widget _imagePickerSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          children: [
-            ..._images.asMap().entries.map((entry) {
-              int idx = entry.key;
-              File file = entry.value;
-              return Stack(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: Image.file(file, width: 90, height: 90, fit: BoxFit.cover),
-                  ),
-                  Positioned(
-                    right: 4,
-                    top: 4,
-                    child: GestureDetector(
-                      onTap: () => _removeImage(idx),
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                        child: const Icon(Icons.close, size: 14, color: AppColors.error),
-                      ),
-                    ),
-                  ),
-                ],
-              );
-            }),
-            GestureDetector(
-              onTap: _pickImage,
-              child: Container(
-                width: 90,
-                height: 90,
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.15), style: BorderStyle.solid),
-                ),
-                child: const Icon(Icons.add_a_photo_outlined, color: AppColors.textMuted),
-              ),
-            ),
-          ],
+  Widget _buildIdentityFields() {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      _label("SITE NAME *"),
+      _field(_nameController, "e.g. Skyline Tower A", validator: (v) => v!.isEmpty ? "Required" : null),
+      const SizedBox(height: 16),
+      _label("SITE CODE"),
+      _field(_codeController, "e.g. ST-001"),
+    ]);
+  }
+
+  Widget _buildProjectDetails() {
+    return Column(children: [
+      Row(children: [
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          _label("STATUS"),
+          _dropdown<String>(value: _selectedStatus, hint: "Select Status", items: _statusOptions.map((s) => DropdownMenuItem(value: s, child: Text(s.toUpperCase()))).toList(), onChanged: (v) => setState(() => _selectedStatus = v!)),
+        ])),
+        const SizedBox(width: 12),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          _label("ESTIMATED BUDGET"),
+          _field(_budgetController, "0.00", keyboardType: TextInputType.number),
+        ])),
+      ]),
+      const SizedBox(height: 16),
+      Row(children: [
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          _label("START DATE"),
+          _datePicker(selectedDate: _expectedStartDate, onSelect: (d) => setState(() => _expectedStartDate = d)),
+        ])),
+        const SizedBox(width: 12),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          _label("END DATE"),
+          _datePicker(selectedDate: _expectedEndDate, onSelect: (d) => setState(() => _expectedEndDate = d)),
+        ])),
+      ]),
+    ]);
+  }
+
+  Widget _addressSection() {
+    return _addressForm(_siteAddress, "SITE", isReadOnly: _sameAsClientAddress);
+  }
+
+  Widget _addressForm(Map<String, dynamic> addr, String label, {bool isReadOnly = false}) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.1))),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          _label("$label ADDRESS"),
+          if (isReadOnly) const Icon(Icons.lock_outline, size: 14, color: AppColors.textMuted),
+        ]),
+        const SizedBox(height: 8),
+        _label("ADDRESS TYPE"),
+        _dropdown<AddressTypeModel>(
+          value: addr['selectedType'],
+          hint: "Select Type",
+          items: _addressTypes.map((t) => DropdownMenuItem(value: t, child: Text(t.name))).toList(),
+          onChanged: isReadOnly ? null : (v) {
+            setState(() => addr['selectedType'] = v);
+            if (_sameAsClientAddress && addr == _clientAddress) _syncSiteWithClient();
+          },
+          enabled: !isReadOnly,
         ),
-      ],
+        const SizedBox(height: 16),
+        Row(children: [
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_label("COUNTRY"), _dropdown<CountryModel>(value: addr['selectedCountry'], hint: "Country", items: _countries.map((c) => DropdownMenuItem(value: c, child: Text(c.name))).toList(), onChanged: isReadOnly ? null : (v) => _onAddressCountryChanged(addr, v), enabled: !isReadOnly)])),
+          const SizedBox(width: 12),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_label("STATE"), _dropdown<StateModel>(value: addr['selectedState'], hint: "State", items: (addr['states'] as List<StateModel>).map((s) => DropdownMenuItem(value: s, child: Text(s.name))).toList(), onChanged: (isReadOnly || addr['selectedCountry'] == null) ? null : (v) => _onAddressStateChanged(addr, v), enabled: !isReadOnly && addr['selectedCountry'] != null)]))
+        ]),
+        const SizedBox(height: 16),
+        _label("DISTRICT"),
+        _dropdown<DistrictModel>(value: addr['selectedDistrict'], hint: "District", items: (addr['districts'] as List<DistrictModel>).map((d) => DropdownMenuItem(value: d, child: Text(d.name))).toList(), onChanged: (isReadOnly || addr['selectedState'] == null) ? null : (v) {
+          setState(() => addr['selectedDistrict'] = v);
+          if (_sameAsClientAddress && addr == _clientAddress) _syncSiteWithClient();
+        }, enabled: !isReadOnly && addr['selectedState'] != null),
+        const SizedBox(height: 16),
+        _label("STREET ADDRESS (LINE 1)"),
+        _field(addr['line1'], "Building No., Street Name", enabled: !isReadOnly, onChanged: (v) {
+          if (_sameAsClientAddress && addr == _clientAddress) _syncSiteWithClient();
+        }),
+        const SizedBox(height: 16),
+        _label("ADDRESS LINE 2"),
+        _field(addr['line2'], "Suite, Floor, Landmark", enabled: !isReadOnly, onChanged: (v) {
+          if (_sameAsClientAddress && addr == _clientAddress) _syncSiteWithClient();
+        }),
+        const SizedBox(height: 16),
+        Row(children: [
+          Expanded(flex: 2, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_label("CITY"), _field(addr['city'], "City", enabled: !isReadOnly, onChanged: (v) {
+            if (_sameAsClientAddress && addr == _clientAddress) _syncSiteWithClient();
+          })])),
+          const SizedBox(width: 12),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_label("POSTAL CODE"), _field(addr['postalCode'], "Zip", enabled: !isReadOnly, onChanged: (v) {
+            if (_sameAsClientAddress && addr == _clientAddress) _syncSiteWithClient();
+          })])),
+        ]),
+      ]),
     );
   }
 
-  Widget _sectionHeader(String title) {
+  Widget _buildClientSection() {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Expanded(child: ChoiceChip(label: const Text("EXISTING CLIENT"), selected: !_isNewClient, onSelected: (val) => setState(() => _isNewClient = !val), selectedColor: AppColors.primary.withValues(alpha: 0.1), labelStyle: TextStyle(color: !_isNewClient ? AppColors.primary : AppColors.textSecondary, fontWeight: FontWeight.bold, fontSize: 10))),
+          const SizedBox(width: 8),
+          Expanded(child: ChoiceChip(label: const Text("NEW CLIENT"), selected: _isNewClient, onSelected: (val) => setState(() => _isNewClient = val), selectedColor: AppColors.primary.withValues(alpha: 0.1), labelStyle: TextStyle(color: _isNewClient ? AppColors.primary : AppColors.textSecondary, fontWeight: FontWeight.bold, fontSize: 10))),
+        ]),
+        const SizedBox(height: 16),
+        if (!_isNewClient) ...[
+          _label("SELECT CLIENT"),
+          _dropdown<String>(value: _selectedClientId, hint: "Choose an existing client", items: _clients.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))).toList(), onChanged: (val) {
+            setState(() => _selectedClientId = val);
+            if (_sameAsClientAddress) _syncSiteWithClient();
+          }),
+        ] else ...[
+          _label("CLIENT NAME"),
+          _field(_newClientNameController, "e.g. Acme Corp", validator: (v) => _isNewClient && (v == null || v.isEmpty) ? "Required" : null),
+          const SizedBox(height: 16),
+          _addressForm(_clientAddress, "CLIENT"),
+        ],
+        const SizedBox(height: 16),
+        CheckboxListTile(
+          value: _sameAsClientAddress,
+          onChanged: (v) {
+            setState(() => _sameAsClientAddress = v ?? false);
+            if (_sameAsClientAddress) _syncSiteWithClient();
+          },
+          title: const Text("Site address same as client address", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+          contentPadding: EdgeInsets.zero,
+          controlAffinity: ListTileControlAffinity.leading,
+          activeColor: AppColors.primary,
+        ),
+        const SizedBox(height: 16),
+        _label("CONTRACT VALUE"),
+        _field(_contractValueController, "0.00", keyboardType: TextInputType.number),
+        const SizedBox(height: 16),
+        _label("CONTRACT REMARKS"),
+        _field(_contractRemarksController, "Specific terms...", maxLines: 2),
+    ]);
+  }
+
+  Widget _buildPhotoPicker() {
+    return SizedBox(height: 120, child: ListView(scrollDirection: Axis.horizontal, children: [
+      InkWell(
+        onTap: () async {
+          final picker = ImagePicker();
+          final selection = await picker.pickMultiImage();
+          if (selection.isNotEmpty) setState(() => _newPhotos.addAll(selection));
+        },
+        child: Container(width: 100, height: 120, margin: const EdgeInsets.only(right: 12), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.12))), child: const Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.add_a_photo_outlined, color: AppColors.primary, size: 28), SizedBox(height: 4), Text("Add", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold))])),
+      ),
+      ..._newPhotos.map((file) => _mediaThumbnail(file.path, () => setState(() => _newPhotos.remove(file)))),
+    ]));
+  }
+
+  Widget _mediaThumbnail(String path, VoidCallback onDelete) {
+    return Container(width: 100, margin: const EdgeInsets.only(right: 12), child: Stack(children: [
+      ClipRRect(borderRadius: BorderRadius.circular(16), child: Image.file(File(path), width: 100, height: 120, fit: BoxFit.cover)),
+      Positioned(right: 4, top: 4, child: InkWell(onTap: onDelete, child: Container(padding: const EdgeInsets.all(4), decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle), child: const Icon(Icons.close, size: 12, color: Colors.white)))),
+    ]));
+  }
+
+  Widget _buildAttachmentSection() {
+    return Container(decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.1))), child: Column(children: [
+      ..._newAttachments.map((f) => ListTile(leading: const Icon(Icons.upload_file, color: Colors.blue), title: Text(f.name, style: const TextStyle(fontSize: 13)), trailing: IconButton(icon: const Icon(Icons.close, color: Colors.red), onPressed: () => setState(() => _newAttachments.remove(f))))),
+      const Divider(height: 1),
+      InkWell(onTap: () async {
+        final res = await FilePicker.platform.pickFiles(allowMultiple: true);
+        if (res != null) setState(() => _newAttachments.addAll(res.files));
+      }, child: const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.add_circle_outline, color: AppColors.primary, size: 18), SizedBox(width: 8), Text("Upload Documents", style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 13))]))),
+    ]));
+  }
+
+  Widget _buildSaveButton() {
+    return SizedBox(width: double.infinity, height: 58, child: ElevatedButton(
+      onPressed: _isLoading ? null : _submit,
+      style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
+      child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : Text(_isEditing ? "Update Site" : "Confirm Onboarding", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white)),
+    ));
+  }
+
+  Widget _sectionHeader(String title, [Widget? action]) {
     return Row(children: [
       Text(title, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
       const SizedBox(width: 12),
       const Expanded(child: Divider()),
+      if (action != null) action,
     ]);
   }
 
@@ -450,20 +565,25 @@ class _SiteCreatePageState extends State<SiteCreatePage> {
     );
   }
 
-  Widget _field(TextEditingController controller, String hint, {TextInputType? keyboardType, String? Function(String?)? validator, int maxLines = 1}) {
+  Widget _field(TextEditingController controller, String hint, {TextInputType? keyboardType, String? Function(String?)? validator, int maxLines = 1, bool enabled = true, ValueChanged<String>? onChanged}) {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
       validator: validator,
       maxLines: maxLines,
+      enabled: enabled,
+      onChanged: onChanged,
       decoration: InputDecoration(
         hintText: hint,
         filled: true,
-        fillColor: Colors.white,
+        fillColor: enabled ? Colors.white : AppColors.background,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
         enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide(color: AppColors.textMuted.withValues(alpha: 0.12))),
+        disabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: AppColors.textMuted.withValues(alpha: 0.05))),
         focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: AppColors.primary)),
         errorBorder: OutlineInputBorder(
