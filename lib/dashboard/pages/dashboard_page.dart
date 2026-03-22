@@ -19,6 +19,7 @@ class _DashboardPageState extends State<DashboardPage> {
   String? _orgLogo;
   final OrganizationService _orgService = OrganizationService();
   bool _isLoading = true;
+  Map<String, dynamic>? _stats;
 
   @override
   void initState() {
@@ -39,17 +40,21 @@ class _DashboardPageState extends State<DashboardPage> {
       });
     }
 
-    // Refresh from server to be sure
+    // Refresh from server to be sure & fetch stats
     try {
       final currentOrg = await _orgService.getCurrentOrganization();
-      if (currentOrg != null && mounted) {
+      final stats = await _orgService.getDashboardStats();
+      if (mounted) {
         setState(() {
-          _orgName = currentOrg.name;
-          _orgLogo = currentOrg.logo;
+          if (currentOrg != null) {
+            _orgName = currentOrg.name;
+            _orgLogo = currentOrg.logo;
+          }
+          _stats = stats;
         });
       }
     } catch (e) {
-      debugPrint("Error refreshing org: $e");
+      debugPrint("Error refreshing org or stats: $e");
     }
   }
 
@@ -169,8 +174,8 @@ class _DashboardPageState extends State<DashboardPage> {
                       flex: 2,
                       child: _BentoCard(
                         title: "Active Staff",
-                        value: "124",
-                        subtitle: "+12 since Monday",
+                        value: _stats?['active_staff']?.toString() ?? "...",
+                        subtitle: "Current active employees",
                         color: colorScheme.primary,
                         textColor: Colors.white,
                         icon: Icons.people_alt_rounded,
@@ -184,7 +189,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         children: [
                           _BentoCard(
                             title: "Sites",
-                            value: "08",
+                            value: _stats?['sites']?.toString() ?? "...",
                             icon: Icons.business_center_rounded,
                             height: 92,
                             mini: true,
@@ -192,7 +197,7 @@ class _DashboardPageState extends State<DashboardPage> {
                           const SizedBox(height: 16),
                           _BentoCard(
                             title: "Alerts",
-                            value: "03",
+                            value: _stats?['alerts']?.toString() ?? "...",
                             icon: Icons.warning_amber_rounded,
                             height: 92,
                             mini: true,
@@ -213,8 +218,8 @@ class _DashboardPageState extends State<DashboardPage> {
                     Expanded(
                       child: _BentoCard(
                         title: "Equipment",
-                        value: "42",
-                        subtitle: "3 in maintenance",
+                        value: _stats?['equipment']?.toString() ?? "...",
+                        subtitle: "Total machinery",
                         icon: Icons.build_rounded,
                         height: 150,
                       ),
@@ -223,11 +228,11 @@ class _DashboardPageState extends State<DashboardPage> {
                     Expanded(
                       child: _BentoCard(
                         title: "Attendance",
-                        value: "94%",
-                        subtitle: "High efficiency",
+                        value: _stats?['attendance_percentage']?.toString() ?? "...",
+                        subtitle: "Today's log",
                         icon: Icons.check_circle_outline_rounded,
-                        height: 120,
-                        color: AppColors.success.withValues(alpha: 0.1),
+                        height: 150,
+                        color: AppColors.success.withValues(alpha: 0.15),
                         iconColor: AppColors.success,
                       ),
                     ),
@@ -332,14 +337,26 @@ class _BentoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final hasBackground = color != null && color != Colors.transparent;
+    
     return Container(
       height: height,
       padding: EdgeInsets.all(mini ? 12 : 20),
       decoration: BoxDecoration(
-        color: color ?? theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(32), // Increased for "friendlier" feel
-        border: color == null ? Border.all(color: AppColors.textMuted.withValues(alpha: 0.1)) : null,
-        boxShadow: color == null ? [
+        color: hasBackground ? null : theme.colorScheme.surface,
+        gradient: hasBackground 
+            ? LinearGradient(
+                colors: [
+                  color!,
+                  color!.withValues(alpha: 0.7),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              )
+            : null,
+        borderRadius: BorderRadius.circular(32),
+        border: !hasBackground ? Border.all(color: AppColors.textMuted.withValues(alpha: 0.08)) : null,
+        boxShadow: !hasBackground ? [
           BoxShadow(
             color: const Color(0xFF0B1222).withValues(alpha: 0.04),
             blurRadius: 24,
@@ -350,7 +367,14 @@ class _BentoCard extends StatelessWidget {
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
-        ] : null,
+        ] : [
+          if (color == theme.colorScheme.primary)
+            BoxShadow(
+              color: color!.withValues(alpha: 0.3),
+              blurRadius: 24,
+              offset: const Offset(0, 8),
+            ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

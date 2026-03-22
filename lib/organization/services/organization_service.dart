@@ -322,4 +322,21 @@ class OrganizationService extends BaseService {
       throw Exception("Error updating addresses: $e");
     }
   }
+
+  Future<Map<String, dynamic>> getDashboardStats() async {
+    try {
+      final response = await performRequest((headers) => http.get(
+        Uri.parse('$baseUrl/organization/organizations/dashboard-stats/'),
+        headers: headers,
+      ));
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body) as Map<String, dynamic>;
+      } else {
+        throw Exception("Failed to load dashboard stats (${response.statusCode})");
+      }
+    } catch (e) {
+      throw Exception("Error fetching dashboard stats: $e");
+    }
+  }
 }

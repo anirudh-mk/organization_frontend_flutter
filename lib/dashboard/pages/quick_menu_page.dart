@@ -89,10 +89,56 @@ class QuickMenuPage extends StatelessWidget {
                           icon: Icons.construction_rounded,
                           label: "Gear",
                           onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => const EquipmentListPage()),
-                            );
+                            Navigator.push(context, MaterialPageRoute(builder: (context) => const EquipmentListPage()));
+                          },
+                        ),
+                        _QuickMenuIcon(
+                          icon: Icons.warehouse_rounded,
+                          label: "Warehouse",
+                          onTap: () {
+                            Navigator.push(context, MaterialPageRoute(builder: (context) => const WarehouseListPage()));
+                          },
+                        ),
+                        _QuickMenuIcon(
+                          icon: Icons.local_shipping_rounded,
+                          label: "Vehicles",
+                          onTap: () {
+                            Navigator.push(context, MaterialPageRoute(builder: (context) => const VehicleListPage()));
+                          },
+                        ),
+                        _QuickMenuIcon(
+                          icon: Icons.people_alt_rounded,
+                          label: "Clients",
+                          onTap: () {
+                            Navigator.push(context, MaterialPageRoute(builder: (context) => const ClientListPage()));
+                          },
+                        ),
+                        _QuickMenuIcon(
+                          icon: Icons.handshake_rounded,
+                          label: "Subcon",
+                          onTap: () {
+                            Navigator.push(context, MaterialPageRoute(builder: (context) => const SubcontractorListPage()));
+                          },
+                        ),
+                        _QuickMenuIcon(
+                          icon: Icons.storefront_rounded,
+                          label: "Vendors",
+                          onTap: () {
+                            Navigator.push(context, MaterialPageRoute(builder: (context) => const VendorListPage()));
+                          },
+                        ),
+                        _QuickMenuIcon(
+                          icon: Icons.inventory_2_rounded,
+                          label: "Materials",
+                          onTap: () {
+                            Navigator.push(context, MaterialPageRoute(builder: (context) => const MaterialListPage()));
+                          },
+                        ),
+                        _QuickMenuIcon(
+                          icon: Icons.account_balance_wallet_rounded,
+                          label: "Finance",
+                          onTap: () {
+                            Navigator.push(context, MaterialPageRoute(builder: (context) => const FinanceDashboardPage()));
                           },
                         ),
                       ],
@@ -102,167 +148,161 @@ class QuickMenuPage extends StatelessWidget {
 
                 const SizedBox(height: 32),
 
-                /// Management Bento
-                const _SectionHeader(title: "Management"),
+                /// Projects & People Bento
+                const _SectionHeader(title: "Projects & People"),
                 const SizedBox(height: 16),
-                _BentoShortcut(
-                  icon: Icons.add_business_rounded,
-                  title: "New Project",
-                  subtitle: "Register a construction site",
-                  color: AppColors.primary.withValues(alpha: 0.05),
-                  iconColor: AppColors.primary,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const SiteCreatePage()),
-                    );
-                  },
-                ),
-                const SizedBox(height: 12),
-                _BentoShortcut(
-                  icon: Icons.person_add_alt_1_rounded,
-                  title: "Create Employee",
-                  subtitle: "Add new employees",
-                  color: Colors.teal.withValues(alpha: 0.05),
-                  iconColor: Colors.teal,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const EmployeeCreatePage()),
-                    );
-                  },
-                ),
-                const SizedBox(height: 12),
-                _BentoShortcut(
-                  icon: Icons.assignment_rounded,
-                  title: "Equipment Audit",
-                  subtitle: "Check machinery status",
-                  color: Colors.amber.withValues(alpha: 0.05),
-                  iconColor: Colors.amber,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const EquipmentListPage()),
-                    );
-                  },
-                ),
-                const SizedBox(height: 12),
-                _BentoShortcut(
-                  icon: Icons.people_alt_rounded,
-                  title: "Manage Clients",
-                  subtitle: "View and add clients",
-                  color: Colors.brown.withValues(alpha: 0.05),
-                  iconColor: Colors.brown,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const ClientListPage()),
-                    );
-                  },
-                ),
-                const SizedBox(height: 12),
-                _BentoShortcut(
-                  icon: Icons.warehouse_rounded,
-                  title: "Warehouse Logistics",
-                  subtitle: "Manage inventory hubs",
-                  color: Colors.indigo.withValues(alpha: 0.05),
-                  iconColor: Colors.indigo,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const WarehouseListPage()),
-                    );
-                  },
-                ),
-                const SizedBox(height: 12),
-                _BentoShortcut(
-                  icon: Icons.local_shipping_rounded,
-                  title: "Vehicle Fleet",
-                  subtitle: "Manage company vehicles",
-                  color: AppColors.primary.withValues(alpha: 0.05),
-                  iconColor: AppColors.primary,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const VehicleListPage()),
-                    );
-                  },
-                ),
-                const SizedBox(height: 12),
-                _BentoShortcut(
-                  icon: Icons.handshake_rounded,
-                  title: "Subcontractors",
-                  subtitle: "Manage external contacts",
-                  color: AppColors.accent.withValues(alpha: 0.05),
-                  iconColor: AppColors.accent,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const SubcontractorListPage()),
-                    );
-                  },
-                ),
-                const SizedBox(height: 12),
-                _BentoShortcut(
-                  icon: Icons.handshake_rounded,
-                  title: "Manage Vendors",
-                  subtitle: "View and add vendors",
-                  color: Colors.deepPurple.withValues(alpha: 0.05),
-                  iconColor: Colors.deepPurple,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const VendorListPage()),
-                    );
-                  },
-                ),
-                const SizedBox(height: 12),
-                _BentoShortcut(
-                  icon: Icons.add_card_rounded,
-                  title: "Record Payment",
-                  subtitle: "Track outgoing funds",
-                  color: AppColors.error.withValues(alpha: 0.05),
-                  iconColor: AppColors.error,
-                  onTap: () async {
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const TransactionFormPage(isPayment: true)),
-                    );
-                  },
-                ),
-                const SizedBox(height: 12),
-                _BentoShortcut(
-                  icon: Icons.receipt_long_rounded,
-                  title: "Record Receipt",
-                  subtitle: "Track incoming funds",
-                  color: AppColors.success.withValues(alpha: 0.05),
-                  iconColor: AppColors.success,
-                  onTap: () async {
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const TransactionFormPage(isPayment: false)),
-                    );
-                  },
-                ),
-                const SizedBox(height: 12),
-                _BentoShortcut(
-                  icon: Icons.inventory_2_rounded,
-                  title: "Materials",
-                  subtitle: "Manage inventory items",
-                  color: AppColors.warning.withValues(alpha: 0.05),
-                  iconColor: AppColors.warning,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const MaterialListPage()),
-                    );
-                  },
+                GridView.count(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 10,
+                  crossAxisSpacing: 10,
+                  childAspectRatio: 2.2,
+                  children: [
+                    _GridBentoShortcut(
+                      icon: Icons.add_business_rounded,
+                      title: "New Project",
+                      subtitle: "Register site",
+                      color: AppColors.primary.withValues(alpha: 0.05),
+                      iconColor: AppColors.primary,
+                      onTap: () {
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => const SiteCreatePage()));
+                      },
+                    ),
+                    _GridBentoShortcut(
+                      icon: Icons.person_add_alt_1_rounded,
+                      title: "Create Employee",
+                      subtitle: "Add new staff",
+                      color: Colors.teal.withValues(alpha: 0.05),
+                      iconColor: Colors.teal,
+                      onTap: () {
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => const EmployeeCreatePage()));
+                      },
+                    ),
+                    _GridBentoShortcut(
+                      icon: Icons.people_alt_rounded,
+                      title: "Clients",
+                      subtitle: "Manage clients",
+                      color: Colors.brown.withValues(alpha: 0.05),
+                      iconColor: Colors.brown,
+                      onTap: () {
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => const ClientListPage()));
+                      },
+                    ),
+                    _GridBentoShortcut(
+                      icon: Icons.handshake_rounded,
+                      title: "Subcontractors",
+                      subtitle: "External teams",
+                      color: AppColors.accent.withValues(alpha: 0.05),
+                      iconColor: AppColors.accent,
+                      onTap: () {
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => const SubcontractorListPage()));
+                      },
+                    ),
+                    _GridBentoShortcut(
+                      icon: Icons.storefront_rounded,
+                      title: "Vendors",
+                      subtitle: "Manage vendors",
+                      color: Colors.deepPurple.withValues(alpha: 0.05),
+                      iconColor: Colors.deepPurple,
+                      onTap: () {
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => const VendorListPage()));
+                      },
+                    ),
+                  ],
                 ),
 
                 const SizedBox(height: 32),
 
-                /// Other Utilities
+                /// Assets & Logistics Bento
+                const _SectionHeader(title: "Assets & Logistics"),
+                const SizedBox(height: 16),
+                GridView.count(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 10,
+                  crossAxisSpacing: 10,
+                  childAspectRatio: 2.2,
+                  children: [
+                    _GridBentoShortcut(
+                      icon: Icons.assignment_rounded,
+                      title: "Equipment",
+                      subtitle: "Audit machinery",
+                      color: Colors.amber.withValues(alpha: 0.05),
+                      iconColor: Colors.amber,
+                      onTap: () {
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => const EquipmentListPage()));
+                      },
+                    ),
+                    _GridBentoShortcut(
+                      icon: Icons.warehouse_rounded,
+                      title: "Warehouses",
+                      subtitle: "Inventory hubs",
+                      color: Colors.indigo.withValues(alpha: 0.05),
+                      iconColor: Colors.indigo,
+                      onTap: () {
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => const WarehouseListPage()));
+                      },
+                    ),
+                    _GridBentoShortcut(
+                      icon: Icons.local_shipping_rounded,
+                      title: "Vehicles",
+                      subtitle: "Company fleet",
+                      color: AppColors.primary.withValues(alpha: 0.05),
+                      iconColor: AppColors.primary,
+                      onTap: () {
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => const VehicleListPage()));
+                      },
+                    ),
+                    _GridBentoShortcut(
+                      icon: Icons.inventory_2_rounded,
+                      title: "Materials",
+                      subtitle: "Manage inventory",
+                      color: AppColors.warning.withValues(alpha: 0.05),
+                      iconColor: AppColors.warning,
+                      onTap: () {
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => const MaterialListPage()));
+                      },
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 32),
+
+                /// Finance & Reports
                 const _SectionHeader(title: "Finance & Reports"),
+                const SizedBox(height: 16),
+                GridView.count(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 10,
+                  crossAxisSpacing: 10,
+                  childAspectRatio: 2.2,
+                  children: [
+                    _GridBentoShortcut(
+                      icon: Icons.add_card_rounded,
+                      title: "Payment",
+                      subtitle: "Record outgoing",
+                      color: AppColors.error.withValues(alpha: 0.05),
+                      iconColor: AppColors.error,
+                      onTap: () {
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => const TransactionFormPage(isPayment: true)));
+                      },
+                    ),
+                    _GridBentoShortcut(
+                      icon: Icons.receipt_long_rounded,
+                      title: "Receipt",
+                      subtitle: "Record incoming",
+                      color: AppColors.success.withValues(alpha: 0.05),
+                      iconColor: AppColors.success,
+                      onTap: () {
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => const TransactionFormPage(isPayment: false)));
+                      },
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 16),
                 Container(
                   decoration: BoxDecoration(
@@ -336,7 +376,14 @@ class _QuickMenuIcon extends StatelessWidget {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.08)),
+              border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.05)),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.05),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
+                ),
+              ],
             ),
             child: Icon(icon, color: AppColors.primary),
           ),
@@ -355,7 +402,7 @@ class _QuickMenuIcon extends StatelessWidget {
   }
 }
 
-class _BentoShortcut extends StatelessWidget {
+class _GridBentoShortcut extends StatelessWidget {
   final IconData icon;
   final String title;
   final String subtitle;
@@ -363,7 +410,7 @@ class _BentoShortcut extends StatelessWidget {
   final Color iconColor;
   final VoidCallback onTap;
 
-  const _BentoShortcut({
+  const _GridBentoShortcut({
     required this.icon,
     required this.title,
     required this.subtitle,
@@ -378,39 +425,57 @@ class _BentoShortcut extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(24),
       child: Container(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.08)),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.05)),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF0B1222).withValues(alpha: 0.03),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: color,
-                borderRadius: BorderRadius.circular(16),
+                gradient: LinearGradient(
+                  colors: [
+                    color,
+                    color.withValues(alpha: 0.5),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(icon, color: iconColor, size: 24),
+              child: Icon(icon, color: iconColor, size: 18),
             ),
-            const SizedBox(width: 20),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   Text(
                     subtitle,
-                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 10),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
             ),
-            Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.textMuted.withValues(alpha: 0.5)),
           ],
         ),
       ),
