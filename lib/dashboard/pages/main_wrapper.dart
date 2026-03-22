@@ -23,7 +23,10 @@ class _MainWrapperState extends State<MainWrapper> {
   void initState() {
     super.initState();
     _pages = [
-      const DashboardPage(),
+      DashboardPage(
+        onViewAllManagement: () => setState(() => _currentIndex = 2),
+        onViewAllSites: () => setState(() => _currentIndex = 1),
+      ),
       const SiteListPage(),
       QuickMenuPage(onNavigateToTab: (index) {
         setState(() => _currentIndex = index);

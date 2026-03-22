@@ -6,9 +6,22 @@ import '../../organization/models/organization_model.dart';
 import '../../organization/pages/organization_create_page.dart';
 import '../../notifications/pages/notifications_inbox_page.dart';
 import '../widgets/dashboard_search_delegate.dart';
+import '../../employee/pages/employee_create_page.dart';
+import '../../site/pages/site_list_page.dart';
+import '../../vehicle/pages/vehicle_list_page.dart';
+import '../../warehouse/pages/warehouse_list_page.dart';
+import '../../subcontractor/pages/subcontractor_list_page.dart';
+import '../../material/pages/material_list_page.dart';
 
 class DashboardPage extends StatefulWidget {
-  const DashboardPage({super.key});
+  final VoidCallback? onViewAllManagement;
+  final VoidCallback? onViewAllSites;
+
+  const DashboardPage({
+    super.key, 
+    this.onViewAllManagement,
+    this.onViewAllSites,
+  });
 
   @override
   State<DashboardPage> createState() => _DashboardPageState();
@@ -242,13 +255,52 @@ class _DashboardPageState extends State<DashboardPage> {
                 const SizedBox(height: 32),
 
                 /// Quick Navigation Section
-                const _SectionHeader(title: "Management"),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const _SectionHeader(title: "Management"),
+                    if (widget.onViewAllManagement != null)
+                      TextButton(
+                        onPressed: widget.onViewAllManagement,
+                        child: const Text("View All"),
+                      ),
+                  ],
+                ),
                 const SizedBox(height: 16),
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     children: [
-                      _QuickAction(icon: Icons.person_add_rounded, label: "Add Staff"),
+                      _QuickAction(
+                        icon: Icons.person_add_rounded, 
+                        label: "Add Staff",
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EmployeeCreatePage())),
+                      ),
+                      _QuickAction(
+                        icon: Icons.location_on_rounded, 
+                        label: "Sites",
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SiteListPage())),
+                      ),
+                      _QuickAction(
+                        icon: Icons.directions_car_rounded, 
+                        label: "Vehicles",
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const VehicleListPage())),
+                      ),
+                      _QuickAction(
+                        icon: Icons.warehouse_rounded, 
+                        label: "Warehouses",
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WarehouseListPage())),
+                      ),
+                      _QuickAction(
+                        icon: Icons.engineering_rounded, 
+                        label: "Subcontractors",
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SubcontractorListPage())),
+                      ),
+                      _QuickAction(
+                        icon: Icons.category_rounded, 
+                        label: "Materials",
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MaterialListPage())),
+                      ),
                       _QuickAction(icon: Icons.assignment_rounded, label: "Work Logs"),
                       _QuickAction(icon: Icons.account_balance_rounded, label: "Payments"),
                       _QuickAction(icon: Icons.analytics_rounded, label: "Reports"),
@@ -264,29 +316,40 @@ class _DashboardPageState extends State<DashboardPage> {
                   children: [
                     const _SectionHeader(title: "Site Progress"),
                     TextButton(
-                      onPressed: () {},
+                      onPressed: widget.onViewAllSites ?? () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SiteListPage())),
                       child: const Text("View All"),
                     ),
                   ],
                 ),
                 const SizedBox(height: 8),
-                const _ProgressTile(
-                  title: "City Plaza Redesign",
-                  subtitle: "Structural Phase • 24 Workers",
-                  progress: 0.72,
-                ),
-                const _ProgressTile(
-                  title: "Metro Extension",
-                  subtitle: "Foundation Phase • 18 Workers",
-                  progress: 0.45,
-                ),
+                if (_stats?['site_progress'] != null && (_stats!['site_progress'] as List).isNotEmpty)
+                  ...(_stats!['site_progress'] as List).map((site) => _ProgressTile(
+                        title: site['name'] ?? "Unknown Site",
+                        subtitle: site['subtitle'] ?? "",
+                        progress: (site['progress'] as num?)?.toDouble() ?? 0.0,
+                      ))
+                else if (_isLoading)
+                  const Center(child: Padding(padding: EdgeInsets.all(16.0), child: CircularProgressIndicator()))
+                else
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 20),
+                    child: Center(child: Text("No active sites", style: TextStyle(color: AppColors.textMuted))),
+                  ),
 
                 const SizedBox(height: 32),
 
                 /// Activity Feed
                 const _SectionHeader(title: "Recent Activity"),
                 const SizedBox(height: 16),
-                ...List.generate(3, (index) => _ActivityItem(index: index)),
+                if (_stats?['recent_activities'] != null && (_stats!['recent_activities'] as List).isNotEmpty)
+                  ...(_stats!['recent_activities'] as List).map((activity) => _ActivityItem(activity: activity))
+                else if (_isLoading)
+                  const Center(child: Padding(padding: EdgeInsets.all(16.0), child: CircularProgressIndicator()))
+                else
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 20),
+                    child: Center(child: Text("No recent activity", style: TextStyle(color: AppColors.textMuted))),
+                  ),
 
                 const SizedBox(height: 40),
               ]),
@@ -455,30 +518,42 @@ class _BentoCard extends StatelessWidget {
 class _QuickAction extends StatelessWidget {
   final IconData icon;
   final String label;
+  final VoidCallback? onTap;
 
-  const _QuickAction({required this.icon, required this.label});
+  const _QuickAction({
+    required this.icon, 
+    required this.label,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(right: 12),
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.08)),
-            ),
-            child: Icon(icon, color: AppColors.primary),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.all(4.0),
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.08)),
+                ),
+                child: Icon(icon, color: AppColors.primary),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                label,
+                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -494,12 +569,19 @@ class _ProgressTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.05)),
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.08)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0B1222).withValues(alpha: 0.04),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -510,33 +592,58 @@ class _ProgressTile extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
-                    Text(subtitle, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                    Text(
+                      title, 
+                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, letterSpacing: -0.5)
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle, 
+                      style: const TextStyle(color: AppColors.textSecondary, fontSize: 13, fontWeight: FontWeight.w500)
+                    ),
                   ],
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: AppColors.accent.withValues(alpha: 0.05),
-                  borderRadius: BorderRadius.circular(10),
+                  color: AppColors.primary.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
                   "${(progress * 100).toInt()}%",
-                  style: const TextStyle(color: AppColors.accent, fontWeight: FontWeight.bold, fontSize: 12),
+                  style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w800, fontSize: 13),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: LinearProgressIndicator(
-              value: progress,
-              backgroundColor: AppColors.background,
-              color: AppColors.accent,
-              minHeight: 8,
-            ),
+          const SizedBox(height: 20),
+          Stack(
+            children: [
+              Container(
+                height: 8,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: AppColors.background,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              FractionallySizedBox(
+                widthFactor: progress.clamp(0.0, 1.0),
+                child: Container(
+                  height: 8,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        AppColors.primary,
+                        AppColors.primary.withValues(alpha: 0.7),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -545,18 +652,23 @@ class _ProgressTile extends StatelessWidget {
 }
 
 class _ActivityItem extends StatelessWidget {
-  final int index;
-  const _ActivityItem({required this.index});
+  final Map<String, dynamic> activity;
+  const _ActivityItem({required this.activity});
 
   @override
   Widget build(BuildContext context) {
+    // Helper to format date roughly (e.g. "2 hours ago")
+    // For now we'll just show the site name or description
+    final siteName = activity['site_name'] ?? "General";
+    final description = activity['description'] ?? activity['action'] ?? "Activity";
+    
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: AppColors.background,
               shape: BoxShape.circle,
             ),
@@ -568,11 +680,11 @@ class _ActivityItem extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  index == 0 ? "Shift started at Site Alpha" : "Material delivery received",
+                  description,
                   style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                 ),
                 Text(
-                  "2 hours ago • By Site Manager",
+                  "$siteName",
                   style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
                 ),
               ],
