@@ -20,6 +20,18 @@ class ClientService extends BaseService {
     }
   }
 
+  Future<ClientModel> getClient(String id) async {
+    try {
+      final response = await performRequest((headers) => http.get(Uri.parse('$_base$id/'), headers: headers));
+      if (response.statusCode == 200) {
+        return ClientModel.fromJson(jsonDecode(response.body));
+      }
+      throw Exception("Failed to load client: ${response.statusCode}");
+    } catch (e) {
+      throw Exception("Error fetching client: $e");
+    }
+  }
+
   Future<ClientModel> createClient(Map<String, dynamic> data) async {
     try {
       final response = await performRequest((headers) => http.post(Uri.parse(_base), headers: headers, body: jsonEncode(data)));

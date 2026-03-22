@@ -6,6 +6,7 @@ import '../../theme/app_theme.dart';
 import '../models/client_model.dart';
 import '../services/client_service.dart';
 import 'client_create_page.dart';
+import 'client_details_page.dart';
 
 class ClientListPage extends StatefulWidget {
   const ClientListPage({super.key});
@@ -132,163 +133,28 @@ class _ClientListPageState extends State<ClientListPage> {
   }
 
   void _showClientDetails(ClientModel client) {
-    final addr = client.addresses.firstOrNull?.addressDetails;
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => DraggableScrollableSheet(
-        initialChildSize: 0.55,
-        maxChildSize: 0.9,
-        minChildSize: 0.35,
-        builder: (ctx, controller) => Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-          ),
-          child: ListView(
-            controller: controller,
-            padding: const EdgeInsets.all(24),
-            children: [
-              // Handle bar
-              Center(
-                child: Container(
-                  width: 40, height: 4,
-                  decoration: BoxDecoration(color: AppColors.textMuted.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(2)),
-                ),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
-                    child: const Icon(Icons.handshake_rounded, color: AppColors.primary, size: 32),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(client.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                        Text("Code: ${client.code}", style: const TextStyle(color: AppColors.textSecondary)),
-                      ],
-                    ),
-                  ),
-                  _statusBadge(client.isActive),
-                ],
-              ),
-              const SizedBox(height: 24),
-              _detailRow(Icons.info_outline, "Status", client.isActive ? "Active" : "Inactive"),
-              
-              for (var m in client.mobiles)
-                _detailRow(Icons.phone_rounded, m.contactTypeName ?? "Mobile", m.number),
-                
-              for (var e in client.emails)
-                _detailRow(Icons.alternate_email_rounded, e.contactTypeName ?? "Email", e.email),
-              
-              if (addr != null) ...[
-                const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider()),
-                const Text("Location Details", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                const SizedBox(height: 16),
-                _detailRow(Icons.location_on_outlined, "Address", "${addr.line1}${addr.line2.isNotEmpty ? ', ' + addr.line2 : ''}"),
-                _detailRow(Icons.location_city_outlined, "City", addr.city),
-                _detailRow(Icons.pin_outlined, "Postal Code", addr.postalCode),
-              ],
-
-              const SizedBox(height: 32),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () async {
-                        Navigator.pop(ctx);
-                        final result = await Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => ClientCreatePage(client: client)),
-                        );
-                        if (result == true) _loadClients();
-                      },
-                      icon: const Icon(Icons.edit_outlined),
-                      label: const Text("Edit"),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () { Navigator.pop(ctx); _deleteClient(client); },
-                      icon: const Icon(Icons.delete_outline),
-                      label: const Text("Delete"),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.error, foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-            ],
-          ),
-        ),
-      ),
-    );
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => ClientDetailPage(client: client)),
+    ).then((_) => _loadClients());
   }
 
-  Widget _detailRow(IconData icon, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Row(
-        children: [
-          Icon(icon, size: 20, color: AppColors.textSecondary),
-          const SizedBox(width: 12),
-          Text(label, style: const TextStyle(color: AppColors.textSecondary)),
-          const Spacer(),
-          Flexible(child: Text(value, style: const TextStyle(fontWeight: FontWeight.w600), textAlign: TextAlign.end)),
-        ],
-      ),
-    );
-  }
-
-  Widget _statusBadge(bool isActive) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: (isActive ? AppColors.success : AppColors.error).withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Text(
-        isActive ? "Active" : "Inactive",
-        style: TextStyle(color: isActive ? AppColors.success : AppColors.error, fontSize: 12, fontWeight: FontWeight.bold),
-      ),
-    );
-  }
-
-  Widget _statusDot(bool isActive) {
-    return Container(
-      width: 10, height: 10,
-      decoration: BoxDecoration(
-        color: isActive ? AppColors.success : AppColors.textMuted,
-        shape: BoxShape.circle,
-      ),
-    );
-  }
-
-  Widget _actionButton(IconData icon, Color color, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
+  Widget _buildSummaryCard(String label, String count, Color color) {
+    return Expanded(
       child: Container(
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 4),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
-          shape: BoxShape.circle,
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
         ),
-        child: Icon(icon, color: color, size: 16),
+        child: Column(
+          children: [
+            Text(count, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: color)),
+            const SizedBox(height: 4),
+            Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.bold)),
+          ],
+        ),
       ),
     );
   }
@@ -296,7 +162,6 @@ class _ClientListPageState extends State<ClientListPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -306,61 +171,54 @@ class _ClientListPageState extends State<ClientListPage> {
             pinned: true,
             toolbarHeight: 72,
             backgroundColor: AppColors.background,
-            surfaceTintColor: AppColors.background,
-            title: Text("Clients", style: theme.textTheme.headlineMedium?.copyWith(fontSize: 20)),
+            scrolledUnderElevation: 0,
+            title: Text("Clients", style: theme.textTheme.headlineMedium?.copyWith(fontSize: 20, fontWeight: FontWeight.bold)),
             actions: [
               IconButton(
-                icon: Icon(_isGridView ? Icons.format_list_bulleted_rounded : Icons.grid_view_rounded),
+                icon: Icon(_isGridView ? Icons.format_list_bulleted_rounded : Icons.grid_view_rounded, color: AppColors.textPrimary),
                 onPressed: () => setState(() => _isGridView = !_isGridView),
-                style: IconButton.styleFrom(backgroundColor: colorScheme.surface),
               ),
               const SizedBox(width: 16),
             ],
           ),
 
-          // Search + filter chips
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
               child: Column(
                 children: [
-                  TextField(
-                    controller: _searchController,
-                    decoration: InputDecoration(
-                      hintText: "Search by name, code or email...",
-                      prefixIcon: const Icon(Icons.search_rounded, size: 22),
-                      filled: true,
-                      fillColor: Colors.white,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 0),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: AppColors.textMuted.withValues(alpha: 0.1))),
-                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: AppColors.textMuted.withValues(alpha: 0.1))),
+                  Row(
+                    children: [
+                      _buildSummaryCard("Total Clients", _allClients.length.toString(), AppColors.primary),
+                      const SizedBox(width: 12),
+                      _buildSummaryCard("Active", _allClients.where((c) => c.isActive).length.toString(), AppColors.success),
+                      const SizedBox(width: 12),
+                      _buildSummaryCard("Inactive", _allClients.where((c) => !c.isActive).length.toString(), AppColors.error),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 15, offset: const Offset(0, 5))],
+                    ),
+                    child: TextField(
+                      controller: _searchController,
+                      decoration: InputDecoration(
+                        hintText: "Search by name or code...",
+                        hintStyle: TextStyle(color: AppColors.textMuted.withValues(alpha: 0.6), fontSize: 14),
+                        prefixIcon: const Icon(Icons.search_rounded, color: AppColors.textSecondary),
+                        suffixIcon: IconButton(
+                          icon: const Icon(Icons.tune_rounded, color: AppColors.textSecondary),
+                          onPressed: _showFiltersBottomSheet,
+                        ),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 18),
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: ['All', 'Active', 'Inactive'].map((s) {
-                        final sel = _filterStatus == s;
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 10),
-                          child: ChoiceChip(
-                            label: Text(s),
-                            selected: sel,
-                            onSelected: (v) { if (v) setState(() { _filterStatus = s; _applyFilters(); }); },
-                            labelStyle: TextStyle(color: sel ? Colors.white : AppColors.textSecondary, fontWeight: sel ? FontWeight.bold : FontWeight.normal, fontSize: 13),
-                            selectedColor: AppColors.primary,
-                            backgroundColor: Colors.white,
-                            checkmarkColor: Colors.white,
-                            side: BorderSide(color: sel ? AppColors.primary : AppColors.textMuted.withValues(alpha: 0.2)),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            elevation: sel ? 2 : 0,
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
+                  const SizedBox(height: 8),
                 ],
               ),
             ),
@@ -371,24 +229,12 @@ class _ClientListPageState extends State<ClientListPage> {
             builder: (ctx, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting && _allClients.isEmpty) {
                 return const SliverFillRemaining(child: Center(child: CircularProgressIndicator()));
-              } else if (snapshot.hasError && _allClients.isEmpty) {
-                return SliverFillRemaining(
-                  child: Center(
-                    child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                      const Icon(Icons.error_outline, color: AppColors.error, size: 48),
-                      const SizedBox(height: 16),
-                      Text("Error loading clients", style: theme.textTheme.titleMedium),
-                      const SizedBox(height: 16),
-                      ElevatedButton(onPressed: _loadClients, child: const Text("Retry")),
-                    ]),
-                  ),
-                );
               }
               if (_displayClients.isEmpty) {
                 return SliverFillRemaining(
                   child: Center(
                     child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                      Icon(Icons.handshake_rounded, size: 64, color: AppColors.textMuted.withValues(alpha: 0.4)),
+                      Icon(Icons.handshake_rounded, size: 64, color: AppColors.textMuted.withValues(alpha: 0.3)),
                       const SizedBox(height: 16),
                       const Text("No clients found", style: TextStyle(color: AppColors.textMuted, fontSize: 16)),
                     ]),
@@ -405,7 +251,7 @@ class _ClientListPageState extends State<ClientListPage> {
         ],
       ),
       floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 24),
+        padding: const EdgeInsets.only(bottom: 20),
         child: FloatingActionButton.extended(
           heroTag: 'client_list_fab',
           onPressed: () async {
@@ -414,8 +260,77 @@ class _ClientListPageState extends State<ClientListPage> {
           },
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
+          elevation: 4,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
           icon: const Icon(Icons.add_rounded),
-          label: const Text("New Client", style: TextStyle(fontWeight: FontWeight.bold)),
+          label: const Text("Create", style: TextStyle(fontWeight: FontWeight.w800)),
+        ),
+      ),
+    );
+  }
+
+  void _showFiltersBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => Container(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text("Filter Clients", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                  IconButton(icon: const Icon(Icons.close_rounded), onPressed: () => Navigator.pop(context)),
+                ],
+              ),
+              const SizedBox(height: 16),
+              const Text("Client Status", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textSecondary)),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 12,
+                children: ['All', 'Active', 'Inactive'].map((status) {
+                  final isSelected = _filterStatus == status;
+                  return FilterChip(
+                    label: Text(status),
+                    selected: isSelected,
+                    onSelected: (v) {
+                      setModalState(() => _filterStatus = status);
+                      setState(() { _filterStatus = status; _applyFilters(); });
+                    },
+                    backgroundColor: AppColors.background,
+                    selectedColor: AppColors.primary,
+                    labelStyle: TextStyle(
+                      color: isSelected ? Colors.white : AppColors.textSecondary,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide.none),
+                    showCheckmark: false,
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    elevation: 0,
+                  ),
+                  child: const Text("Apply Filters", style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
         ),
       ),
     );
@@ -424,104 +339,55 @@ class _ClientListPageState extends State<ClientListPage> {
   Widget _buildList() {
     return SliverList(
       delegate: SliverChildBuilderDelegate(
-        (ctx, i) {
-          final c = _displayClients[i];
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Slidable(
-              key: ValueKey(c.id),
-              startActionPane: ActionPane(
-                motion: const BehindMotion(),
-                children: [
-                  SlidableAction(
-                    onPressed: (_) => _deleteClient(c),
-                    backgroundColor: AppColors.error,
-                    foregroundColor: Colors.white,
-                    icon: Icons.delete,
-                    label: 'Delete',
-                  ),
-                ],
+        (ctx, i) => Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: _buildClientListTile(_displayClients[i]),
+        ),
+        childCount: _displayClients.length,
+      ),
+    );
+  }
+
+  Widget _buildClientListTile(ClientModel client) {
+    return GestureDetector(
+      onTap: () => _showClientDetails(client),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10)],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 50, height: 50,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
               ),
-              endActionPane: ActionPane(
-                motion: const BehindMotion(),
+              child: const Icon(Icons.handshake_rounded, color: AppColors.primary, size: 24),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SlidableAction(
-                    onPressed: (_) => _editClient(c),
-                    backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white,
-                    icon: Icons.edit,
-                    label: 'Edit',
-                  ),
+                  Text(client.name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
+                  Text(client.code, style: TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w600)),
                 ],
-              ),
-              child: GestureDetector(
-                onTap: () => _showClientDetails(c),
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.1)),
-                    boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.03), blurRadius: 16, offset: const Offset(0, 4))],
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: const Icon(Icons.handshake_rounded, color: AppColors.primary, size: 22),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(c.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                            const SizedBox(height: 2),
-                            Text(c.code, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
-                            if (c.primaryPhone.isNotEmpty)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 8),
-                                child: Row(children: [
-                                  const Icon(Icons.phone_rounded, size: 14, color: AppColors.textSecondary),
-                                  const SizedBox(width: 8),
-                                  Text(c.primaryPhone, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                                ]),
-                              ),
-                            if (c.primaryEmail.isNotEmpty)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 4),
-                                child: Row(children: [
-                                  const Icon(Icons.alternate_email_rounded, size: 14, color: AppColors.textSecondary),
-                                  const SizedBox(width: 8),
-                                  Text(c.primaryEmail, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                                ]),
-                              ),
-                          ],
-                        ),
-                      ),
-                      _statusDot(c.isActive),
-                      if (c.primaryPhone.isNotEmpty) ...[
-                        const SizedBox(width: 8),
-                        _actionButton(Icons.phone_rounded, Colors.indigo, () => _callClient(c.primaryPhone)),
-                        const SizedBox(width: 6),
-                        _actionButton(Icons.message_rounded, Colors.orange, () => _smsClient(c.primaryPhone)),
-                        const SizedBox(width: 6),
-                        _actionButton(FontAwesomeIcons.whatsapp, const Color(0xFF25D366), () => _whatsappClient(c.primaryPhone)),
-                      ],
-                      const SizedBox(width: 8),
-                      const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
-                    ],
-                  ),
-                ),
               ),
             ),
-          );
-        },
-        childCount: _displayClients.length,
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                _statusDot(client.isActive),
+                const SizedBox(height: 4),
+                Text(client.isActive ? "Active" : "Inactive", style: TextStyle(fontSize: 10, color: AppColors.textMuted, fontWeight: FontWeight.bold)),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -529,62 +395,73 @@ class _ClientListPageState extends State<ClientListPage> {
   Widget _buildGrid() {
     return SliverGrid(
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: 0.85,
+        crossAxisCount: 2, crossAxisSpacing: 16, mainAxisSpacing: 16, childAspectRatio: 0.85,
       ),
       delegate: SliverChildBuilderDelegate(
-        (ctx, i) {
-          final c = _displayClients[i];
-          return GestureDetector(
-            onTap: () => _showClientDetails(c),
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.1)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(Icons.handshake_rounded, color: AppColors.primary, size: 22),
-                      ),
-                      _statusDot(c.isActive),
-                    ],
-                  ),
-                  const Spacer(),
-                  Text(c.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14), maxLines: 2, overflow: TextOverflow.ellipsis),
-                  const SizedBox(height: 4),
-                  Text(c.code, style: const TextStyle(color: AppColors.textMuted, fontSize: 11)),
-                  const SizedBox(height: 8),
-                  if (c.primaryPhone.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          _actionButton(Icons.phone_rounded, Colors.indigo, () => _callClient(c.primaryPhone)),
-                          const SizedBox(width: 8),
-                          _actionButton(Icons.message_rounded, Colors.orange, () => _smsClient(c.primaryPhone)),
-                          const SizedBox(width: 8),
-                          _actionButton(FontAwesomeIcons.whatsapp, const Color(0xFF25D366), () => _whatsappClient(c.primaryPhone)),
-                        ],
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          );
-        },
+        (ctx, i) => _buildClientCard(_displayClients[i]),
         childCount: _displayClients.length,
+      ),
+    );
+  }
+
+  Widget _buildClientCard(ClientModel client) {
+    return GestureDetector(
+      onTap: () => _showClientDetails(client),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.handshake_rounded, color: AppColors.primary, size: 20),
+                ),
+                _statusBadge(client.isActive),
+              ],
+            ),
+            const Spacer(),
+            Text(client.name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: AppColors.textPrimary), maxLines: 2, overflow: TextOverflow.ellipsis),
+            const SizedBox(height: 4),
+            Text(client.code, style: const TextStyle(color: AppColors.textSecondary, fontSize: 11, fontWeight: FontWeight.w600)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _statusDot(bool isActive) {
+    return Container(
+      width: 8, height: 8,
+      decoration: BoxDecoration(
+        color: isActive ? AppColors.success : AppColors.error,
+        shape: BoxShape.circle,
+        boxShadow: [BoxShadow(color: (isActive ? AppColors.success : AppColors.error).withValues(alpha: 0.4), blurRadius: 4, spreadRadius: 1)],
+      ),
+    );
+  }
+
+  Widget _statusBadge(bool isActive) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: (isActive ? AppColors.success : AppColors.error).withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        isActive ? "ACTIVE" : "INACTIVE",
+        style: TextStyle(color: isActive ? AppColors.success : AppColors.error, fontSize: 8, fontWeight: FontWeight.bold),
       ),
     );
   }
