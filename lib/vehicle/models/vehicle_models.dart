@@ -1,3 +1,5 @@
+import '../../shared/models/attachment_model.dart';
+
 class VehicleModel {
   final String id;
   final String make;
@@ -11,6 +13,8 @@ class VehicleModel {
   final String? assignedTo;
   final VehicleContactModel? contactInfo;
   final VehiclePaymentOptionModel? paymentOption;
+  final List<VehiclePhotoModel> photos;
+  final List<AttachmentModel> attachments;
 
   VehicleModel({
     required this.id,
@@ -25,6 +29,8 @@ class VehicleModel {
     this.assignedTo,
     this.contactInfo,
     this.paymentOption,
+    this.photos = const [],
+    this.attachments = const [],
   });
 
   factory VehicleModel.fromJson(Map<String, dynamic> json) {
@@ -45,6 +51,8 @@ class VehicleModel {
       paymentOption: json['payment_option'] != null 
           ? VehiclePaymentOptionModel.fromJson(json['payment_option']) 
           : null,
+      photos: (json['photos'] as List?)?.map((p) => VehiclePhotoModel.fromJson(p)).toList() ?? [],
+      attachments: (json['attachments'] as List?)?.map((a) => AttachmentModel.fromJson(a)).toList() ?? [],
     );
   }
 
@@ -63,6 +71,26 @@ class VehicleModel {
       'contact_info': contactInfo?.toJson(),
       'payment_option': paymentOption?.toJson(),
     };
+  }
+}
+
+class VehiclePhotoModel {
+  final String id;
+  final String imageUrl;
+  final bool isPrimary;
+
+  VehiclePhotoModel({
+    required this.id,
+    required this.imageUrl,
+    required this.isPrimary,
+  });
+
+  factory VehiclePhotoModel.fromJson(Map<String, dynamic> json) {
+    return VehiclePhotoModel(
+      id: json['id']?.toString() ?? '',
+      imageUrl: json['image'] ?? '',
+      isPrimary: json['is_primary'] ?? false,
+    );
   }
 }
 

@@ -3,6 +3,7 @@ import '../../theme/app_theme.dart';
 import '../models/vehicle_models.dart';
 import '../services/vehicle_service.dart';
 import 'vehicle_create_page.dart';
+import 'vehicle_details_page.dart';
 import '../../auth/services/token_manager.dart';
 
 class VehicleListPage extends StatefulWidget {
@@ -112,116 +113,12 @@ class _VehicleListPageState extends State<VehicleListPage> {
   }
 
   void _showVehicleDetails(VehicleModel vehicle) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(24),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.textMuted.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(2)))),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
-                  child: const Icon(Icons.local_shipping_rounded, color: AppColors.primary, size: 32),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text("${vehicle.make} ${vehicle.model}", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                      Text("Plate: ${vehicle.licensePlate}", style: const TextStyle(color: AppColors.textSecondary)),
-                    ],
-                  ),
-                ),
-                _statusDot(vehicle.isActive),
-              ],
-            ),
-            const SizedBox(height: 32),
-            _detailItem(Icons.info_outline, "Type", vehicle.vehicleType),
-            if (vehicle.year != null) _detailItem(Icons.calendar_today_outlined, "Year", vehicle.year.toString()),
-            if (vehicle.vin != null && vehicle.vin!.isNotEmpty) _detailItem(Icons.fingerprint_outlined, "VIN", vehicle.vin!),
-            
-            if (vehicle.contactInfo != null) ...[
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 16),
-                child: Divider(height: 1),
-              ),
-              const Text("Contact Information", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              const SizedBox(height: 16),
-              _detailItem(Icons.person_outline, "Name", vehicle.contactInfo!.name),
-              _detailItem(Icons.phone_outlined, "Phone", vehicle.contactInfo!.phoneNumber),
-              if (vehicle.contactInfo!.email != null) _detailItem(Icons.email_outlined, "Email", vehicle.contactInfo!.email!),
-              _detailItem(Icons.location_on_outlined, "Address", vehicle.contactInfo!.address),
-            ],
-
-            if (vehicle.paymentOption != null) ...[
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 16),
-                child: Divider(height: 1),
-              ),
-              const Text("Payment Details", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              const SizedBox(height: 16),
-              _detailItem(Icons.payments_outlined, "Rate", "${vehicle.paymentOption!.rate} ${vehicle.paymentOption!.currency}"),
-              _detailItem(Icons.description_outlined, "Terms", vehicle.paymentOption!.terms),
-            ],
-            
-            const SizedBox(height: 32),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () async {
-                      Navigator.pop(context);
-                      final result = await Navigator.push(
-                        context, 
-                        MaterialPageRoute(builder: (context) => VehicleCreatePage(vehicle: vehicle))
-                      );
-                      if (result == true) _loadVehicles();
-                    },
-                    icon: const Icon(Icons.edit_outlined),
-                    label: const Text("Edit"),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      _deleteVehicle(vehicle);
-                    },
-                    icon: const Icon(Icons.delete_outline),
-                    label: const Text("Delete"),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.error,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-          ],
-        ),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => VehicleDetailPage(vehicle: vehicle),
       ),
-    );
+    ).then((_) => _loadVehicles());
   }
 
   Widget _detailItem(IconData icon, String label, String value) {
@@ -288,52 +185,29 @@ class _VehicleListPageState extends State<VehicleListPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  TextField(
-                    controller: _searchController,
-                    decoration: InputDecoration(
-                      hintText: "Search make, model, or plate...",
-                      prefixIcon: const Icon(Icons.search_rounded, size: 22),
-                      filled: true,
-                      fillColor: Colors.white,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 0),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: AppColors.textMuted.withValues(alpha: 0.1))),
-                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: AppColors.textMuted.withValues(alpha: 0.1))),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: ['All', 'Active', 'Inactive'].map((status) {
-                        final isSelected = _filterStatus == status;
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 12),
-                          child: ChoiceChip(
-                            label: Text(status),
-                            selected: isSelected,
-                            onSelected: (selected) {
-                              if (selected) {
-                                setState(() {
-                                  _filterStatus = status;
-                                  _applyFilters();
-                                });
-                              }
-                            },
-                            labelStyle: TextStyle(
-                              color: isSelected ? Colors.white : AppColors.textSecondary,
-                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                              fontSize: 13,
-                            ),
-                            selectedColor: AppColors.primary,
-                            backgroundColor: Colors.white,
-                            checkmarkColor: Colors.white,
-                            side: BorderSide(color: isSelected ? AppColors.primary : AppColors.textMuted.withValues(alpha: 0.2)),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            elevation: isSelected ? 2 : 0,
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          ),
-                        );
-                      }).toList(),
+                  Row(children: [
+                    _buildSummaryCard("Total Vehicles", _allVehicles.length.toString(), AppColors.primary),
+                    const SizedBox(width: 12),
+                    _buildSummaryCard("Active", _allVehicles.where((v) => v.isActive).length.toString(), AppColors.success),
+                    const SizedBox(width: 12),
+                    _buildSummaryCard("Inactive", _allVehicles.where((v) => !v.isActive).length.toString(), AppColors.error),
+                  ]),
+                  const SizedBox(height: 24),
+                  Container(
+                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 15, offset: const Offset(0, 5))]),
+                    child: TextField(
+                      controller: _searchController,
+                      decoration: InputDecoration(
+                        hintText: "Search make, model, or plate...",
+                        hintStyle: TextStyle(color: AppColors.textMuted.withValues(alpha: 0.6), fontSize: 14),
+                        prefixIcon: const Icon(Icons.search_rounded, color: AppColors.textSecondary),
+                        suffixIcon: IconButton(
+                          icon: const Icon(Icons.tune_rounded, color: AppColors.textSecondary),
+                          onPressed: _showFiltersBottomSheet,
+                        ),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 18),
+                      ),
                     ),
                   ),
                 ],
@@ -393,7 +267,7 @@ class _VehicleListPageState extends State<VehicleListPage> {
         crossAxisCount: 2,
         crossAxisSpacing: 16,
         mainAxisSpacing: 16,
-        childAspectRatio: 0.85,
+        childAspectRatio: 0.75,
       ),
       delegate: SliverChildBuilderDelegate(
         (context, index) {
@@ -403,36 +277,37 @@ class _VehicleListPageState extends State<VehicleListPage> {
             child: Container(
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(32),
-                border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.1)),
-                boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.04), blurRadius: 24, offset: const Offset(0, 8))],
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(color: AppColors.background, borderRadius: BorderRadius.circular(12)),
-                          child: const Icon(Icons.local_shipping_rounded, color: AppColors.textSecondary, size: 20),
-                        ),
-                        _statusDot(vehicle.isActive),
-                      ],
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.all(5),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: vehicle.photos.isNotEmpty 
+                          ? Image.network(vehicle.photos.first.imageUrl, width: double.infinity, fit: BoxFit.cover) 
+                          : Container(width: double.infinity, color: AppColors.background, child: Icon(Icons.directions_car_rounded, color: AppColors.textMuted.withValues(alpha: 0.4), size: 40))
+                      ),
                     ),
                   ),
-                  const Spacer(),
                   Padding(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text("${vehicle.make} ${vehicle.model}", style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14), maxLines: 2, overflow: TextOverflow.ellipsis),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(child: Text("${vehicle.make} ${vehicle.model}", style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: AppColors.textPrimary), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                            Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: (vehicle.isActive ? AppColors.success : AppColors.error).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)), child: Text(vehicle.isActive ? "ACT" : "INA", style: TextStyle(color: vehicle.isActive ? AppColors.success : AppColors.error, fontSize: 8, fontWeight: FontWeight.bold))),
+                          ],
+                        ),
                         const SizedBox(height: 2),
-                        Text(vehicle.licensePlate, style: const TextStyle(color: AppColors.textSecondary, fontSize: 11)),
+                        Text("${vehicle.vehicleType} — ${vehicle.licensePlate}", style: const TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
                       ],
                     ),
                   ),
@@ -453,65 +328,42 @@ class _VehicleListPageState extends State<VehicleListPage> {
           final vehicle = vehicles[index];
           return Padding(
             padding: const EdgeInsets.only(bottom: 12),
-            child: Dismissible(
-              key: Key(vehicle.id.toString()),
-              direction: DismissDirection.horizontal,
-              confirmDismiss: (direction) async {
-                if (direction == DismissDirection.endToStart) {
-                  await _deleteVehicle(vehicle);
-                  return false;
-                } else if (direction == DismissDirection.startToEnd) {
-                  final result = await Navigator.push(
-                    context, 
-                    MaterialPageRoute(builder: (context) => VehicleCreatePage(vehicle: vehicle))
-                  );
-                  if (result == true) _loadVehicles();
-                  return false;
-                }
-                return false;
-              },
-              background: Container(
-                alignment: Alignment.centerLeft,
-                padding: const EdgeInsets.only(left: 20),
-                decoration: BoxDecoration(color: Colors.blue, borderRadius: BorderRadius.circular(24)),
-                child: const Icon(Icons.edit, color: Colors.white),
-              ),
-              secondaryBackground: Container(
-                alignment: Alignment.centerRight,
-                padding: const EdgeInsets.only(right: 20),
-                decoration: BoxDecoration(color: AppColors.error, borderRadius: BorderRadius.circular(24)),
-                child: const Icon(Icons.delete, color: Colors.white),
-              ),
-              child: GestureDetector(
-                onTap: () => _showVehicleDetails(vehicle),
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.1)),
-                    boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.03), blurRadius: 16, offset: const Offset(0, 4))],
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(color: AppColors.background, borderRadius: BorderRadius.circular(16)),
-                        child: const Icon(Icons.local_shipping_rounded, color: AppColors.textSecondary),
+            child: GestureDetector(
+              onTap: () => _showVehicleDetails(vehicle),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10)],
+                ),
+                child: Row(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: vehicle.photos.isNotEmpty 
+                        ? Image.network(vehicle.photos.first.imageUrl, width: 50, height: 50, fit: BoxFit.cover) 
+                        : Container(width: 50, height: 50, color: AppColors.background, child: const Icon(Icons.directions_car_rounded, color: AppColors.textMuted))
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text("${vehicle.make} ${vehicle.model}", style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
+                          Text(vehicle.vehicleType, style: TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w600)),
+                        ],
                       ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text("${vehicle.make} ${vehicle.model}", style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14), overflow: TextOverflow.ellipsis),
-                            Text(vehicle.licensePlate, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                          ],
-                        ),
-                      ),
-                      _statusDot(vehicle.isActive),
-                    ],
-                  ),
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        _statusDot(vehicle.isActive),
+                        const SizedBox(height: 4),
+                        Text(vehicle.licensePlate, style: TextStyle(fontSize: 10, color: AppColors.textMuted, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -519,6 +371,96 @@ class _VehicleListPageState extends State<VehicleListPage> {
         },
         childCount: vehicles.length,
       ),
+    );
+  }
+
+  Widget _buildSummaryCard(String title, String value, Color color) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(value, style: TextStyle(color: color, fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            Text(title, style: TextStyle(color: color.withValues(alpha: 0.8), fontSize: 10, fontWeight: FontWeight.bold)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showFiltersBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(32))),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Container(
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text("Filter Vehicles", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 24),
+                  const Text("STATUS", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: AppColors.textSecondary, letterSpacing: 1.2)),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 12,
+                    children: ['All', 'Active', 'Inactive'].map<Widget>((status) {
+                      final isSelected = _filterStatus == status;
+                      return ChoiceChip(
+                        label: Text(status),
+                        selected: isSelected,
+                        onSelected: (val) {
+                          if (val) {
+                            setState(() => _filterStatus = status);
+                            setModalState(() {});
+                            _applyFilters();
+                          }
+                        },
+                        selectedColor: AppColors.primary,
+                        labelStyle: TextStyle(
+                          color: isSelected ? Colors.white : AppColors.textPrimary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        showCheckmark: false,
+                        backgroundColor: AppColors.background,
+                        side: BorderSide(color: isSelected ? AppColors.primary : AppColors.textMuted.withValues(alpha: 0.2)),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 32),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                        elevation: 0,
+                      ),
+                      child: const Text("Apply Filters", style: TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }

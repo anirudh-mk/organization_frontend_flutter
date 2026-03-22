@@ -3,6 +3,7 @@ import '../../theme/app_theme.dart';
 import '../models/warehouse_model.dart';
 import '../services/warehouse_service.dart';
 import 'warehouse_create_page.dart';
+import 'warehouse_details_page.dart';
 
 import '../../auth/services/token_manager.dart';
 
@@ -21,7 +22,7 @@ class _WarehouseListPageState extends State<WarehouseListPage> {
   List<WarehouseModel> _displayWarehouses = [];
   
   final TextEditingController _searchController = TextEditingController();
-  String _filterStatus = 'All'; // All, Active, Primary
+  String _filterStatus = 'All';
 
   @override
   void initState() {
@@ -106,147 +107,14 @@ class _WarehouseListPageState extends State<WarehouseListPage> {
   }
 
   void _showWarehouseDetails(WarehouseModel warehouse) {
-    var addr = warehouse.addressList.firstOrNull?.addressDetails;
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(24),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.textMuted.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(2)))),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
-                  child: const Icon(Icons.warehouse_rounded, color: AppColors.primary, size: 32),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(warehouse.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                      Text("Code: ${warehouse.code}", style: const TextStyle(color: AppColors.textSecondary)),
-                    ],
-                  ),
-                ),
-                _statusDot(warehouse.isActive),
-              ],
-            ),
-            const SizedBox(height: 32),
-            _detailItem(Icons.info_outline, "Status", warehouse.isActive ? "Active" : "Inactive"),
-            _detailItem(Icons.star_outline, "Role", warehouse.isPrimary ? "Primary Warehouse" : "Standard Warehouse"),
-            
-            if (warehouse.addressList.isNotEmpty) ...[
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 16),
-                child: Divider(height: 1),
-              ),
-              const Text("Location Details", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              const SizedBox(height: 12),
-              ...warehouse.addressList.map((wa) {
-                final d = wa.addressDetails;
-                if (d == null) return const SizedBox.shrink();
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _detailItem(Icons.location_on_outlined, "Address", "${d.line1}${d.line2.isNotEmpty ? ', ' + d.line2 : ''}"),
-                      _detailItem(Icons.location_city_outlined, "City", d.city),
-                      _detailItem(Icons.pin_outlined, "Postal Code", d.postalCode),
-                      const SizedBox(height: 8),
-                    ],
-                  ),
-                );
-              }),
-            ],
-
-            if (warehouse.emails.isNotEmpty) ...[
-              const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider(height: 1)),
-              const Text("Email Addresses", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              const SizedBox(height: 12),
-              ...warehouse.emails.map((e) => _detailItem(Icons.email_outlined, e.contactTypeName ?? "Email", e.email)),
-            ],
-
-            if (warehouse.mobiles.isNotEmpty) ...[
-              const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider(height: 1)),
-              const Text("Mobile Numbers", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              const SizedBox(height: 12),
-              ...warehouse.mobiles.map((m) => _detailItem(Icons.phone_outlined, m.contactTypeName ?? "Mobile", m.number)),
-            ],
-            
-            const SizedBox(height: 32),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () async {
-                      Navigator.pop(context);
-                      final result = await Navigator.push(
-                        context, 
-                        MaterialPageRoute(builder: (context) => WarehouseCreatePage(warehouse: warehouse))
-                      );
-                      if (result == true) _loadWarehouses();
-                    },
-                    icon: const Icon(Icons.edit_outlined),
-                    label: const Text("Edit"),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      _deleteWarehouse(warehouse);
-                    },
-                    icon: const Icon(Icons.delete_outline),
-                    label: const Text("Delete"),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.error,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-          ],
-        ),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => WarehouseDetailPage(warehouse: warehouse),
       ),
-    );
+    ).then((_) => _loadWarehouses());
   }
 
-  Widget _detailItem(IconData icon, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Row(
-        children: [
-          Icon(icon, size: 20, color: AppColors.textSecondary),
-          const SizedBox(width: 12),
-          Text(label, style: const TextStyle(color: AppColors.textSecondary)),
-          const Spacer(),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
-        ],
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -257,79 +125,45 @@ class _WarehouseListPageState extends State<WarehouseListPage> {
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            pinned: true,
-            toolbarHeight: 72,
-            backgroundColor: AppColors.background,
-            surfaceTintColor: AppColors.background,
-            title: Text("Warehouses", style: theme.textTheme.headlineMedium?.copyWith(fontSize: 20)),
+            pinned: true, toolbarHeight: 72, backgroundColor: AppColors.background, scrolledUnderElevation: 0,
+            title: Text("Warehouses", style: theme.textTheme.headlineMedium?.copyWith(fontSize: 20, fontWeight: FontWeight.bold)),
             actions: [
               IconButton(
-                icon: Icon(isGridView ? Icons.format_list_bulleted_rounded : Icons.grid_view_rounded),
+                icon: Icon(isGridView ? Icons.format_list_bulleted_rounded : Icons.grid_view_rounded, color: AppColors.textPrimary),
                 onPressed: () => setState(() => isGridView = !isGridView),
-                style: IconButton.styleFrom(backgroundColor: colorScheme.surface),
               ),
               const SizedBox(width: 16),
             ],
           ),
 
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  TextField(
-                    controller: _searchController,
-                    decoration: InputDecoration(
-                      hintText: "Search by name or code...",
-                      prefixIcon: const Icon(Icons.search_rounded, size: 22),
-                      filled: true,
-                      fillColor: Colors.white,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 0),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: AppColors.textMuted.withValues(alpha: 0.1))),
-                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: AppColors.textMuted.withValues(alpha: 0.1))),
-                    ),
+          SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.fromLTRB(24, 16, 24, 8), child: Column(children: [
+            Row(children: [
+              _buildSummaryCard("Total Units", _allWarehouses.length.toString(), AppColors.primary),
+              const SizedBox(width: 12),
+              _buildSummaryCard("Active", _allWarehouses.where((w) => w.isActive).length.toString(), AppColors.success),
+              const SizedBox(width: 12),
+              _buildSummaryCard("Primary", _allWarehouses.where((w) => w.isPrimary).length.toString(), AppColors.accent),
+            ]),
+            const SizedBox(height: 24),
+            Container(
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 15, offset: const Offset(0, 5))]),
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: "Search by name or code...",
+                  hintStyle: TextStyle(color: AppColors.textMuted.withValues(alpha: 0.6), fontSize: 14),
+                  prefixIcon: const Icon(Icons.search_rounded, color: AppColors.textSecondary),
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.tune_rounded, color: AppColors.textSecondary),
+                    onPressed: _showFiltersBottomSheet,
                   ),
-                  const SizedBox(height: 20),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: ['All', 'Active', 'Inactive', 'Primary'].map((status) {
-                        final isSelected = _filterStatus == status;
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 12),
-                          child: ChoiceChip(
-                            label: Text(status),
-                            selected: isSelected,
-                            onSelected: (selected) {
-                              if (selected) {
-                                setState(() {
-                                  _filterStatus = status;
-                                  _applyFilters();
-                                });
-                              }
-                            },
-                            labelStyle: TextStyle(
-                              color: isSelected ? Colors.white : AppColors.textSecondary,
-                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                              fontSize: 13,
-                            ),
-                            selectedColor: AppColors.primary,
-                            backgroundColor: Colors.white,
-                            checkmarkColor: Colors.white,
-                            side: BorderSide(color: isSelected ? AppColors.primary : AppColors.textMuted.withValues(alpha: 0.2)),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            elevation: isSelected ? 2 : 0,
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                ],
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 18),
+                ),
               ),
             ),
-          ),
+            const SizedBox(height: 8),
+          ]))),
 
           FutureBuilder<List<WarehouseModel>>(
             future: _warehousesFuture,
@@ -354,7 +188,7 @@ class _WarehouseListPageState extends State<WarehouseListPage> {
               }
 
               if (_displayWarehouses.isEmpty) {
-                return const SliverFillRemaining(child: Center(child: Text("No warehouses found matching filters.")));
+                return SliverFillRemaining(child: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.warehouse_rounded, size: 64, color: AppColors.textMuted.withValues(alpha: 0.3)), const SizedBox(height: 16), Text("No warehouses found", style: TextStyle(color: AppColors.textMuted, fontSize: 16))])));
               }
 
               return SliverPadding(
@@ -369,19 +203,19 @@ class _WarehouseListPageState extends State<WarehouseListPage> {
         ],
       ),
       floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 24),
+        padding: const EdgeInsets.only(bottom: 20),
         child: FloatingActionButton.extended(
           heroTag: 'warehouse_list_fab',
           onPressed: () async {
             final result = await Navigator.push(context, MaterialPageRoute(builder: (context) => const WarehouseCreatePage()));
             if (result == true) _loadWarehouses();
           },
-          backgroundColor: colorScheme.primary,
+          backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
           elevation: 4,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
           icon: const Icon(Icons.add_business_rounded),
-          label: const Text("New Warehouse", style: TextStyle(fontWeight: FontWeight.w700)),
+          label: const Text("Create", style: TextStyle(fontWeight: FontWeight.w800)),
         ),
       ),
     );
@@ -403,9 +237,8 @@ class _WarehouseListPageState extends State<WarehouseListPage> {
             child: Container(
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(32),
-                border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.1)),
-                boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.04), blurRadius: 24, offset: const Offset(0, 8))],
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -430,9 +263,9 @@ class _WarehouseListPageState extends State<WarehouseListPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(warehouse.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14), maxLines: 2, overflow: TextOverflow.ellipsis),
+                        Expanded(child: Text(warehouse.name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: AppColors.textPrimary), maxLines: 1, overflow: TextOverflow.ellipsis)),
                         const SizedBox(height: 2),
-                        Text("Code: ${warehouse.code}", style: const TextStyle(color: AppColors.textSecondary, fontSize: 11)),
+                        Text("${warehouse.code} — ${warehouse.isPrimary ? 'Primary' : 'Standard'}", style: const TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
                       ],
                     ),
                   ),
@@ -488,9 +321,8 @@ class _WarehouseListPageState extends State<WarehouseListPage> {
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.1)),
-                    boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.03), blurRadius: 16, offset: const Offset(0, 4))],
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10)],
                   ),
                   child: Row(
                     children: [
@@ -504,8 +336,8 @@ class _WarehouseListPageState extends State<WarehouseListPage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(warehouse.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14), overflow: TextOverflow.ellipsis),
-                            Text("Code: ${warehouse.code}", style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                            Text(warehouse.name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
+                            Text("${warehouse.code} — ${warehouse.isPrimary ? 'Primary' : 'Standard'}", style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w600)),
                           ],
                         ),
                       ),
@@ -518,6 +350,93 @@ class _WarehouseListPageState extends State<WarehouseListPage> {
           );
         },
         childCount: warehouses.length,
+      ),
+    );
+  }
+
+  Widget _buildSummaryCard(String label, String count, Color color) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 4),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
+        ),
+        child: Column(
+          children: [
+            Text(count, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: color)),
+            const SizedBox(height: 4),
+            Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.bold)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showFiltersBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => Container(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text("Filter Warehouses", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                  IconButton(icon: const Icon(Icons.close_rounded), onPressed: () => Navigator.pop(context)),
+                ],
+              ),
+              const SizedBox(height: 16),
+              const Text("Warehouse Status", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textSecondary)),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 12,
+                children: ['All', 'Active', 'Inactive', 'Primary'].map((status) {
+                  final isSelected = _filterStatus == status;
+                  return FilterChip(
+                    label: Text(status),
+                    selected: isSelected,
+                    onSelected: (v) {
+                      setModalState(() => _filterStatus = status);
+                      setState(() { _filterStatus = status; _applyFilters(); });
+                    },
+                    backgroundColor: AppColors.background,
+                    selectedColor: AppColors.primary,
+                    labelStyle: TextStyle(
+                      color: isSelected ? Colors.white : AppColors.textSecondary,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide.none),
+                    showCheckmark: false,
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    elevation: 0,
+                  ),
+                  child: const Text("Apply Filters", style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        ),
       ),
     );
   }
