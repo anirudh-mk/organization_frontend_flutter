@@ -79,6 +79,22 @@ class SubcontractorService extends BaseService {
     }
   }
 
+  Future<SubcontractorModel> getSubcontractor(String id) async {
+    try {
+      final response = await performRequest((headers) => http.get(
+        Uri.parse('$baseUrl$id/'),
+        headers: headers,
+      ));
+      if (response.statusCode == 200) {
+        return SubcontractorModel.fromJson(jsonDecode(response.body));
+      } else {
+        throw Exception("Failed to load subcontractor: ${response.statusCode}");
+      }
+    } catch (e) {
+      throw Exception("Error fetching subcontractor: $e");
+    }
+  }
+
   Future<void> deleteSubcontractor(String id) async {
     try {
       final response = await performRequest((headers) => http.delete(

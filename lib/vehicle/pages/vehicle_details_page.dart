@@ -217,6 +217,23 @@ class _VehicleDetailPageState extends State<VehicleDetailPage> {
             ),
           ),
 
+          // Quick Action Bar (if contact exists)
+          if (_vehicle.contactInfo != null)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                child: Row(
+                  children: [
+                    _buildQuickAction(Icons.call_rounded, "Call", color: Colors.blue, value: _vehicle.contactInfo!.phoneNumber),
+                    const SizedBox(width: 12),
+                    _buildQuickAction(Icons.email_rounded, "Email", color: Colors.indigo, value: _vehicle.contactInfo!.email),
+                    const SizedBox(width: 12),
+                    _buildQuickAction(Icons.chat_bubble_rounded, "Message", isPrimary: true, value: _vehicle.contactInfo!.phoneNumber),
+                  ],
+                ),
+              ),
+            ),
+
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             sliver: SliverList(
@@ -249,10 +266,10 @@ class _VehicleDetailPageState extends State<VehicleDetailPage> {
       children: [
         const SizedBox(height: 24),
         _buildInfoCard("Contact Person", [
-          _buildInfoRow(Icons.person_outline, "Name", contact.name),
-          _buildInfoRow(Icons.phone_outlined, "Phone", contact.phoneNumber),
-          if (contact.email != null) _buildInfoRow(Icons.email_outlined, "Email", contact.email!),
-          _buildInfoRow(Icons.location_on_outlined, "Address", contact.address),
+          _buildContactRow(Icons.person_outline, contact.contactType ?? "Owner", contact.name),
+          _buildContactRow(Icons.phone_outlined, "Phone", contact.phoneNumber),
+          if (contact.email != null) _buildContactRow(Icons.email_outlined, "Email", contact.email!),
+          _buildContactRow(Icons.location_on_outlined, "Address", contact.address),
         ]),
       ],
     );
@@ -264,9 +281,9 @@ class _VehicleDetailPageState extends State<VehicleDetailPage> {
       children: [
         const SizedBox(height: 24),
         _buildInfoCard("Payment Details", [
-          _buildInfoRow(Icons.payments_outlined, "Rate", "${payment.rate} ${payment.currency}"),
-          _buildInfoRow(Icons.layers_outlined, "Mode", payment.paymentType),
-          _buildInfoRow(Icons.description_outlined, "Terms", payment.terms),
+          _buildContactRow(Icons.payments_outlined, "Rate", "${payment.rate} ${payment.currency}"),
+          _buildContactRow(Icons.layers_outlined, "Mode", payment.paymentType),
+          _buildContactRow(Icons.description_outlined, "Terms", payment.terms),
         ]),
       ],
     );
@@ -330,6 +347,58 @@ class _VehicleDetailPageState extends State<VehicleDetailPage> {
           Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 14)),
           const Spacer(),
           Text(value, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 14)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickAction(IconData icon, String label, {bool isPrimary = false, Color? color, String? value}) {
+    final bgColor = isPrimary ? AppColors.primary : Colors.white;
+    final iconColor = isPrimary ? Colors.white : (color ?? AppColors.accent);
+    
+    return Expanded(
+      child: InkWell(
+        onTap: () {},
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
+          ),
+          child: Column(
+            children: [
+              Icon(icon, color: iconColor, size: 22),
+              const SizedBox(height: 8),
+              Text(label, style: TextStyle(color: isPrimary ? Colors.white : AppColors.textPrimary, fontSize: 11, fontWeight: FontWeight.bold)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContactRow(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: AppColors.background.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(10)),
+            child: Icon(icon, size: 18, color: AppColors.accent),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 11, fontWeight: FontWeight.bold)),
+                Text(value, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 15)),
+              ],
+            ),
+          ),
+          const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.textMuted),
         ],
       ),
     );

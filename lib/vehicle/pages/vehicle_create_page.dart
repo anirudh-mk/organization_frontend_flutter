@@ -182,7 +182,7 @@ class _VehicleCreatePageState extends State<VehicleCreatePage> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: AppColors.background, elevation: 0, scrolledUnderElevation: 0,
-        title: Text(isEditing ? "Edit Vehicle" : "Register Vehicle", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        title: Text(isEditing ? "Edit Vehicle" : "Create Vehicle", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
         centerTitle: false,
         leading: IconButton(icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20), onPressed: () => Navigator.pop(context)),
       ),
@@ -302,7 +302,7 @@ class _VehicleCreatePageState extends State<VehicleCreatePage> {
                       elevation: 0,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
                     ),
-                    child: Text(isEditing ? "Update" : "Register", style: const TextStyle(fontWeight: FontWeight.bold)),
+                    child: Text(isEditing ? "Update" : "Create", style: const TextStyle(fontWeight: FontWeight.bold)),
                   ),
                 ),
               ],
@@ -382,6 +382,7 @@ class _VehicleCreatePageState extends State<VehicleCreatePage> {
         if (_existingAttachments.isEmpty && _newAttachments.isEmpty)
           const Padding(padding: EdgeInsets.all(24), child: Text("No documents uploaded yet.", style: TextStyle(color: AppColors.textMuted, fontSize: 13))),
         ..._existingAttachments.map((att) => ListTile(
+          dense: true,
           leading: const Icon(Icons.description_outlined, color: AppColors.accent),
           title: Text(att.fileName, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
           trailing: IconButton(icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20), onPressed: () async {
@@ -390,6 +391,7 @@ class _VehicleCreatePageState extends State<VehicleCreatePage> {
           }),
         )),
         ..._newAttachments.map((f) => ListTile(
+          dense: true,
           leading: const Icon(Icons.upload_file, color: AppColors.accent),
           title: Text(f.name, style: const TextStyle(fontSize: 13)),
           trailing: IconButton(icon: const Icon(Icons.close, color: Colors.red, size: 20), onPressed: () => setState(() => _newAttachments.remove(f))),

@@ -171,9 +171,8 @@ class _VehicleListPageState extends State<VehicleListPage> {
             title: Text("Vehicle Fleet", style: theme.textTheme.headlineMedium?.copyWith(fontSize: 20, fontWeight: FontWeight.bold)),
             actions: [
               IconButton(
-                icon: Icon(isGridView ? Icons.format_list_bulleted_rounded : Icons.grid_view_rounded),
+                icon: Icon(isGridView ? Icons.format_list_bulleted_rounded : Icons.grid_view_rounded, color: AppColors.textPrimary),
                 onPressed: () => setState(() => isGridView = !isGridView),
-                style: IconButton.styleFrom(backgroundColor: Colors.white),
               ),
               const SizedBox(width: 16),
             ],
@@ -241,10 +240,13 @@ class _VehicleListPageState extends State<VehicleListPage> {
         ],
       ),
       floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 24),
+        padding: const EdgeInsets.only(bottom: 20),
         child: FloatingActionButton.extended(
+          heroTag: 'vehicle_list_fab',
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
+          elevation: 4,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
           onPressed: () async {
             final result = await Navigator.push(
               context,
@@ -254,8 +256,8 @@ class _VehicleListPageState extends State<VehicleListPage> {
               _loadVehicles();
             }
           },
-          icon: const Icon(Icons.add),
-          label: const Text("Add Vehicle", style: TextStyle(fontWeight: FontWeight.bold)),
+          icon: const Icon(Icons.add_rounded),
+          label: const Text("Create", style: TextStyle(fontWeight: FontWeight.w800)),
         ),
       ),
     );
@@ -374,21 +376,20 @@ class _VehicleListPageState extends State<VehicleListPage> {
     );
   }
 
-  Widget _buildSummaryCard(String title, String value, Color color) {
+  Widget _buildSummaryCard(String label, String count, Color color) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 4),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
+          color: Colors.white,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: color.withValues(alpha: 0.2)),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
         ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(value, style: TextStyle(color: color, fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(count, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: color)),
             const SizedBox(height: 4),
-            Text(title, style: TextStyle(color: color.withValues(alpha: 0.8), fontSize: 10, fontWeight: FontWeight.bold)),
+            Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.bold)),
           ],
         ),
       ),
@@ -399,68 +400,66 @@ class _VehicleListPageState extends State<VehicleListPage> {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(32))),
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Container(
-              padding: const EdgeInsets.all(32),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => Container(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text("Filter Vehicles", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 24),
-                  const Text("STATUS", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: AppColors.textSecondary, letterSpacing: 1.2)),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 12,
-                    children: ['All', 'Active', 'Inactive'].map<Widget>((status) {
-                      final isSelected = _filterStatus == status;
-                      return ChoiceChip(
-                        label: Text(status),
-                        selected: isSelected,
-                        onSelected: (val) {
-                          if (val) {
-                            setState(() => _filterStatus = status);
-                            setModalState(() {});
-                            _applyFilters();
-                          }
-                        },
-                        selectedColor: AppColors.primary,
-                        labelStyle: TextStyle(
-                          color: isSelected ? Colors.white : AppColors.textPrimary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        showCheckmark: false,
-                        backgroundColor: AppColors.background,
-                        side: BorderSide(color: isSelected ? AppColors.primary : AppColors.textMuted.withValues(alpha: 0.2)),
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 32),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 56,
-                    child: ElevatedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                        elevation: 0,
-                      ),
-                      child: const Text("Apply Filters", style: TextStyle(fontWeight: FontWeight.bold)),
-                    ),
-                  ),
+                  const Text("Filter Vehicles", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                  IconButton(icon: const Icon(Icons.close_rounded), onPressed: () => Navigator.pop(context)),
                 ],
               ),
-            );
-          },
-        );
-      },
+              const SizedBox(height: 16),
+              const Text("Vehicle Status", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textSecondary)),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 12,
+                children: ['All', 'Active', 'Inactive'].map((status) {
+                  final isSelected = _filterStatus == status;
+                  return FilterChip(
+                    label: Text(status),
+                    selected: isSelected,
+                    onSelected: (v) {
+                      setModalState(() => _filterStatus = status);
+                      setState(() { _filterStatus = status; _applyFilters(); });
+                    },
+                    backgroundColor: AppColors.background,
+                    selectedColor: AppColors.primary,
+                    labelStyle: TextStyle(
+                      color: isSelected ? Colors.white : AppColors.textSecondary,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide.none),
+                    showCheckmark: false,
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    elevation: 0,
+                  ),
+                  child: const Text("Apply Filters", style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
