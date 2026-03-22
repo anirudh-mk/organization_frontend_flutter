@@ -224,372 +224,240 @@ class _EquipmentCreatePageState extends State<EquipmentCreatePage> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
+        backgroundColor: AppColors.background, elevation: 0, scrolledUnderElevation: 0,
         title: Text(widget.equipment == null ? "Register Gear" : "Edit Equipment", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-        centerTitle: true,
+        centerTitle: false,
+        leading: IconButton(icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20), onPressed: () => Navigator.pop(context)),
       ),
-      body: _isSaving
-        ? const Center(child: CircularProgressIndicator())
-        : Form(
+      body: _isSaving ? const Center(child: CircularProgressIndicator()) : Form(
         key: _formKey,
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 8),
-              _sectionHeader("Photos & Media"),
-              const SizedBox(height: 16),
-              SizedBox(
-                height: 140,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  children: [
-                    InkWell(
-                      onTap: _pickImages,
-                      child: Container(
-                        width: 120, height: 140,
-                        margin: const EdgeInsets.only(right: 12),
-                        decoration: BoxDecoration(
-                          color: Colors.white, 
-                          borderRadius: BorderRadius.circular(20), 
-                          border: Border.all(color: AppColors.textMuted.withOpacity(0.12), width: 1.5, style: BorderStyle.solid)
-                        ),
-                        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                          Icon(Icons.add_a_photo_outlined, color: AppColors.primary.withOpacity(0.6), size: 32), 
-                          const SizedBox(height: 8), 
-                          const Text("Add Photo", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textSecondary))
-                        ]),
-                      ),
-                    ),
-                    ..._existingPhotos.map((photo) => Container(
-                      width: 120, margin: const EdgeInsets.only(right: 12),
-                      child: Stack(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(20),
-                            child: Image.network(photo.imageUrl, width: 120, height: 140, fit: BoxFit.cover),
-                          ),
-                          Positioned(right: 8, top: 8, child: InkWell(
-                            onTap: () async {
-                               await _service.deletePhoto(photo.id);
-                               setState(() => _existingPhotos.removeWhere((p) => p.id == photo.id));
-                            },
-                            child: Container(padding: const EdgeInsets.all(6), decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle), child: const Icon(Icons.close, size: 14, color: Colors.white)),
-                          )),
-                        ],
-                      ),
-                    )),
-                    ..._newPhotos.map((file) => Container(
-                      width: 120, margin: const EdgeInsets.only(right: 12),
-                      child: Stack(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(20),
-                            child: Image.network(file.path, width: 120, height: 140, fit: BoxFit.cover),
-                          ),
-                          Positioned(right: 8, top: 8, child: InkWell(
-                            onTap: () => setState(() => _newPhotos.remove(file)),
-                            child: Container(padding: const EdgeInsets.all(6), decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle), child: const Icon(Icons.close, size: 14, color: Colors.white)),
-                          )),
-                        ],
-                      ),
-                    )),
-                  ],
-                ),
-              ),
+              _sectionTitle("Photos & Media"),
+              _card([_buildPhotoPicker()]),
 
               const SizedBox(height: 32),
-              _sectionHeader("Basic Information"),
-              const SizedBox(height: 16),
-              _label("EQUIPMENT NAME *"),
-              _field(_nameController, "e.g., Concrete Mixer", validator: (v) => v == null || v.isEmpty ? "Required" : null),
-              const SizedBox(height: 16),
-              
-              Row(children: [
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  _label("ASSET CODE *"),
-                  _field(_codeController, "e.g., EQ-001", validator: (v) => v == null || v.isEmpty ? "Required" : null),
-                ])),
-                const SizedBox(width: 12),
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  _label("STATUS"),
-                  Container(
-                    height: 56,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppColors.textMuted.withOpacity(0.12)),
-                    ),
-                    child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                      Text(_isActive ? "Active" : "Inactive",
-                          style: TextStyle(color: _isActive ? AppColors.success : AppColors.textMuted, fontWeight: FontWeight.w600)),
+              _sectionTitle("Basic Information"),
+              _card([
+                _label("EQUIPMENT NAME *"),
+                _field(_nameController, "e.g., Concrete Mixer", validator: (v) => v == null || v.isEmpty ? "Required" : null),
+                const SizedBox(height: 16),
+                Row(children: [
+                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    _label("ASSET CODE *"),
+                    _field(_codeController, "e.g., EQ-001", validator: (v) => v == null || v.isEmpty ? "Required" : null),
+                  ])),
+                  const SizedBox(width: 12),
+                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    _label("STATUS"),
+                    Container(height: 56, padding: const EdgeInsets.symmetric(horizontal: 16), decoration: BoxDecoration(color: AppColors.background.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.1))), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                      Text(_isActive ? "Active" : "Inactive", style: TextStyle(color: _isActive ? AppColors.success : AppColors.error, fontWeight: FontWeight.bold)),
                       Switch(value: _isActive, onChanged: (v) => setState(() => _isActive = v), activeColor: AppColors.success),
-                    ]),
-                  ),
-                ])),
+                    ])),
+                  ])),
+                ]),
+                const SizedBox(height: 16),
+                _label("CATEGORY *"),
+                _dropdown<String>(value: _selectedCategoryId, hint: "Select Category", items: _categories.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))).toList(), onChanged: (val) => setState(() => _selectedCategoryId = val)),
+                const SizedBox(height: 16),
+                Row(children: [
+                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    _label("EQUIPMENT STATUS *"),
+                    _dropdown<String>(value: _selectedStatusId, hint: "Select Status", items: _statuses.map((s) => DropdownMenuItem(value: s.id, child: Text(s.name))).toList(), onChanged: (val) => setState(() => _selectedStatusId = val)),
+                  ])),
+                  const SizedBox(width: 12),
+                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    _label("OWNERSHIP *"),
+                    _dropdown<String>(value: _selectedOwnershipTypeId, hint: "Ownership", items: _ownershipTypes.map((t) => DropdownMenuItem(value: t.id, child: Text(t.name))).toList(), onChanged: (val) => setState(() => _selectedOwnershipTypeId = val)),
+                  ])),
+                ]),
+                const SizedBox(height: 16),
+                _label("GENERAL NOTES"),
+                _field(_notesController, "Describe this equipment...", maxLines: 3),
               ]),
-              const SizedBox(height: 16),
-
-              _label("CATEGORY *"),
-              _dropdown<String>(
-                value: _selectedCategoryId,
-                hint: "Select Category",
-                items: _categories.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))).toList(),
-                onChanged: (val) => setState(() => _selectedCategoryId = val),
-              ),
-              const SizedBox(height: 16),
-
-              Row(children: [
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  _label("EQUIPMENT STATUS *"),
-                  _dropdown<String>(
-                    value: _selectedStatusId,
-                    hint: "Select Status",
-                    items: _statuses.map((s) => DropdownMenuItem(value: s.id, child: Text(s.name))).toList(),
-                    onChanged: (val) => setState(() => _selectedStatusId = val),
-                  ),
-                ])),
-                const SizedBox(width: 12),
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  _label("OWNERSHIP *"),
-                  _dropdown<String>(
-                    value: _selectedOwnershipTypeId,
-                    hint: "Ownership",
-                    items: _ownershipTypes.map((t) => DropdownMenuItem(value: t.id, child: Text(t.name))).toList(),
-                    onChanged: (val) => setState(() => _selectedOwnershipTypeId = val),
-                  ),
-                ])),
-              ]),
-              const SizedBox(height: 16),
-              _label("GENERAL NOTES"),
-              _field(_notesController, "Describe this equipment...", maxLines: 3),
 
               if (_selectedOwnershipTypeId != null) ...[
                 if (_isOwned) ...[
                   const SizedBox(height: 32),
-                  _sectionHeader("Purchase Details"),
-                  const SizedBox(height: 16),
-                  Row(children: [
-                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      _label("PURCHASE DATE"),
-                      _field(_purchaseDateController, "Select Date", 
-                        readOnly: true, 
-                        onTap: () => _selectDate(context, _purchaseDateController)),
-                    ])),
-
-                    const SizedBox(width: 12),
-                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      _label("PURCHASE COST"),
-                      _field(_purchaseCostController, "0.00", keyboardType: TextInputType.number),
-                    ])),
+                  _sectionTitle("Purchase Details"),
+                  _card([
+                    Row(children: [
+                      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        _label("PURCHASE DATE"),
+                        _field(_purchaseDateController, "Select Date", readOnly: true, onTap: () => _selectDate(context, _purchaseDateController)),
+                      ])),
+                      const SizedBox(width: 12),
+                      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        _label("PURCHASE COST"),
+                        _field(_purchaseCostController, "0.00", keyboardType: TextInputType.number),
+                      ])),
+                    ]),
                   ]),
                 ] else if (_isRentalOrLeased) ...[
                   const SizedBox(height: 32),
-                  _sectionHeader("Rental Information"),
-                  const SizedBox(height: 16),
-                  _label("VENDOR *"),
-                  _dropdown<String>(
-                    value: _selectedVendorId,
-                    hint: "Select Vendor",
-                    items: _vendors.map((v) => DropdownMenuItem(value: v.id, child: Text(v.name))).toList(),
-                    onChanged: (val) => setState(() => _selectedVendorId = val),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(children: [
-                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      _label("RENTAL START *"),
-                      _field(_rentalStartDateController, "Select Date", 
-                        readOnly: true, 
-                        onTap: () => _selectDate(context, _rentalStartDateController),
-                        validator: (v) => v == null || v.isEmpty ? "Required" : null),
-                    ])),
-
-                    const SizedBox(width: 12),
-                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      _label("DAILY RATE *"),
-                      _field(_rentalRateController, "0.00", keyboardType: TextInputType.number, validator: (v) => v == null || v.isEmpty ? "Required" : null),
-                    ])),
+                  _sectionTitle("Rental Information"),
+                  _card([
+                    _label("VENDOR *"),
+                    _dropdown<String>(value: _selectedVendorId, hint: "Select Vendor", items: _vendors.map((v) => DropdownMenuItem(value: v.id, child: Text(v.name))).toList(), onChanged: (val) => setState(() => _selectedVendorId = val)),
+                    const SizedBox(height: 16),
+                    Row(children: [
+                      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        _label("RENTAL START *"),
+                        _field(_rentalStartDateController, "Select Date", readOnly: true, onTap: () => _selectDate(context, _rentalStartDateController), validator: (v) => v == null || v.isEmpty ? "Required" : null),
+                      ])),
+                      const SizedBox(width: 12),
+                      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        _label("DAILY RATE *"),
+                        _field(_rentalRateController, "0.00", keyboardType: TextInputType.number, validator: (v) => v == null || v.isEmpty ? "Required" : null),
+                      ])),
+                    ]),
+                    const SizedBox(height: 16),
+                    Row(children: [
+                      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        _label("RENTAL END"),
+                        _field(_rentalEndDateController, "Select Date", readOnly: true, onTap: () => _selectDate(context, _rentalEndDateController)),
+                      ])),
+                      const SizedBox(width: 12),
+                      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        _label("SECURITY DEPOSIT"),
+                        _field(_securityDepositController, "0.00", keyboardType: TextInputType.number),
+                      ])),
+                    ]),
                   ]),
-                  const SizedBox(height: 16),
-                  Row(children: [
-                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      _label("RENTAL END"),
-                      _field(_rentalEndDateController, "Select Date", 
-                        readOnly: true, 
-                        onTap: () => _selectDate(context, _rentalEndDateController)),
-                    ])),
-                    const SizedBox(width: 12),
-                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      _label("SECURITY DEPOSIT"),
-                      _field(_securityDepositController, "0.00", keyboardType: TextInputType.number),
-                    ])),
-                  ]),
-
                 ],
               ],
 
               const SizedBox(height: 32),
-              _sectionHeader("Documents & Attachments"),
-              const SizedBox(height: 16),
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: AppColors.textMuted.withOpacity(0.1)),
-                ),
-                child: Column(
-                  children: [
-                    ..._existingAttachments.map((att) => ListTile(
-                      onTap: () => _openAttachment(att.fileUrl),
-                      leading: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.05), borderRadius: BorderRadius.circular(10)),
-                        child: const Icon(Icons.description_outlined, color: AppColors.primary, size: 20),
-                      ),
-                      title: Text(att.fileName, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                      subtitle: Text(att.fileSize != null ? "${(att.fileSize! / 1024).toStringAsFixed(1)} KB" : "Document", style: const TextStyle(fontSize: 12)),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
-                        onPressed: () async {
-                          await _service.deleteAttachment(att.id);
-                          setState(() => _existingAttachments.removeWhere((a) => a.id == att.id));
-                        },
-                      ),
-                    )),
-                    ..._newAttachments.map((file) => ListTile(
-                      leading: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(color: Colors.grey.withOpacity(0.05), borderRadius: BorderRadius.circular(10)),
-                        child: const Icon(Icons.upload_file_outlined, color: Colors.grey, size: 20),
-                      ),
-                      title: Text(file.name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-                      subtitle: Text("${(file.size / 1024).toStringAsFixed(1)} KB", style: const TextStyle(fontSize: 12)),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.close, color: Colors.red, size: 20),
-                        onPressed: () => setState(() => _newAttachments.remove(file)),
-                      ),
-                    )),
-                    if (_existingAttachments.isEmpty && _newAttachments.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 24),
-                        child: Text("No documents attached", style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
-                      ),
-                    const Divider(height: 1),
-                    InkWell(
-                      onTap: _pickFiles,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.add_circle_outline, color: AppColors.primary.withOpacity(0.6), size: 20),
-                            const SizedBox(width: 8),
-                            const Text("Attach Bills or Manuals", style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 14)),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              _sectionTitle("Documents & Attachments"),
+              _buildAttachmentSection(),
 
               const SizedBox(height: 48),
-              SizedBox(
-                width: double.infinity, height: 58,
-                child: ElevatedButton(
-                  onPressed: _isSaving ? null : _save,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                  ),
-                  child: _isSaving
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : Text(widget.equipment == null ? "Register Gear" : "Update Equipment",
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-                ),
-              ),
-              const SizedBox(height: 40),
             ],
+          ),
+        ),
+      ),
+      bottomNavigationBar: Container(
+        height: 90,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 20, offset: const Offset(0, -5))],
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: TextButton.styleFrom(foregroundColor: AppColors.textSecondary),
+                    child: const Text("Cancel", style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  flex: 2,
+                  child: ElevatedButton(
+                    onPressed: _isSaving ? null : _save,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                    ),
+                    child: Text(widget.equipment == null ? "Register Gear" : "Update", style: const TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _sectionHeader(String title) {
-    return Row(children: [
-      Text(title, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
-      const SizedBox(width: 12),
-      const Expanded(child: Divider()),
-    ]);
-  }
+  Widget _sectionTitle(String title) => Padding(padding: const EdgeInsets.only(bottom: 12, left: 4), child: Text(title.toUpperCase(), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: AppColors.textSecondary, letterSpacing: 1.2)));
 
-  Widget _label(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Text(text,
-          style: const TextStyle(
-              fontWeight: FontWeight.w800,
-              color: AppColors.textSecondary,
-              fontSize: 11,
-              letterSpacing: 1.2)),
-    );
-  }
+  Widget _card(List<Widget> children) => Container(
+    padding: const EdgeInsets.all(24),
+    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))]),
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: children),
+  );
 
-  Widget _field(TextEditingController controller, String hint,
-      {TextInputType? keyboardType, String? Function(String?)? validator, int maxLines = 1, bool readOnly = false, VoidCallback? onTap}) {
-    return TextFormField(
-      controller: controller,
-      keyboardType: keyboardType,
-      validator: validator,
-      maxLines: maxLines,
-      readOnly: readOnly,
-      onTap: onTap,
-      decoration: InputDecoration(
-        hintText: hint,
-        filled: true,
-        fillColor: Colors.white,
-        suffixIcon: onTap != null ? const Icon(Icons.calendar_today_outlined, size: 20, color: AppColors.textSecondary) : null,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-        enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: AppColors.textMuted.withOpacity(0.12))),
-        focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: AppColors.primary)),
-        errorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: AppColors.error)),
+  Widget _buildPhotoPicker() {
+    return SizedBox(
+      height: 120,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        children: [
+          InkWell(
+            onTap: _pickImages,
+            child: Container(
+              width: 110, height: 120, margin: const EdgeInsets.only(right: 12),
+              decoration: BoxDecoration(color: AppColors.background.withValues(alpha: 0.5), borderRadius: BorderRadius.circular(20), border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.1), width: 1.5)),
+              child: const Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                Icon(Icons.add_a_photo_outlined, color: AppColors.accent, size: 28),
+                SizedBox(height: 8),
+                Text("Add Photo", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.textSecondary))
+              ]),
+            ),
+          ),
+          ..._existingPhotos.map((photo) => _mediaThumbnail(photo.imageUrl, () async {
+            await _service.deletePhoto(photo.id);
+            setState(() => _existingPhotos.removeWhere((p) => p.id == photo.id));
+          })),
+          ..._newPhotos.map((file) => _mediaThumbnail(file.path, () => setState(() => _newPhotos.remove(file)))),
+        ],
       ),
     );
   }
 
-
-  Widget _dropdown<T>({
-    required T? value,
-    required String hint,
-    required List<DropdownMenuItem<T>> items,
-    required ValueChanged<T?>? onChanged,
-    bool enabled = true,
-  }) {
+  Widget _mediaThumbnail(String path, VoidCallback onDelete) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      decoration: BoxDecoration(
-        color: enabled ? Colors.white : AppColors.background,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.textMuted.withOpacity(0.12)),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<T>(
-          value: value,
-          isExpanded: true,
-          hint: Text(hint, style: const TextStyle(fontSize: 13, color: AppColors.textMuted)),
-          items: enabled ? items : null,
-          onChanged: enabled ? onChanged : null,
-          icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.textSecondary),
-        ),
-      ),
+      width: 110, margin: const EdgeInsets.only(right: 12),
+      child: Stack(children: [
+        ClipRRect(borderRadius: BorderRadius.circular(20), child: Image.network(path, width: 110, height: 120, fit: BoxFit.cover)),
+        Positioned(right: 6, top: 6, child: InkWell(onTap: onDelete, child: Container(padding: const EdgeInsets.all(4), decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle), child: const Icon(Icons.close, size: 12, color: Colors.white)))),
+      ]),
     );
   }
+
+  Widget _buildAttachmentSection() {
+    return Container(
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))]),
+      child: Column(children: [
+        if (_existingAttachments.isEmpty && _newAttachments.isEmpty)
+          const Padding(padding: EdgeInsets.all(24), child: Text("No documents attached yet.", style: TextStyle(color: AppColors.textMuted, fontSize: 13))),
+        ..._existingAttachments.map((att) => ListTile(
+          onTap: () => _openAttachment(att.fileUrl),
+          leading: const Icon(Icons.description_outlined, color: AppColors.accent),
+          title: Text(att.fileName, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+          trailing: IconButton(icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20), onPressed: () async {
+            await _service.deleteAttachment(att.id);
+            setState(() => _existingAttachments.removeWhere((a) => a.id == att.id));
+          }),
+        )),
+        ..._newAttachments.map((f) => ListTile(
+          leading: const Icon(Icons.upload_file, color: AppColors.accent),
+          title: Text(f.name, style: const TextStyle(fontSize: 13)),
+          trailing: IconButton(icon: const Icon(Icons.close, color: Colors.red, size: 20), onPressed: () => setState(() => _newAttachments.remove(f))),
+        )),
+        const Divider(height: 1),
+        InkWell(
+          onTap: _pickFiles,
+          child: const Padding(padding: EdgeInsets.symmetric(vertical: 20), child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.add_circle_outline, color: AppColors.accent, size: 20), SizedBox(width: 8), Text("Attach Bills or Manuals", style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.bold))])),
+        ),
+      ]),
+    );
+  }
+
+  Widget _label(String text) => Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(text, style: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.textSecondary, fontSize: 10, letterSpacing: 1.2)));
+
+  Widget _field(TextEditingController ctrl, String hint, {TextInputType? keyboardType, String? Function(String?)? validator, int maxLines = 1, bool readOnly = false, VoidCallback? onTap}) => TextFormField(controller: ctrl, keyboardType: keyboardType, validator: validator, maxLines: maxLines, readOnly: readOnly, onTap: onTap, decoration: InputDecoration(hintText: hint, filled: true, fillColor: AppColors.background.withValues(alpha: 0.3), suffixIcon: onTap != null ? const Icon(Icons.calendar_today_outlined, size: 20, color: AppColors.textSecondary) : null, enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: AppColors.textMuted.withValues(alpha: 0.1))), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: AppColors.accent)), errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Colors.red))));
+
+  Widget _dropdown<T>({required T? value, required String hint, required List<DropdownMenuItem<T>> items, required ValueChanged<T?>? onChanged, bool enabled = true}) => Container(padding: const EdgeInsets.symmetric(horizontal: 14), decoration: BoxDecoration(color: enabled ? AppColors.background.withValues(alpha: 0.3) : AppColors.background.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.1))), child: DropdownButtonHideUnderline(child: DropdownButton<T>(value: value, isExpanded: true, hint: Text(hint, style: const TextStyle(fontSize: 13, color: AppColors.textMuted)), items: enabled ? items : null, onChanged: enabled ? onChanged : null, icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.textSecondary))));
 }
