@@ -3,6 +3,7 @@ import '../../theme/app_theme.dart';
 import '../models/vendor_model.dart';
 import '../services/vendor_service.dart';
 import 'vendor_create_page.dart';
+import 'vendor_details_page.dart';
 
 import '../../auth/services/token_manager.dart';
 
@@ -19,6 +20,7 @@ class _VendorListPageState extends State<VendorListPage> {
   late Future<List<VendorModel>> _vendorsFuture;
   List<VendorModel> _allVendors = [];
   List<VendorModel> _displayVendors = [];
+  bool _isLoading = true;
   
   final TextEditingController _searchController = TextEditingController();
   String _filterStatus = 'All'; // All, Active, Inactive
@@ -32,24 +34,31 @@ class _VendorListPageState extends State<VendorListPage> {
 
   @override
   void dispose() {
+    _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
     super.dispose();
   }
 
-  void _loadVendors() {
-    setState(() {
-      _vendorsFuture = _fetchVendors();
-    });
-  }
-
-  Future<List<VendorModel>> _fetchVendors() async {
-    final orgId = await TokenManager.getOrganizationId();
-    final vendors = await _service.getVendors(organizationId: orgId);
-    setState(() {
-      _allVendors = vendors;
-      _applyFilters();
-    });
-    return vendors;
+  Future<void> _loadVendors() async {
+    setState(() => _isLoading = true);
+    try {
+      final orgId = await TokenManager.getOrganizationId();
+      final vendors = await _service.getVendors(organizationId: orgId);
+      if (mounted) {
+        setState(() {
+          _allVendors = vendors;
+          _isLoading = false;
+          _applyFilters();
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error),
+        );
+      }
+    }
   }
 
   void _onSearchChanged() {
@@ -57,17 +66,15 @@ class _VendorListPageState extends State<VendorListPage> {
   }
 
   void _applyFilters() {
+    final query = _searchController.text.toLowerCase();
     setState(() {
       _displayVendors = _allVendors.where((v) {
-        final matchesSearch = v.name.toLowerCase().contains(_searchController.text.toLowerCase()) || 
-                             v.code.toLowerCase().contains(_searchController.text.toLowerCase());
+        final matchesSearch = v.name.toLowerCase().contains(query) || 
+                             v.code.toLowerCase().contains(query);
         
-        bool matchesStatus = true;
-        if (_filterStatus == 'Active') {
-          matchesStatus = v.isActive;
-        } else if (_filterStatus == 'Inactive') {
-          matchesStatus = !v.isActive;
-        }
+        final matchesStatus = _filterStatus == 'All' ||
+            (_filterStatus == 'Active' && v.isActive) ||
+            (_filterStatus == 'Inactive' && !v.isActive);
         
         return matchesSearch && matchesStatus;
       }).toList();
@@ -106,165 +113,32 @@ class _VendorListPageState extends State<VendorListPage> {
   }
 
   void _showVendorDetails(VendorModel vendor) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(24),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.textMuted.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(2)))),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
-                  child: const Icon(Icons.handshake_rounded, color: AppColors.primary, size: 32),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(vendor.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                      Text("Code: ${vendor.code}", style: const TextStyle(color: AppColors.textSecondary)),
-                    ],
-                  ),
-                ),
-                _statusDot(vendor.isActive),
-              ],
-            ),
-            const SizedBox(height: 32),
-            _detailItem(Icons.info_outline, "Status", vendor.isActive ? "Active" : "Inactive"),
-            
-            if (vendor.addressList.isNotEmpty) ...[
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 16),
-                child: Divider(height: 1),
-              ),
-              const Text("Location Details", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              const SizedBox(height: 12),
-              ...vendor.addressList.map((wa) {
-                final d = wa.addressDetails;
-                if (d == null) return const SizedBox.shrink();
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _detailItem(Icons.location_on_outlined, "Address", "${d.line1}${d.line2.isNotEmpty ? ', ' + d.line2 : ''}"),
-                      _detailItem(Icons.location_city_outlined, "City", d.city),
-                      _detailItem(Icons.pin_outlined, "Postal Code", d.postalCode),
-                      const SizedBox(height: 8),
-                    ],
-                  ),
-                );
-              }),
-            ],
-
-            if (vendor.emails.isNotEmpty) ...[
-              const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider(height: 1)),
-              const Text("Email Addresses", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              const SizedBox(height: 12),
-              ...vendor.emails.map((e) => _detailItem(Icons.email_outlined, e.contactTypeName ?? "Email", e.email)),
-            ],
-
-            if (vendor.mobiles.isNotEmpty) ...[
-              const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider(height: 1)),
-              const Text("Mobile Numbers", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              const SizedBox(height: 12),
-              ...vendor.mobiles.map((m) => _detailItem(Icons.phone_outlined, m.contactTypeName ?? "Mobile", m.number)),
-            ],
-            
-            const SizedBox(height: 32),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () async {
-                      Navigator.pop(context);
-                      final result = await Navigator.push(
-                        context, 
-                        MaterialPageRoute(builder: (context) => VendorCreatePage(vendor: vendor))
-                      );
-                      if (result == true) _loadVendors();
-                    },
-                    icon: const Icon(Icons.edit_outlined),
-                    label: const Text("Edit"),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      _deleteVendor(vendor);
-                    },
-                    icon: const Icon(Icons.delete_outline),
-                    label: const Text("Delete"),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.error,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-          ],
-        ),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => VendorDetailsPage(vendor: vendor),
       ),
-    );
-  }
-
-  Widget _detailItem(IconData icon, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Row(
-        children: [
-          Icon(icon, size: 20, color: AppColors.textSecondary),
-          const SizedBox(width: 12),
-          Text(label, style: const TextStyle(color: AppColors.textSecondary)),
-          const Spacer(),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
-        ],
-      ),
-    );
+    ).then((_) => _loadVendors());
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
             pinned: true,
             toolbarHeight: 72,
             backgroundColor: AppColors.background,
-            surfaceTintColor: AppColors.background,
-            title: Text("Vendors", style: theme.textTheme.headlineMedium?.copyWith(fontSize: 20)),
+            scrolledUnderElevation: 0,
+            title: Text("Vendors", style: theme.textTheme.headlineMedium?.copyWith(fontSize: 20, fontWeight: FontWeight.bold)),
             actions: [
               IconButton(
-                icon: Icon(isGridView ? Icons.format_list_bulleted_rounded : Icons.grid_view_rounded),
+                icon: Icon(isGridView ? Icons.format_list_bulleted_rounded : Icons.grid_view_rounded, color: AppColors.textPrimary),
                 onPressed: () => setState(() => isGridView = !isGridView),
-                style: IconButton.styleFrom(backgroundColor: colorScheme.surface),
               ),
               const SizedBox(width: 16),
             ],
@@ -272,268 +146,296 @@ class _VendorListPageState extends State<VendorListPage> {
 
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  TextField(
-                    controller: _searchController,
-                    decoration: InputDecoration(
-                      hintText: "Search by name or code...",
-                      prefixIcon: const Icon(Icons.search_rounded, size: 22),
-                      filled: true,
-                      fillColor: Colors.white,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 0),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: AppColors.textMuted.withValues(alpha: 0.1))),
-                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: AppColors.textMuted.withValues(alpha: 0.1))),
+                   Row(children: [
+                    _buildSummaryCard("Total Vendors", _allVendors.length.toString(), AppColors.primary),
+                    const SizedBox(width: 12),
+                    _buildSummaryCard("Active", _allVendors.where((v) => v.isActive).length.toString(), AppColors.success),
+                    const SizedBox(width: 12),
+                    _buildSummaryCard("Inactive", _allVendors.where((v) => !v.isActive).length.toString(), AppColors.error),
+                  ]),
+                  const SizedBox(height: 24),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white, 
+                      borderRadius: BorderRadius.circular(20), 
+                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 15, offset: const Offset(0, 5))]
+                    ),
+                    child: TextField(
+                      controller: _searchController,
+                      decoration: InputDecoration(
+                        hintText: "Search by name or code...",
+                        hintStyle: TextStyle(color: AppColors.textMuted.withValues(alpha: 0.6), fontSize: 14),
+                        prefixIcon: const Icon(Icons.search_rounded, color: AppColors.textSecondary),
+                        suffixIcon: IconButton(
+                          icon: const Icon(Icons.tune_rounded, color: AppColors.textSecondary),
+                          onPressed: _showFiltersBottomSheet,
+                        ),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 18),
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 20),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: ['All', 'Active', 'Inactive'].map((status) {
-                        final isSelected = _filterStatus == status;
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 12),
-                          child: ChoiceChip(
-                            label: Text(status),
-                            selected: isSelected,
-                            onSelected: (selected) {
-                              if (selected) {
-                                setState(() {
-                                  _filterStatus = status;
-                                  _applyFilters();
-                                });
-                              }
-                            },
-                            labelStyle: TextStyle(
-                              color: isSelected ? Colors.white : AppColors.textSecondary,
-                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                              fontSize: 13,
-                            ),
-                            selectedColor: AppColors.primary,
-                            backgroundColor: Colors.white,
-                            checkmarkColor: Colors.white,
-                            side: BorderSide(color: isSelected ? AppColors.primary : AppColors.textMuted.withValues(alpha: 0.2)),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            elevation: isSelected ? 2 : 0,
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
+                  const SizedBox(height: 8),
                 ],
               ),
             ),
           ),
 
-          FutureBuilder<List<VendorModel>>(
-            future: _vendorsFuture,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting && _allVendors.isEmpty) {
-                return const SliverFillRemaining(child: Center(child: CircularProgressIndicator()));
-              } else if (snapshot.hasError && _allVendors.isEmpty) {
-                return SliverFillRemaining(
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.error_outline, color: AppColors.error, size: 48),
-                        const SizedBox(height: 16),
-                        Text("Error loading data", style: theme.textTheme.titleMedium),
-                        const SizedBox(height: 16),
-                        ElevatedButton(onPressed: _loadVendors, child: const Text("Retry"))
-                      ],
-                    ),
-                  ),
-                );
-              }
-
-              if (_displayVendors.isEmpty) {
-                return const SliverFillRemaining(child: Center(child: Text("No vendors found matching filters.")));
-              }
-
-              return SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                sliver: isGridView 
-                  ? _buildGrid(_displayVendors)
-                  : _buildList(_displayVendors),
-              );
-            },
-          ),
+          if (_isLoading) 
+            const SliverFillRemaining(child: Center(child: CircularProgressIndicator()))
+          else if (_displayVendors.isEmpty)
+            SliverFillRemaining(
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.business_center_rounded, size: 64, color: AppColors.textMuted.withValues(alpha: 0.3)),
+                    const SizedBox(height: 16),
+                    Text("No vendors found", style: TextStyle(color: AppColors.textMuted, fontSize: 16))
+                  ]
+                )
+              )
+            )
+          else
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              sliver: isGridView 
+                ? _buildVendorGrid()
+                : _buildVendorList(),
+            ),
           const SliverToBoxAdapter(child: SizedBox(height: 120)),
         ],
       ),
       floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 24),
+        padding: const EdgeInsets.only(bottom: 20),
         child: FloatingActionButton.extended(
           heroTag: 'vendor_list_fab',
           onPressed: () async {
-            final result = await Navigator.push(context, MaterialPageRoute(builder: (context) => const VendorCreatePage()));
-            if (result == true) _loadVendors();
+            final res = await Navigator.push(context, MaterialPageRoute(builder: (context) => const VendorCreatePage()));
+            if (res == true) _loadVendors();
           },
-          backgroundColor: colorScheme.primary,
+          backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
           elevation: 4,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          icon: const Icon(Icons.add_business_rounded),
-          label: const Text("New Vendor", style: TextStyle(fontWeight: FontWeight.w700)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          icon: const Icon(Icons.add_rounded),
+          label: const Text("Create", style: TextStyle(fontWeight: FontWeight.w800)),
         ),
       ),
     );
   }
 
-  Widget _buildGrid(List<VendorModel> vendors) {
-    return SliverGrid(
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
-        childAspectRatio: 0.85,
-      ),
-      delegate: SliverChildBuilderDelegate(
-        (context, index) {
-          final vendor = vendors[index];
-          return GestureDetector(
-            onTap: () => _showVendorDetails(vendor),
+  Widget _buildVendorGrid() => SliverGrid(
+    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+      crossAxisCount: 2, 
+      crossAxisSpacing: 16, 
+      mainAxisSpacing: 16, 
+      childAspectRatio: 0.85
+    ), 
+    delegate: SliverChildBuilderDelegate(
+      (ctx, idx) => _buildVendorCard(_displayVendors[idx]), 
+      childCount: _displayVendors.length
+    )
+  );
+
+  Widget _buildVendorList() => SliverList(
+    delegate: SliverChildBuilderDelegate(
+      (ctx, idx) => Padding(
+        padding: const EdgeInsets.only(bottom: 12), 
+        child: _buildVendorListTile(_displayVendors[idx])
+      ), 
+      childCount: _displayVendors.length
+    )
+  );
+
+  Widget _buildVendorCard(VendorModel vendor) => GestureDetector(
+    onTap: () => _showVendorDetails(vendor), 
+    child: Container(
+      decoration: BoxDecoration(
+        color: Colors.white, 
+        borderRadius: BorderRadius.circular(20), 
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))]
+      ), 
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start, 
+        children: [
+          Expanded(
             child: Container(
+              margin: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(32),
-                border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.1)),
-                boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.04), blurRadius: 24, offset: const Offset(0, 8))],
+                color: AppColors.background,
+                borderRadius: BorderRadius.circular(16),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Center(
+                child: Icon(Icons.handshake_rounded, color: AppColors.textMuted.withValues(alpha: 0.4), size: 40),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 12), 
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start, 
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween, 
+                  children: [
+                    Expanded(child: Text(vendor.name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: AppColors.textPrimary), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                    _statusDot(vendor.isActive),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(vendor.code, style: const TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
+              ]
+            )
+          ),
+        ]
+      )
+    )
+  );
+
+  Widget _buildVendorListTile(VendorModel vendor) => GestureDetector(
+    onTap: () => _showVendorDetails(vendor), 
+    child: Container(
+      padding: const EdgeInsets.all(12), 
+      decoration: BoxDecoration(
+        color: Colors.white, 
+        borderRadius: BorderRadius.circular(20), 
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10)]
+      ), 
+      child: Row(
+        children: [
+          Container(
+            width: 50, height: 50, 
+            decoration: BoxDecoration(color: AppColors.background, borderRadius: BorderRadius.circular(12)),
+            child: const Icon(Icons.handshake_rounded, color: AppColors.textMuted),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start, 
+              children: [
+                Text(vendor.name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)), 
+                Text(vendor.code, style: TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w600))
+              ]
+            )
+          ),
+          _statusDotBadge(vendor.isActive),
+        ]
+      )
+    )
+  );
+
+  Widget _buildSummaryCard(String label, String count, Color color) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 4),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
+        ),
+        child: Column(
+          children: [
+            Text(count, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: color)),
+            const SizedBox(height: 4),
+            Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.bold)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _statusDot(bool active) => Container(
+    width: 8, height: 8, 
+    decoration: BoxDecoration(
+      color: active ? AppColors.success : AppColors.error, 
+      shape: BoxShape.circle, 
+      border: Border.all(color: Colors.white, width: 1.5)
+    )
+  );
+
+  Widget _statusDotBadge(bool active) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+    decoration: BoxDecoration(
+      color: (active ? AppColors.success : AppColors.error).withValues(alpha: 0.1),
+      borderRadius: BorderRadius.circular(8),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(width: 6, height: 6, decoration: BoxDecoration(color: active ? AppColors.success : AppColors.error, shape: BoxShape.circle)),
+        const SizedBox(width: 6),
+        Text(active ? "Active" : "Inactive", style: TextStyle(color: active ? AppColors.success : AppColors.error, fontSize: 10, fontWeight: FontWeight.w800)),
+      ],
+    ),
+  );
+
+  void _showFiltersBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => Container(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                   Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(color: AppColors.background, borderRadius: BorderRadius.circular(12)),
-                          child: const Icon(Icons.handshake_rounded, color: AppColors.textSecondary, size: 20),
-                        ),
-                        _statusDot(vendor.isActive),
-                      ],
-                    ),
-                  ),
-                  const Spacer(),
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(vendor.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14), maxLines: 2, overflow: TextOverflow.ellipsis),
-                        const SizedBox(height: 2),
-                        Text("Code: ${vendor.code}", style: const TextStyle(color: AppColors.textSecondary, fontSize: 11)),
-                      ],
-                    ),
-                  ),
+                  const Text("Filter Vendors", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                  IconButton(icon: const Icon(Icons.close_rounded), onPressed: () => Navigator.pop(context)),
                 ],
               ),
-            ),
-          );
-        },
-        childCount: vendors.length,
-      ),
-    );
-  }
-
-  Widget _buildList(List<VendorModel> vendors) {
-    return SliverList(
-      delegate: SliverChildBuilderDelegate(
-        (context, index) {
-          final vendor = vendors[index];
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Dismissible(
-              key: Key(vendor.id),
-              direction: DismissDirection.horizontal,
-              confirmDismiss: (direction) async {
-                if (direction == DismissDirection.endToStart) {
-                  await _deleteVendor(vendor);
-                  return false;
-                } else if (direction == DismissDirection.startToEnd) {
-                  final result = await Navigator.push(
-                    context, 
-                    MaterialPageRoute(builder: (context) => VendorCreatePage(vendor: vendor))
+              const SizedBox(height: 16),
+              const Text("Vendor Status", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textSecondary)),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 12,
+                children: ['All', 'Active', 'Inactive'].map((status) {
+                  final isSelected = _filterStatus == status;
+                  return FilterChip(
+                    label: Text(status),
+                    selected: isSelected,
+                    onSelected: (v) {
+                      setModalState(() => _filterStatus = status);
+                      setState(() { _filterStatus = status; _applyFilters(); });
+                    },
+                    backgroundColor: AppColors.background,
+                    selectedColor: AppColors.primary,
+                    labelStyle: TextStyle(
+                      color: isSelected ? Colors.white : AppColors.textSecondary,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide.none),
+                    showCheckmark: false,
                   );
-                  if (result == true) _loadVendors();
-                  return false;
-                }
-                return false;
-              },
-              background: Container(
-                alignment: Alignment.centerLeft,
-                padding: const EdgeInsets.only(left: 20),
-                decoration: BoxDecoration(color: Colors.blue, borderRadius: BorderRadius.circular(24)),
-                child: const Icon(Icons.edit, color: Colors.white),
+                }).toList(),
               ),
-              secondaryBackground: Container(
-                alignment: Alignment.centerRight,
-                padding: const EdgeInsets.only(right: 20),
-                decoration: BoxDecoration(color: AppColors.error, borderRadius: BorderRadius.circular(24)),
-                child: const Icon(Icons.delete, color: Colors.white),
-              ),
-              child: GestureDetector(
-                onTap: () => _showVendorDetails(vendor),
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.1)),
-                    boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.03), blurRadius: 16, offset: const Offset(0, 4))],
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    elevation: 0,
                   ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(color: AppColors.background, borderRadius: BorderRadius.circular(16)),
-                        child: const Icon(Icons.handshake_rounded, color: AppColors.textSecondary),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(vendor.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14), overflow: TextOverflow.ellipsis),
-                            Text("Code: ${vendor.code}", style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                          ],
-                        ),
-                      ),
-                      _statusDot(vendor.isActive),
-                    ],
-                  ),
+                  child: const Text("Apply Filters", style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
               ),
-            ),
-          );
-        },
-        childCount: vendors.length,
-      ),
-    );
-  }
-
-  Widget _statusDot(bool isActive) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: (isActive ? AppColors.success : AppColors.error).withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(width: 6, height: 6, decoration: BoxDecoration(color: isActive ? AppColors.success : AppColors.error, shape: BoxShape.circle)),
-          const SizedBox(width: 6),
-          Text(isActive ? "Active" : "Inactive", style: TextStyle(color: isActive ? AppColors.success : AppColors.error, fontSize: 10, fontWeight: FontWeight.w800)),
-        ],
+              const SizedBox(height: 16),
+            ],
+          ),
+        ),
       ),
     );
   }

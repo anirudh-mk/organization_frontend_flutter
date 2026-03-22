@@ -311,10 +311,10 @@ class _VendorCreatePageState extends State<VendorCreatePage> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        title: Text(_isEditing ? "Edit Vendor" : "New Vendor", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-        centerTitle: true,
+        backgroundColor: AppColors.background, elevation: 0, scrolledUnderElevation: 0,
+        title: Text(_isEditing ? "Edit Vendor" : "Create Vendor", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        centerTitle: false,
+        leading: IconButton(icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20), onPressed: () => Navigator.pop(context)),
       ),
       body: _isSaving
         ? const Center(child: CircularProgressIndicator())
@@ -326,319 +326,191 @@ class _VendorCreatePageState extends State<VendorCreatePage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // ── Vendor Details ──
-              _sectionHeader("Vendor Details"),
-              const SizedBox(height: 16),
-              _label("VENDOR NAME *"),
-              _field(_nameController, "e.g., Acme Corp",
-                  validator: (v) => v == null || v.isEmpty ? "Required" : null),
-              const SizedBox(height: 16),
-              Row(children: [
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  _label("VENDOR CODE"),
-                  _field(_codeController, "e.g., VND-001 (Blank for auto)"),
-                ])),
-                const SizedBox(width: 12),
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  _label("STATUS"),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.15)),
+              _sectionTitle("Vendor Identity"),
+              _card([
+                _label("VENDOR NAME *"),
+                _field(_nameController, "e.g., Acme Corp",
+                    validator: (v) => v == null || v.isEmpty ? "Required" : null),
+                const SizedBox(height: 16),
+                Row(children: [
+                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    _label("VENDOR CODE"),
+                    _field(_codeController, "VND-001"),
+                  ])),
+                  const SizedBox(width: 12),
+                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    _label("STATUS"),
+                    Container(
+                      height: 56,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: AppColors.background.withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.1)),
+                      ),
+                      child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                        Text(_isActive ? "Active" : "Inactive",
+                            style: TextStyle(color: _isActive ? AppColors.success : AppColors.error, fontWeight: FontWeight.bold)),
+                        Switch(value: _isActive, onChanged: (v) => setState(() => _isActive = v), activeColor: AppColors.success),
+                      ]),
                     ),
-                    child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                      Text(_isActive ? "Active" : "Inactive",
-                          style: TextStyle(color: _isActive ? AppColors.success : AppColors.textMuted, fontWeight: FontWeight.w600)),
-                      Switch(value: _isActive, onChanged: (v) => setState(() => _isActive = v), activeColor: AppColors.success),
-                    ]),
-                  ),
-                ])),
+                  ])),
+                ]),
               ]),
               
               const SizedBox(height: 32),
 
               // ── Multiple Contact Info (Emails & Mobiles) ──
-              _sectionHeader("Contact Info"),
-              const SizedBox(height: 16),
-              _emailSection(),
-              const SizedBox(height: 16),
-              _mobileSection(),
+              _sectionTitle("Contact Info"),
+              _card([
+                _emailSection(),
+                const SizedBox(height: 24),
+                _mobileSection(),
+              ]),
 
               const SizedBox(height: 32),
 
               // ── Address ──
-              _sectionHeader("Addresses"),
-              const SizedBox(height: 4),
-              const Text("Add one or more addresses for this vendor.",
-                  style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
-              const SizedBox(height: 16),
+              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                _sectionTitle("Addresses"),
+                TextButton.icon(onPressed: () => _addAddressField(), icon: const Icon(Icons.add_location_alt_rounded, size: 16), label: const Text("Add Address", style: TextStyle(fontSize: 12))),
+              ]),
               if (_isLoadingLocations)
                 const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator()))
               else
                 _addressSection(),
 
               const SizedBox(height: 48),
-              SizedBox(
-                width: double.infinity, height: 56,
-                child: ElevatedButton(
-                  onPressed: _isSaving ? null : _submit,
-                  child: _isSaving
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : Text(_isEditing ? "Update Vendor" : "Create Vendor",
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                ),
-              ),
-              const SizedBox(height: 40),
             ],
+          ),
+        ),
+      ),
+      bottomNavigationBar: Container(
+        height: 90,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 20, offset: const Offset(0, -5))],
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: TextButton.styleFrom(foregroundColor: AppColors.textSecondary),
+                    child: const Text("Cancel", style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  flex: 2,
+                  child: ElevatedButton(
+                    onPressed: _isSaving ? null : _submit,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                    ),
+                    child: Text(_isEditing ? "Update" : "Create", style: const TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _sectionHeader(String title) {
-    return Row(children: [
-      Text(title, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
-      const SizedBox(width: 12),
-      const Expanded(child: Divider()),
-    ]);
-  }
+  Widget _sectionTitle(String title) => Padding(padding: const EdgeInsets.only(bottom: 12, left: 4), child: Text(title.toUpperCase(), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: AppColors.textSecondary, letterSpacing: 1.2)));
 
-  Widget _label(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Text(text,
-          style: const TextStyle(
-              fontWeight: FontWeight.w800,
-              color: AppColors.textSecondary,
-              fontSize: 11,
-              letterSpacing: 1.2)),
-    );
-  }
+  Widget _card(List<Widget> children) => Container(
+    padding: const EdgeInsets.all(24),
+    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))]),
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: children),
+  );
 
-  Widget _field(TextEditingController controller, String hint,
-      {TextInputType? keyboardType, String? Function(String?)? validator}) {
-    return TextFormField(
-      controller: controller,
-      keyboardType: keyboardType,
-      validator: validator,
-      decoration: InputDecoration(
-        hintText: hint,
-        filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-        enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: AppColors.textMuted.withValues(alpha: 0.12))),
-        focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: AppColors.primary)),
-        errorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: AppColors.error)),
-      ),
-    );
-  }
+  Widget _label(String text) => Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(text, style: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.textSecondary, fontSize: 10, letterSpacing: 1.2)));
 
-  Widget _dropdown<T>({
-    required T? value,
-    required String hint,
-    required List<DropdownMenuItem<T>> items,
-    required ValueChanged<T?>? onChanged,
-    bool enabled = true,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      decoration: BoxDecoration(
-        color: enabled ? Colors.white : AppColors.background,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.12)),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<T>(
-          value: value,
-          isExpanded: true,
-          hint: Text(hint, style: const TextStyle(fontSize: 13, color: AppColors.textMuted)),
-          items: enabled ? items : null,
-          onChanged: enabled ? onChanged : null,
-          icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.textSecondary),
-        ),
-      ),
-    );
-  }
+  Widget _field(TextEditingController ctrl, String hint, {TextInputType? keyboardType, String? Function(String?)? validator}) => TextFormField(controller: ctrl, keyboardType: keyboardType, validator: validator, decoration: InputDecoration(hintText: hint, filled: true, fillColor: AppColors.background.withValues(alpha: 0.3), enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: AppColors.textMuted.withValues(alpha: 0.1))), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: AppColors.accent)), errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Colors.red))));
+
+  Widget _dropdown<T>({required T? value, required String hint, required List<DropdownMenuItem<T>> items, required ValueChanged<T?>? onChanged, bool enabled = true}) => Container(padding: const EdgeInsets.symmetric(horizontal: 14), decoration: BoxDecoration(color: enabled ? AppColors.background.withValues(alpha: 0.3) : AppColors.background.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.1))), child: DropdownButtonHideUnderline(child: DropdownButton<T>(value: value, isExpanded: true, hint: Text(hint, style: const TextStyle(fontSize: 13, color: AppColors.textMuted)), items: enabled ? items : null, onChanged: enabled ? onChanged : null, icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.textSecondary))));
 
   Widget _emailSection() {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-        _label("EMAILS"),
-        TextButton.icon(
-          onPressed: _addEmailField,
-          icon: const Icon(Icons.add, size: 16),
-          label: const Text("Add Email", style: TextStyle(fontSize: 12)),
-        ),
-      ]),
+      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [_label("EMAILS"), TextButton.icon(onPressed: () => _addEmailField(), icon: const Icon(Icons.add, size: 16), label: const Text("Add", style: TextStyle(fontSize: 12)))]),
       ..._emailFields.asMap().entries.map((entry) {
         int idx = entry.key;
         var field = entry.value;
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: Row(children: [
-            Expanded(
-              flex: 2,
-              child: _dropdown<ContactTypeModel>(
-                value: field['type'],
-                hint: "Type",
-                items: _contactTypes.map((t) => DropdownMenuItem(value: t, child: Text(t.name))).toList(),
-                onChanged: (v) => setState(() => _emailFields[idx]['type'] = v),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              flex: 4,
-              child: _field(field['controller'] as TextEditingController, "email@example.com", keyboardType: TextInputType.emailAddress),
-            ),
-            if (_emailFields.length > 1)
-              IconButton(
-                icon: const Icon(Icons.remove_circle_outline, color: AppColors.error),
-                onPressed: () => setState(() => _emailFields.removeAt(idx)),
-              ),
-          ]),
-        );
+        return Padding(padding: const EdgeInsets.only(bottom: 12), child: Row(children: [
+          Expanded(flex: 2, child: _dropdown<ContactTypeModel>(value: field['type'], hint: "Type", items: _contactTypes.map((t) => DropdownMenuItem(value: t, child: Text(t.name))).toList(), onChanged: (v) => setState(() => _emailFields[idx]['type'] = v))),
+          const SizedBox(width: 8),
+          Expanded(flex: 4, child: _field(field['controller'] as TextEditingController, "email@example.com", keyboardType: TextInputType.emailAddress)),
+          if (_emailFields.length > 1) IconButton(icon: const Icon(Icons.remove_circle_outline, color: Colors.red, size: 20), onPressed: () => setState(() => _emailFields.removeAt(idx))),
+        ]));
       }),
     ]);
   }
 
   Widget _mobileSection() {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-        _label("MOBILES"),
-        TextButton.icon(
-          onPressed: _addMobileField,
-          icon: const Icon(Icons.add, size: 16),
-          label: const Text("Add Mobile", style: TextStyle(fontSize: 12)),
-        ),
-      ]),
+      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [_label("MOBILES"), TextButton.icon(onPressed: () => _addMobileField(), icon: const Icon(Icons.add, size: 16), label: const Text("Add", style: TextStyle(fontSize: 12)))]),
       ..._mobileFields.asMap().entries.map((entry) {
         int idx = entry.key;
         var field = entry.value;
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: Row(children: [
-            Expanded(
-              flex: 2,
-              child: _dropdown<ContactTypeModel>(
-                value: field['type'],
-                hint: "Type",
-                items: _contactTypes.map((t) => DropdownMenuItem(value: t, child: Text(t.name))).toList(),
-                onChanged: (v) => setState(() => _mobileFields[idx]['type'] = v),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              flex: 4,
-              child: _field(field['controller'] as TextEditingController, "+91 ...", keyboardType: TextInputType.phone),
-            ),
-            if (_mobileFields.length > 1)
-              IconButton(
-                icon: const Icon(Icons.remove_circle_outline, color: AppColors.error),
-                onPressed: () => setState(() => _mobileFields.removeAt(idx)),
-              ),
-          ]),
-        );
+        return Padding(padding: const EdgeInsets.only(bottom: 12), child: Row(children: [
+          Expanded(flex: 2, child: _dropdown<ContactTypeModel>(value: field['type'], hint: "Type", items: _contactTypes.map((t) => DropdownMenuItem(value: t, child: Text(t.name))).toList(), onChanged: (v) => setState(() => _mobileFields[idx]['type'] = v))),
+          const SizedBox(width: 8),
+          Expanded(flex: 4, child: _field(field['controller'] as TextEditingController, "+91 ...", keyboardType: TextInputType.phone)),
+          if (_mobileFields.length > 1) IconButton(icon: const Icon(Icons.remove_circle_outline, color: Colors.red, size: 20), onPressed: () => setState(() => _mobileFields.removeAt(idx))),
+        ]));
       }),
     ]);
   }
 
   Widget _addressSection() {
-    return Column(children: [
-      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-        const SizedBox(),
-        TextButton.icon(
-          onPressed: _addAddressField,
-          icon: const Icon(Icons.add_location_alt_rounded, size: 16),
-          label: const Text("Add Address", style: TextStyle(fontSize: 12)),
-        ),
-      ]),
-      ..._addressFields.asMap().entries.map((entry) {
-        int idx = entry.key;
-        var f = entry.value;
-        return Container(
-          margin: const EdgeInsets.only(bottom: 24),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.1)),
-          ),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              _label("ADDRESS #${idx + 1}"),
-              if (_addressFields.length > 1)
-                IconButton(
-                  icon: const Icon(Icons.delete_outline, color: AppColors.error, size: 20),
-                  onPressed: () => setState(() => _addressFields.removeAt(idx)),
-                ),
-            ]),
-            const SizedBox(height: 8),
-            _label("ADDRESS TYPE"),
-            _dropdown<AddressTypeModel>(
-              value: f['selectedType'],
-              hint: "Select Type",
-              items: _addressTypes.map((t) => DropdownMenuItem(value: t, child: Text(t.name))).toList(),
-              onChanged: (v) => setState(() => f['selectedType'] = v),
-            ),
-            const SizedBox(height: 16),
-            Row(children: [
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                _label("COUNTRY"),
-                _dropdown<CountryModel>(
-                  value: f['selectedCountry'],
-                  hint: "Country",
-                  items: _countries.map((c) => DropdownMenuItem(value: c, child: Text(c.name))).toList(),
-                  onChanged: (v) => _onAddressCountryChanged(idx, v),
-                ),
-              ])),
-              const SizedBox(width: 12),
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                _label("STATE"),
-                _dropdown<StateModel>(
-                  value: f['selectedState'],
-                  hint: "State",
-                  items: (f['states'] as List<StateModel>).map((s) => DropdownMenuItem(value: s, child: Text(s.name))).toList(),
-                  onChanged: f['selectedCountry'] != null ? (v) => _onAddressStateChanged(idx, v) : null,
-                  enabled: f['selectedCountry'] != null,
-                ),
-              ])),
-            ]),
-            const SizedBox(height: 16),
-            _label("DISTRICT"),
-            _dropdown<DistrictModel>(
-              value: f['selectedDistrict'],
-              hint: "District",
-              items: (f['districts'] as List<DistrictModel>).map((d) => DropdownMenuItem(value: d, child: Text(d.name))).toList(),
-              onChanged: f['selectedState'] != null ? (v) => setState(() => f['selectedDistrict'] = v) : null,
-              enabled: f['selectedState'] != null,
-            ),
-            const SizedBox(height: 16),
-            _label("STREET ADDRESS (LINE 1)"),
-            _field(f['line1'], "Building No., Street Name"),
-            const SizedBox(height: 16),
-            _label("ADDRESS LINE 2"),
-            _field(f['line2'], "Suite, Floor, Landmark"),
-            const SizedBox(height: 16),
-            Row(children: [
-              Expanded(flex: 2, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                _label("CITY"),
-                _field(f['city'], "City"),
-              ])),
-              const SizedBox(width: 12),
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                _label("POSTAL CODE"),
-                _field(f['postalCode'], "Zip"),
-              ])),
-            ]),
+    return Column(children: _addressFields.asMap().entries.map((entry) {
+      int idx = entry.key;
+      var f = entry.value;
+      return Container(
+        margin: const EdgeInsets.only(bottom: 20),
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))]),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+            _label("ADDRESS #${idx + 1}"),
+            if (_addressFields.length > 1) IconButton(icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20), onPressed: () => setState(() => _addressFields.removeAt(idx))),
           ]),
-        );
-      }),
-    ]);
+          const SizedBox(height: 8),
+          _label("ADDRESS TYPE"),
+          _dropdown<AddressTypeModel>(value: f['selectedType'], hint: "Select Type", items: _addressTypes.map((t) => DropdownMenuItem(value: t, child: Text(t.name))).toList(), onChanged: (v) => setState(() => f['selectedType'] = v)),
+          const SizedBox(height: 16),
+          Row(children: [
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_label("COUNTRY"), _dropdown<CountryModel>(value: f['selectedCountry'], hint: "Country", items: _countries.map((c) => DropdownMenuItem(value: c, child: Text(c.name))).toList(), onChanged: (v) => _onAddressCountryChanged(idx, v))])),
+            const SizedBox(width: 12),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_label("STATE"), _dropdown<StateModel>(value: f['selectedState'], hint: "State", items: (f['states'] as List<StateModel>).map((s) => DropdownMenuItem(value: s, child: Text(s.name))).toList(), onChanged: f['selectedCountry'] != null ? (v) => _onAddressStateChanged(idx, v) : null, enabled: f['selectedCountry'] != null)]))
+          ]),
+          const SizedBox(height: 16),
+          _label("DISTRICT"),
+          _dropdown<DistrictModel>(value: f['selectedDistrict'], hint: "District", items: (f['districts'] as List<DistrictModel>).map((d) => DropdownMenuItem(value: d, child: Text(d.name))).toList(), onChanged: f['selectedState'] != null ? (v) => setState(() => f['selectedDistrict'] = v) : null, enabled: f['selectedState'] != null),
+          const SizedBox(height: 16),
+          _label("STREET ADDRESS (LINE 1)"),
+          _field(f['line1'], "Building No., Street Name"),
+          const SizedBox(height: 16),
+          _label("ADDRESS LINE 2"),
+          _field(f['line2'], "Suite, Floor, Landmark"),
+          const SizedBox(height: 16),
+          Row(children: [
+            Expanded(flex: 2, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_label("CITY"), _field(f['city'], "City")])),
+            const SizedBox(width: 12),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_label("POSTAL CODE"), _field(f['postalCode'], "Zip")])),
+          ]),
+        ]),
+      );
+    }).toList());
   }
 }

@@ -116,4 +116,17 @@ class VendorService extends BaseService {
       throw Exception("Error getting next code: $e");
     }
   }
+
+  Future<VendorModel> getVendor(String id) async {
+    try {
+      final response = await performRequest((headers) => http.get(Uri.parse('$baseUrl$id/'), headers: headers));
+      if (response.statusCode == 200) {
+        return VendorModel.fromJson(jsonDecode(response.body));
+      } else {
+        throw Exception("Failed to load vendor: ${response.statusCode}");
+      }
+    } catch (e) {
+      throw Exception("Error fetching vendor: $e");
+    }
+  }
 }
