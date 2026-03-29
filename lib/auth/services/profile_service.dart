@@ -3,9 +3,11 @@ import 'package:http/http.dart' as http;
 import 'token_manager.dart';
 import '../../shared/services/base_service.dart';
 
+import '../../core/constants/api_constants.dart';
+
 class ProfileService extends BaseService {
   // Use the same base url structure as AuthService. Adjust if necessary.
-  static const String baseUrl = 'http://127.0.0.1:8001/api/v1/accounts/user';
+  static const String baseUrl = ApiConstants.userEndpoint;
 
   Future<Map<String, dynamic>> getProfile() async {
     try {

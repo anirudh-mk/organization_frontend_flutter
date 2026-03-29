@@ -10,6 +10,7 @@ import '../../shared/models/location_models.dart';
 import '../../employee/widgets/employee_selector.dart';
 import '../../equipment/widgets/equipment_selector.dart';
 import 'site_create_page.dart';
+import '../../core/constants/api_constants.dart';
 
 class SiteDetailsPage extends StatefulWidget {
   final SiteModel site;
@@ -111,7 +112,7 @@ class _SiteDetailsPageState extends State<SiteDetailsPage> with SingleTickerProv
   @override
   Widget build(BuildContext context) {
     final imageUrl = _site.photos.isNotEmpty 
-        ? (_site.photos.first.image.startsWith('http') ? _site.photos.first.image : "http://127.0.0.1:8000${_site.photos.first.image}")
+        ? (_site.photos.first.image.startsWith('http') ? _site.photos.first.image : "${ApiConstants.mainServerUrl}${_site.photos.first.image}")
         : null;
 
     return Scaffold(
@@ -178,7 +179,7 @@ class _SiteDetailsPageState extends State<SiteDetailsPage> with SingleTickerProv
                       }
                       
                       final photo = _site.photos[index];
-                      final url = photo.image.startsWith('http') ? photo.image : "http://127.0.0.1:8000${photo.image}";
+                      final url = photo.image.startsWith('http') ? photo.image : "${ApiConstants.mainServerUrl}${photo.image}";
                       return Image.network(
                         url,
                         fit: BoxFit.cover,
@@ -852,7 +853,7 @@ class _SiteDetailsPageState extends State<SiteDetailsPage> with SingleTickerProv
               itemCount: _site.photos.length,
               itemBuilder: (context, index) {
                 final photo = _site.photos[index];
-                final url = photo.image.startsWith('http') ? photo.image : "http://127.0.0.1:8000${photo.image}";
+                final url = photo.image.startsWith('http') ? photo.image : "${ApiConstants.mainServerUrl}${photo.image}";
                 return ClipRRect(
                   borderRadius: BorderRadius.circular(16),
                   child: Image.network(url, fit: BoxFit.cover, errorBuilder: (c, e, s) => _buildPlaceholder()),

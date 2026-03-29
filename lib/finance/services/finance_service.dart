@@ -6,8 +6,10 @@ import '../models/ledger_model.dart';
 import '../models/transaction_model.dart';
 import '../models/finance_category.dart';
 
+import '../../core/constants/api_constants.dart';
+
 class FinanceService extends BaseService {
-  static const String financeBaseUrl = 'http://127.0.0.1:8000/api/v1/finance';
+  static const String financeBaseUrl = '${ApiConstants.mainApiUrl}/finance';
 
   // --- Ledgers ---
   Future<List<LedgerModel>> getLedgers() async {

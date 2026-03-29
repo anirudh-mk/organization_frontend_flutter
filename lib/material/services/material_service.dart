@@ -3,8 +3,10 @@ import 'package:http/http.dart' as http;
 import '../models/material_models.dart';
 import '../../shared/services/base_service.dart';
 
+import '../../core/constants/api_constants.dart';
+
 class MaterialService extends BaseService {
-  static const String baseUrl = 'http://127.0.0.1:8000/api/v1/material';
+  static const String baseUrl = '${ApiConstants.mainApiUrl}/material';
 
   Future<List<MaterialCategoryModel>> getMaterialCategories() async {
     try {

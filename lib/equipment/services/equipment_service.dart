@@ -8,8 +8,10 @@ import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:http_parser/http_parser.dart';
 
+import '../../core/constants/api_constants.dart';
+
 class EquipmentService extends BaseService {
-  static const String baseUrl = 'http://127.0.0.1:8000/api/v1/equipments/';
+  static const String baseUrl = '${ApiConstants.mainApiUrl}/equipments/';
 
   Future<EquipmentModel> getEquipment(String id) async {
     try {

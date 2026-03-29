@@ -7,9 +7,11 @@ import '../../auth/services/token_manager.dart';
 import '../models/organization_model.dart';
 import '../../shared/services/base_service.dart';
 
+import '../../core/constants/api_constants.dart';
+
 class OrganizationService extends BaseService {
   // Using same base host as auth for now
-  static const String baseUrl = 'http://127.0.0.1:8000/api/v1';
+  static const String baseUrl = ApiConstants.mainApiUrl;
 
   Future<OrganizationModel?> getCurrentOrganization() async {
     try {

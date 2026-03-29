@@ -3,8 +3,10 @@ import 'package:http/http.dart' as http;
 import '../models/client_model.dart';
 import '../../shared/services/base_service.dart';
 
+import '../../core/constants/api_constants.dart';
+
 class ClientService extends BaseService {
-  static const String _base = 'http://127.0.0.1:8000/api/v1/client/clients/';
+  static const String _base = '${ApiConstants.mainApiUrl}/client/clients/';
 
   Future<List<ClientModel>> getClients() async {
     try {

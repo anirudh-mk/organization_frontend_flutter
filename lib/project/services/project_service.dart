@@ -3,8 +3,10 @@ import 'package:http/http.dart' as http;
 import '../models/project_model.dart';
 import '../../shared/services/base_service.dart';
 
+import '../../core/constants/api_constants.dart';
+
 class ProjectService extends BaseService {
-  static const String baseUrl = 'http://127.0.0.1:8000/api/v1/project/';
+  static const String baseUrl = '${ApiConstants.mainApiUrl}/project/';
 
   Future<List<ProjectModel>> getProjects() async {
     try {

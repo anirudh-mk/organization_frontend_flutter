@@ -7,8 +7,10 @@ import 'package:image_picker/image_picker.dart';
 import '../models/site_model.dart';
 import '../../shared/services/base_service.dart';
 
+import '../../core/constants/api_constants.dart';
+
 class SiteService extends BaseService {
-  static const String baseUrl = 'http://127.0.0.1:8000/api/v1/site/sites';
+  static const String baseUrl = '${ApiConstants.mainApiUrl}/site/sites';
 
   Future<List<SiteModel>> getSites() async {
     try {
@@ -288,7 +290,7 @@ class SiteService extends BaseService {
   Future<List<SiteTaskModel>> getTasks(String siteId) async {
     try {
       final response = await performRequest((headers) => http.get(
-        Uri.parse('http://127.0.0.1:8000/api/v1/site/tasks/?site=$siteId'),
+        Uri.parse('${ApiConstants.mainApiUrl}/site/tasks/?site=$siteId'),
         headers: headers,
       ));
       if (response.statusCode == 200) {
@@ -304,7 +306,7 @@ class SiteService extends BaseService {
   Future<SiteTaskModel> createTask(Map<String, dynamic> data) async {
     try {
       final response = await performRequest((headers) => http.post(
-        Uri.parse('http://127.0.0.1:8000/api/v1/site/tasks/'),
+        Uri.parse('${ApiConstants.mainApiUrl}/site/tasks/'),
         headers: headers,
         body: jsonEncode(data),
       ));
@@ -322,7 +324,7 @@ class SiteService extends BaseService {
   Future<void> toggleTaskItem(String itemId) async {
     try {
       final response = await performRequest((headers) => http.post(
-        Uri.parse('http://127.0.0.1:8000/api/v1/site/task-items/$itemId/toggle-completion/'),
+        Uri.parse('${ApiConstants.mainApiUrl}/site/task-items/$itemId/toggle-completion/'),
         headers: headers,
       ));
 
@@ -337,7 +339,7 @@ class SiteService extends BaseService {
   Future<void> deleteTask(String id) async {
     try {
       final response = await performRequest((headers) => http.delete(
-        Uri.parse('http://127.0.0.1:8000/api/v1/site/tasks/$id/'),
+        Uri.parse('${ApiConstants.mainApiUrl}/site/tasks/$id/'),
         headers: headers,
       ));
       

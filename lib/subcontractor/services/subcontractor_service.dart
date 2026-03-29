@@ -4,8 +4,10 @@ import '../models/subcontractor_model.dart';
 import '../../shared/services/base_service.dart';
 import '../../auth/services/token_manager.dart';
 
+import '../../core/constants/api_constants.dart';
+
 class SubcontractorService extends BaseService {
-  static const String baseUrl = 'http://127.0.0.1:8000/api/v1/subcontractor/subcontractors/';
+  static const String baseUrl = '${ApiConstants.mainApiUrl}/subcontractor/subcontractors/';
 
   Future<List<SubcontractorModel>> getSubcontractors() async {
     try {

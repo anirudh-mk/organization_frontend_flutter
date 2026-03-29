@@ -3,8 +3,10 @@ import 'package:http/http.dart' as http;
 import '../models/location_models.dart';
 import '../../shared/services/base_service.dart';
 
+import '../../core/constants/api_constants.dart';
+
 class LocationService extends BaseService {
-  static const String baseUrl = 'http://127.0.0.1:8000/api/v1/shared/';
+  static const String baseUrl = '${ApiConstants.mainApiUrl}/shared/';
 
   List<dynamic> _extractResults(dynamic body) {
     if (body is Map && body.containsKey('results')) {

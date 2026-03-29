@@ -4,9 +4,11 @@ import '../models/warehouse_model.dart';
 import '../../shared/services/base_service.dart';
 import '../../auth/services/token_manager.dart';
 
+import '../../core/constants/api_constants.dart';
+
 class WarehouseService extends BaseService {
   // Host loopback address for Android emulator to hit the backend
-  static const String baseUrl = 'http://127.0.0.1:8000/api/v1/warehouse/warehouses/';
+  static const String baseUrl = '${ApiConstants.mainApiUrl}/warehouse/warehouses/';
 
   Future<List<WarehouseModel>> getWarehouses({String? organizationId}) async {
     try {

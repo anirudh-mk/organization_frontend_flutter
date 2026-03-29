@@ -5,8 +5,10 @@ import 'package:file_picker/file_picker.dart';
 import '../models/vehicle_models.dart';
 import '../../shared/services/base_service.dart';
 
+import '../../core/constants/api_constants.dart';
+
 class VehicleService extends BaseService {
-  static const String baseUrl = 'http://127.0.0.1:8000/api/v1/vehicle/vehicles/';
+  static const String baseUrl = '${ApiConstants.mainApiUrl}/vehicle/vehicles/';
 
   Future<List<VehicleModel>> getVehicles({String? organizationId}) async {
     try {
